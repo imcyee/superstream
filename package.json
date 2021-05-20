@@ -1,0 +1,16 @@
+{
+  "name": "stream-node",
+  "version": "1.0.0",
+  "description": "stream for node",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^4.2.4"
+  }
+}
