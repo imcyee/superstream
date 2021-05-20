@@ -1,4 +1,4 @@
-import { Activity } from "../activity"
+import { Activity, AggregatedActivity } from "../activity"
 import { ValueError } from "../errors"
 
 
@@ -22,17 +22,17 @@ export class BaseSerializer {
   check_type(data) {
     if (!(data instanceof Activity)) {
       throw new ValueError(
-        `we only know how to dump activities, not ${type(data)}`
+        `we only know how to dump activities, not ${typeof (data)}`
       )
     }
   }
 
-  loads(serialized_activity) {
+  loads({ serialized_activity }) {
     const activity = serialized_activity
     return activity
   }
 
-  dumps(activity) {
+  dumps({ activity }) {
     this.check_type(activity)
     return activity
   }
@@ -59,7 +59,7 @@ export class BaseAggregatedSerializer extends BaseSerializer {
 
   check_type(data) {
     if (!(data instanceof AggregatedActivity)) {
-      throw new ValueError('we only know how to dump AggregatedActivity not %r' % data)
+      throw new ValueError(`we only know how to dump AggregatedActivity not ${data}`)
     }
   }
 }

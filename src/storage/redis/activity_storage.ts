@@ -1,5 +1,6 @@
 import { ActivitySerializer } from "../../serializers/activity_serializer"
 import { BaseActivityStorage } from "../base"
+import { ShardedHashCache } from "./structures/hash"
 
 class ActivityCache extends ShardedHashCache {
   key_format = 'activity:cache:%s'
@@ -8,13 +9,13 @@ class ActivityCache extends ShardedHashCache {
 class RedisActivityStorage extends BaseActivityStorage {
   default_serializer_class = ActivitySerializer
 
-  get_key(self) {
+  get_key() {
     return this.options.get('key', 'global')
   }
 
-  get_cache(self) {
+  get_cache() {
     const key = this.get_key()
-    return ActivityCache(key)
+    return new ActivityCache(key)
   }
 
   get_from_storage(activity_ids, kwargs) {

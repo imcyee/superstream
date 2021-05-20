@@ -1,6 +1,8 @@
+import { SerializationException } from "../errors"
 import { datetime_to_epoch, epoch_to_datetime } from "../utils"
 import { ActivitySerializer } from "./activity_serializer"
 import { BaseAggregatedSerializer } from "./base"
+import { check_reserved } from "./utils"
 
 
 
@@ -51,7 +53,7 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
       if (!aggregated.dehydrated) {
         aggregated = aggregated.get_dehydrated()
       }
-      serialized_activities = map(str, aggregated._activity_ids)
+      serialized_activities = aggregated._activity_ids// map(str, aggregated._activity_ids)
     } else {
       for (const activity of aggregated.activities) {
         const serialized = activity_serializer.dumps(activity)
@@ -80,8 +82,13 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
       const aggregated = this.aggregated_activity_class(group)
 
       // # get the date and activities
-      const date_dict = dict(zip(this.date_fields, parts[1: 5]))
-      for (k, v of date_dict.items()) {
+      const slicedParts = parts.slice(1, 5)
+      const date_dict = this.date_fields.map(function (e, i) {
+        return [e, slicedParts[i]];
+      });
+      // dict(zip(this.date_fields, parts.slice(1, 5)))
+      for (const date_dict_tuple of date_dict) {
+        const [k, v] = date_dict_tuple
         var date_value = null
         if (v != '-1')
           date_value = epoch_to_datetime(parseFloat(v))
@@ -91,11 +98,15 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
       // # write the activities
       const serializations = parts[5].split(';')
       if (this.dehydrate) {
-        const activity_ids = list(map(int, serializations))
+        const activity_ids = serializations.map((sl) => Number(sl))
         aggregated._activity_ids = activity_ids
         aggregated.dehydrated = true
       } else {
-        const activities = [activity_serializer.loads(s) for s of serializations]
+        const activities = []
+        for (const s of serializations) {
+          activities.push(activity_serializer.loads(s))
+        }
+        // const activities = [activity_serializer.loads(s) for s of serializations]
         aggregated.activities = activities
         aggregated.dehydrated = false
       }
@@ -105,9 +116,9 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
 
       return aggregated
     } catch (err) {
-      except Exception as e:
-      msg = six.text_type(e)
-      raise SerializationException(msg)
+      // except Exception as e:
+      const msg = err
+      throw new SerializationException(msg)
     }
   }
 }

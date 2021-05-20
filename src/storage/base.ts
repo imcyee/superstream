@@ -6,13 +6,13 @@ import { SimpleTimelineSerializer } from "../serializers/simple_timeline_seriali
 class BaseStorage {
   // '''
   // The feed uses two storage classes, the
-  // - Activity Storage and the
+  // - Activity Storage && the
   // - Timeline Storage
 
   // The process works as follows::
 
   //     feed = BaseFeed()
-  //     # the activity storage is used to store the activity and mapped to an id
+  //     # the activity storage is used to store the activity && mapped to an id
   //     feed.insert_activity(activity)
   //     # now the id is inserted into the timeline storage
   //     feed.add(activity)
@@ -28,7 +28,7 @@ class BaseStorage {
   // '''
   // #: The default serializer class to use
   default_serializer_class = DummySerializer
-  metrics = get_metrics_instance()
+  // metrics = get_metrics_instance()
 
   activity_class = Activity
   aggregated_activity_class = AggregatedActivity
@@ -79,7 +79,7 @@ class BaseStorage {
     // '''
     // Returns an instance of the serializer class
 
-    // The serializer needs to know about the activity and
+    // The serializer needs to know about the activity &&
     // aggregated activity classes we're using
     // '''
     const serializer_class = this.serializer_class
@@ -96,7 +96,7 @@ class BaseStorage {
 
   serialize_activity(activity) {
     // '''
-    // Serialize the activity and returns the serialized activity
+    // Serialize the activity && returns the serialized activity
 
     // :returns str: the serialized activity
     // '''
@@ -123,11 +123,11 @@ class BaseStorage {
     // Serializes the list of activities
 
     // :param serialized_activities: the list of activities
-    // :param serialized_activities: a dictionary with activity ids and activities
+    // :param serialized_activities: a dictionary with activity ids && activities
     // '''
     const activities = []
     // # handle the case where this is a dict
-    if (serialized_activities instanceof dict) {
+    if (serialized_activities instanceof Object) {
       serialized_activities = serialized_activities.values()
     }
 
@@ -146,7 +146,7 @@ export class BaseActivityStorage extends BaseStorage {
 
   // '''
   // The Activity storage globally stores a key value mapping.
-  // This is used to store the mapping between an activity_id and the actual
+  // This is used to store the mapping between an activity_id && the actual
   // activity object.
 
   // **Example**::
@@ -190,11 +190,11 @@ export class BaseActivityStorage extends BaseStorage {
   }
   get_many(activity_ids, kwargs) {
     // '''
-    // Gets many activities and deserializes them
+    // Gets many activities && deserializes them
 
     // :param activity_ids: the list of activity ids
     // '''
-    this.metrics.on_feed_read(this.__class__, len(activity_ids))
+    // this.metrics.on_feed_read(this.__class__, activity_ids?.length)
     const activities_data = this.get_from_storage(activity_ids, kwargs)
     return this.deserialize_activities(activities_data)
   }
@@ -212,14 +212,14 @@ export class BaseActivityStorage extends BaseStorage {
 
   add_many(activities, kwargs) {
     // '''
-    // Adds many activities and serializes them before forwarding
+    // Adds many activities && serializes them before forwarding
     // this to add_to_storage
 
     // :param activities: the list of activities
     // '''
-    this.metrics.on_feed_write(this.__class__, activities?.length)
+    // this.metrics.on_feed_write(this.__class__, activities?.length)
     const serialized_activities = this.serialize_activities(activities)
-    return this.add_to_storage(serialized_activities, * args, ** kwargs)
+    return this.add_to_storage(serialized_activities, kwargs)
   }
 
   remove(activity, kwargs) {
@@ -228,18 +228,18 @@ export class BaseActivityStorage extends BaseStorage {
 
   remove_many(activities, kwargs) {
     // '''
-    // Figures out the ids of the given activities and forwards
+    // Figures out the ids of the given activities && forwards
     // The removal to the remove_from_storage function
 
     // :param activities: the list of activities
     // '''
-    this.metrics.on_feed_remove(this.__class__, (activities).length)
+    // this.metrics.on_feed_remove(this.__class__, (activities).length)
     var activity_ids
     // if (activities && isinstance(activities[0], (six.string_types, six.integer_types, uuid.UUID))) {
     if (activities && (typeof activities[0] === 'string' || typeof activities[0] === 'number')) {
       activity_ids = activities
     } else {
-      activity_ids = list(this.serialize_activities(activities).keys())
+      activity_ids = Object.keys(this.serialize_activities(activities))
     }
     return this.remove_from_storage(activity_ids, kwargs)
   }
@@ -275,9 +275,21 @@ export class BaseTimelineStorage extends BaseStorage {
     // :param key: the key at which the feed is stored
     // :param activities: the activities which to store
     // '''
-    this.metrics.on_feed_write(this.__class__, activities?.length)
+    // this.metrics.on_feed_write(this.__class__, activities?.length)
     const serialized_activities = this.serialize_activities(activities)
-    return this.add_to_storage(key, serialized_activities, kwargs)
+    return this.add_to_storage(
+      key,
+      serialized_activities,
+      kwargs
+    )
+  }
+
+  add_to_storage(
+    key,
+    serialized_activities,
+    kwargs
+  ) {
+    throw new NotImplementedError()
   }
 
   remove(key, activity, kwargs) {
@@ -292,13 +304,16 @@ export class BaseTimelineStorage extends BaseStorage {
     // :param key: the key at which the feed is stored
     // :param activities: the activities which to remove
     // '''
-    this.metrics.on_feed_remove(this.__class__, activities.length)
+    // this.metrics.on_feed_remove(this.__class__, activities.length)
 
-    var serialized_activities
-    if (activities && isinstance(activities[0], (six.string_types, six.integer_types, uuid.UUID))) {
-      serialized_activities = {
-        a: a for a in activities
+    var serialized_activities = {}
+    if (activities
+      && (typeof activities[0] === 'string' || typeof activities[0] === 'number')
+    ) {
+      for (const a of activities) {
+        serialized_activities[a] = a
       }
+
     } else {
       serialized_activities = this.serialize_activities(activities)
     }
@@ -346,10 +361,10 @@ export class BaseTimelineStorage extends BaseStorage {
       key, start, stop, filter_kwargs = filter_kwargs, ordering_args = ordering_args)
     var activities = []
     if (activities_data) {
-      const serialized_activities = list(zip(* activities_data))[1]
+      const serialized_activities = list(zip(*activities_data))[1]
       activities = this.deserialize_activities(serialized_activities)
     }
-    this.metrics.on_feed_read(this.__class__, activities?.length)
+    // this.metrics.on_feed_read(this.__class__, activities?.length)
     return activities
   }
   get_batch_interface() {

@@ -1,4 +1,5 @@
 import { datetime_to_epoch, epoch_to_datetime } from "../utils"
+import { get_verb_by_id } from "../verbs/utils"
 import { BaseSerializer } from "./base"
 
 export class ActivitySerializer extends BaseSerializer {
@@ -62,19 +63,20 @@ export class ActivitySerializer extends BaseSerializer {
     const verb = get_verb_by_id(verb_id)
     var extra_context = {}
     if (pickle_string) {
-      if (six.PY3) {
-        pickle_string = pickle_string.encode('latin1')
-      }
-      extra_context = pickle.loads(pickle_string)
+      // if (six.PY3) {
+      //   pickle_string = pickle_string.encode('latin1')
+      // }
+      // extra_context = pickle.loads(pickle_string)
+      extra_context = JSON.parse(pickle_string)
     }
-    const activity = new this.activity_class(
+    const activity = new this.activity_class({
       actor_id,
       verb,
       object_id,
       target_id,
-      time = activity_datetime,
-      extra_context = extra_context
-    )
+      time: activity_datetime,
+      extra_context: extra_context
+    })
 
     return activity
   }

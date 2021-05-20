@@ -1,4 +1,6 @@
-class Verb {
+import { register } from "./utils"
+
+export class Verb {
 
   // '''
   // Every activity has a verb and an object.

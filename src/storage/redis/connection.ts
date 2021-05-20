@@ -1,10 +1,10 @@
-import redis
-  from stream_framework import settings
+// import redis
+//   from stream_framework import settings
 
-connection_pool = null
+const connection_pool = null
 
 
-function get_redis_connection(server_name = 'default') {
+export function get_redis_connection(server_name = 'default') {
   // '''
   // Gets the specified redis connection
   // '''
@@ -18,7 +18,7 @@ function get_redis_connection(server_name = 'default') {
   return redis.StrictRedis(connection_pool = pool)
 }
 
-function setup_redis() {
+export function setup_redis() {
   // '''
   // Starts the connection pool for all configured redis servers
   // '''
@@ -29,7 +29,7 @@ function setup_redis() {
       port = config['port'],
       password = config.get('password'),
       db = config['db'],
-      decode_responses = config.get('decode_responses', True),
+      decode_responses = config.get('decode_responses', true),
       // # connection options
       socket_timeout = config.get('socket_timeout', null),
       socket_connect_timeout = config.get('socket_connect_timeout', null),

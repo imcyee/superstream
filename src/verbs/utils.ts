@@ -1,6 +1,7 @@
 // from stream_framework.utils import get_class_from_string
 
 import { ValueError } from "../errors"
+import { Verb } from "./base"
 
 
 const VERB_DICT = {}
@@ -16,20 +17,19 @@ export function get_verb_storage() {
   return VERB_DICT
 }
 
-// def register(verb):
-//     '''
-//     Registers the given verb class
-//     '''
-//     from stream_framework.verbs.base import Verb
-//     if not issubclass(verb, Verb):
-//         raise ValueError('%s doesnt subclass Verb' % verb)
-//     registered_verb = get_verb_storage().get(verb.id, verb)
-//     if registered_verb != verb:
-//         raise ValueError(
-//             'cant register verb %r with id %s (clashing with verb %r)' %
-//             (verb, verb.id, registered_verb))
-//     get_verb_storage()[verb.id] = verb
-
+export function register(verb) {
+  // '''
+  // Registers the given verb class
+  // '''
+  // from stream_framework.verbs.base import Verb
+  if (!(verb.prototype instanceof Verb))
+    throw new ValueError(`${verb} doesnt subclass Verb`)
+  const registered_verb = get_verb_storage()[verb.id] || verb
+  if (registered_verb != verb)
+    throw new ValueError(
+      `cant register verb ${verb} with id ${verb.id} (clashing with verb ${registered_verb})`)
+  get_verb_storage()[verb.id] = verb
+}
 
 export function get_verb_by_id(verb_id) {
   if (!(typeof verb_id === 'number'))
