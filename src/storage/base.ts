@@ -2,6 +2,7 @@ import { Activity, AggregatedActivity } from "../activity"
 import { NotImplementedError } from "../errors"
 import { DummySerializer } from "../serializers/dummy"
 import { SimpleTimelineSerializer } from "../serializers/simple_timeline_serializer"
+import { zip } from "../utils"
 
 class BaseStorage {
   // '''
@@ -323,7 +324,7 @@ export class BaseTimelineStorage extends BaseStorage {
   get_index_of(key, activity_id) {
     throw new NotImplementedError()
   }
-  remove_from_storage(key, serialized_activities) {
+  remove_from_storage(key, serialized_activities, ...kwargs) {
     throw new NotImplementedError()
   }
   index_of(key, activity_or_id) {
@@ -336,7 +337,7 @@ export class BaseTimelineStorage extends BaseStorage {
     const activity_id = this.activities_to_ids([activity_or_id])[0]
     return this.get_index_of(key, activity_id)
   }
-  get_slice_from_storage(key, start, stop, filter_kwargs = null, ordering_args = null) {
+  get_slice_from_storage(key, start, stop, filter_kwargs = null, ordering_args = null): any[] {
     // '''
     // :param key: the key at which the feed is stored
     // :param start: start
@@ -361,7 +362,7 @@ export class BaseTimelineStorage extends BaseStorage {
       key, start, stop, filter_kwargs = filter_kwargs, ordering_args = ordering_args)
     var activities = []
     if (activities_data) {
-      const serialized_activities = list(zip(*activities_data))[1]
+      const serialized_activities = (zip(...activities_data))[1]// list(zip(...activities_data))[1]
       activities = this.deserialize_activities(serialized_activities)
     }
     // this.metrics.on_feed_read(this.__class__, activities?.length)

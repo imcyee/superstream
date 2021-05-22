@@ -1,0 +1,28 @@
+version: '3'
+
+
+networks:
+  app-tier:
+    driver: bridge
+
+
+services:
+  redis:
+    image: redis
+    ports:
+      - 6379
+    networks:
+      - app-tier
+  web:
+    build: .
+    command: npm run start:dev
+    ports:
+      - "8080:8080"
+    environment:
+      - REDISTOGO_URL=redis://redis:6379
+    depends_on:
+      - redis
+    volumes: 
+      - ./src:/usr/src/app/src
+    networks:
+      - app-tier

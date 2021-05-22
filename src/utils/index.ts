@@ -1,3 +1,7 @@
+import lodashZip from 'lodash/zip'
+
+export const zip = lodashZip
+
 export const datetime_to_epoch = (datetime) => {
   return (new Date(datetime).getTime() / 1000) // '%.6f' % datetime_to_epoch(activity.time)
 }
@@ -31,4 +35,14 @@ export function make_list_unique(
     result.push(item)
   }
   return result
+}
+
+export function dictZip(zip) {
+  const json = {}
+  for (const z of zip) {
+    if (z.length !== 2)
+      throw new Error('zip pair must be exactly two element in an array')
+    json[z[0]] = z[1]
+  }
+  return json
 }

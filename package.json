@@ -6,11 +6,19 @@
   "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start:dev": "ts-node-dev ./src/index.ts"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/redis": "^2.8.28",
+    "lodash": "^4.17.21",
+    "redis": "^3.1.2",
     "typescript": "^4.2.4"
+  },
+  "devDependencies": {
+    "ts-node": "^9.1.1",
+    "ts-node-dev": "^1.1.6"
   }
 }

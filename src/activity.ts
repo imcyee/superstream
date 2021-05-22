@@ -1,8 +1,18 @@
 import { ActivityNotFound, AttributeError, DuplicateActivityException, ValueError } from "./errors"
-import { make_list_unique } from "./utils"
+import { datetime_to_epoch, make_list_unique } from "./utils"
 
 const MAX_AGGREGATED_ACTIVITIES_LENGTH = 15
 
+function hashCode(str) {
+  var hash = 0;
+  if (str.length == 0) return hash;
+  for (var i = 0; i < str.length; i++) {
+    var char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash;
+}
 
 class BaseActivity {
   // '''
@@ -96,7 +106,7 @@ export class Activity extends BaseActivity {
 
   __eq__(other) {
     if (!(other instanceof Activity)) {
-      const message = `Can only compare to Activity not ${other} of type ${type(other)}`
+      const message = `Can only compare to Activity not ${other} of type ${typeof (other)}`
       throw new ValueError(message)
     }
     return this.serialization_id == other.serialization_id
@@ -107,7 +117,7 @@ export class Activity extends BaseActivity {
   }
 
   __hash__() {
-    return hash(this.serialization_id)
+    return hashCode(this.serialization_id)
   }
 
   // @property
@@ -131,12 +141,15 @@ export class Activity extends BaseActivity {
     if (this.object_id >= 10 ** 10 || this.verb.id >= 10 ** 3) {
       throw new TypeError('Fatal: object_id / verb have too many digits !')
     }
+
     if (!this.time) {
       throw new TypeError('Cant serialize activities without a time')
     }
-    const milliseconds = str(int(datetime_to_epoch(this.time) * 1000))
-    const serialization_id_str = '%s%0.10d%0.3d' % (milliseconds, this.object_id, this.verb.id)
-    const serialization_id = parseInt(serialization_id_str)
+
+    const milliseconds = (Number(datetime_to_epoch(this.time) * 1000))
+    // const serialization_id_str = `${milliseconds}%0.10d%0.3d` % (milliseconds, this.object_id, this.verb.id)
+    const serialization_id_str = `${milliseconds}${this.object_id.toFixed(10)}${this.verb.id.toFixed(3)}` // % (milliseconds, this.object_id, this.verb.id)
+    const serialization_id = Number(serialization_id_str)
     return serialization_id
   }
 
@@ -169,17 +182,17 @@ export class Activity extends BaseActivity {
     // '''
     // Fail early if using the activity class in the wrong way
     // '''
-    if (name in ['object', 'target', 'actor']) {
-      if (name not in this.__dict__) {
-        const error_message = 'Field this.%s is not defined, use this.%s_id instead' % (name, name)
-        throw new AttributeError(error_message)
-      }
-    }
-    return object.__getattribute__(name)
+    // if (['object', 'target', 'actor'].includes(name)) {
+    //   if (name not in this.__dict__) {
+    //     const error_message = `Field this.${name} is not defined, use this.${name}_id instead` // % (name, name)
+    //     throw new AttributeError(error_message)
+    //   }
+    // }
+    return this?.[name]
   }
 
   __repr__() {
-    const class_name = this.__class__.__name__
+    const class_name = this.constructor.name
     const message = `${class_name}(${this.verb.past_tense}) ${this.actor_id} ${this.object_id}`
     return message
   }
@@ -242,7 +255,7 @@ export class AggregatedActivity extends BaseActivity {
 
     // :returns: int --the serialization id
     // '''
-    const milliseconds = str(int(datetime_to_epoch(this.updated_at)) * 1000)
+    const milliseconds = (Number(datetime_to_epoch(this.updated_at)) * 1000).toString()
     return milliseconds
   }
 
@@ -268,7 +281,8 @@ export class AggregatedActivity extends BaseActivity {
     // expects activities to be a dict like this {'activity_id': Activity}
 
     // '''
-    assert this.dehydrated, 'not dehydrated yet'
+    if (!this.dehydrated)
+      throw new Error('not dehydrated yet')
     for (const activity_id of this._activity_ids) {
       this.activities.push(activities[activity_id])
     }
@@ -304,7 +318,7 @@ export class AggregatedActivity extends BaseActivity {
       activity_ids = this._activity_ids
     }
     else {
-      activity_ids = [a.serialization_id for a in this.activities]
+      activity_ids = this.activities.map(a => a.serialization_id) // [a.serialization_id for a in this.activities]
     }
     return activity_ids
   }
@@ -317,11 +331,12 @@ export class AggregatedActivity extends BaseActivity {
     var equal = true
     const date_fields = ['created_at', 'updated_at', 'seen_at', 'read_at']
     for (const field of date_fields) {
-      const current = getattr(field)
-      const other_value = getattr(other, field)
-      if (isinstance(current, datetime.datetime) and isinstance(other_value, datetime.datetime)) {
-        const delta = abs(current - other_value)
-        if (delta > datetime.timedelta(seconds = 10)) {
+      const current = this[field] //  getattr(field)
+      const other_value = other[field] // getattr(other, field)
+      if (typeof current === 'number' && typeof other_value === 'number') {
+        const delta = Math.abs(current - other_value)
+        const t = new Date()
+        if (delta > t.setSeconds(t.getSeconds() + 10)) {
           equal = false
           break
         } else {
@@ -341,19 +356,22 @@ export class AggregatedActivity extends BaseActivity {
   }
 
   __hash__() {
-    return hash(this.serialization_id)
+    return hashCode(this.serialization_id)
   }
 
   contains(activity) {
     // '''
     // Checks if activity is present in this aggregated
     // '''
-    if (!isinstance(activity, (Activity, long_t, uuid.UUID))) {
-      throw new ValueError('contains needs an activity or long not %s', activity)
+    if (!(activity instanceof Activity) && typeof activity !== 'number' && typeof activity !== 'string') {
+      throw new ValueError(`contains needs an activity or long not ${activity}`)
     }
-    const activity_id = activity?.serialization_id
+    const activity_id = (activity as any)?.serialization_id
     // activity_id = getattr(activity, 'serialization_id', activity)
-    return activity_id in set([a.serialization_id for a in this.activities])
+
+    const found = this.activities.find(a => a.serialization_id === activity_id)
+    return found
+    // return activity_id in set([a.serialization_id for a in this.activities])
   }
 
 
@@ -395,7 +413,7 @@ export class AggregatedActivity extends BaseActivity {
     }
     // # remove the activity
     const activity_id = activity?.serialization_id
-    this.activities = [a for a in this.activities if a.serialization_id != activity_id]
+    this.activities = this.activities.filter(a => a.serialization_id !== activity_id)  // [a for a in this.activities if a.serialization_id != activity_id]
 
     // # now time to update the times
     this.updated_at = this.last_activity.time
@@ -452,7 +470,7 @@ export class AggregatedActivity extends BaseActivity {
   }
   // @property
   get last_activities() {
-    const activities = this.activities[:: -1]
+    const activities = this.activities[this.activities.length - 1] // this.activities[:: -1]
     return activities
   }
   // @property
@@ -461,15 +479,16 @@ export class AggregatedActivity extends BaseActivity {
   }
   // @property
   get verbs() {
-    return make_list_unique([a.verb for a in this.activities])
+    this.activities.map(a => a.verb)
+    return make_list_unique(this.activities.map(a => a.verb))
   }
   // @property
   get actor_ids() {
-    return make_list_unique([a.actor_id for a in this.activities])
+    return make_list_unique(this.activities.map(a => a.actor_id))
   }
   // @property
   get object_ids() {
-    return make_list_unique([a.object_id for a in this.activities])
+    return make_list_unique(this.activities.map(a => a.object_id))
   }
   is_seen() {
     // '''

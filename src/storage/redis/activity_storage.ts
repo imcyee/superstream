@@ -21,8 +21,12 @@ class RedisActivityStorage extends BaseActivityStorage {
   get_from_storage(activity_ids, kwargs) {
     const cache = this.get_cache()
     var activities = cache.get_many(activity_ids)
-    activities = dict((k, six.text_type(v)) for k, v of activities.items() if v)
-      return activities
+
+
+    // activities = dict((k, six.text_type(v)) for k, v of activities.items() if v)
+
+
+    return activities
   }
 
   add_to_storage(serialized_activities, kwargs) {
@@ -31,7 +35,7 @@ class RedisActivityStorage extends BaseActivityStorage {
     const result = cache.set_many(key_value_pairs)
     var insert_count = 0
     if (result) {
-      insert_count = len(key_value_pairs)
+      insert_count = (key_value_pairs).length
     }
     return insert_count
   }

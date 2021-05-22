@@ -170,7 +170,7 @@ class RecentVerbAggregator {
   get_group(activity) {
     // '''
     // Returns a group based on the day and verb
-    // '''
+    // ''' 
     const verb = activity.verb.id
     const date = activity.time.date()
     const group = `${verb}-${date}` // '%s-%s' % (verb, date)

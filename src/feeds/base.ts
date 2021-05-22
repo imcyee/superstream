@@ -499,7 +499,7 @@ class BaseFeed {
   }
 }
 
-class UserBaseFeed extends BaseFeed {
+export class UserBaseFeed extends BaseFeed {
 
   // '''
   // Implementation of the base feed with a different

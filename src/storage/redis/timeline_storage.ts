@@ -1,4 +1,5 @@
 import { ValueError } from "../../errors"
+import { zip } from "../../utils"
 import { BaseTimelineStorage } from "../base"
 import { RedisSortedSetCache } from "./structures/sorted_set"
 
@@ -44,7 +45,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     const result_kwargs = {}
     for (const k of valid_kwargs) {
       const v = filter_kwargs.pop(k, null)
-      if (v is not null) {
+      if (v) {
         if (not isinstance(v, (float, six.integer_types))) {
           throw new ValueError(
             'Filter kwarg values should be floats, int or long, got %s=%s' % (k, v))
@@ -72,7 +73,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
       throw new ValueError('Unrecognized filter kwargs %s' % filter_kwargs)
 
     if (ordering_args) {
-      if (len(ordering_args) > 1)
+      if (ordering_args.length > 1)
         throw new ValueError('Too many order kwargs %s' % ordering_args)
 
       if ('-activity_id' in ordering_args)
@@ -105,7 +106,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     const cache = this.get_cache(key)
     // # turn it into key value pairs
     const scores = map(long_t, activities.keys())
-    const score_value_pairs = list(zip(scores, activities.values()))
+    const score_value_pairs = zip(scores, activities.values())
     const result = cache.add_many(score_value_pairs)
     for (const r of result) {
       // # errors in strings?
@@ -125,7 +126,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
 
   count(key) {
     const cache = this.get_cache(key)
-    return int(cache.count())
+    return Number(cache.count())
   }
 
   delete(key) {
