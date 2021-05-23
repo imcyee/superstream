@@ -2,7 +2,7 @@ import { NotImplementedError } from "../../../errors"
 import { RedisCache } from "./base"
 import { promisify } from 'util'
 import { RedisClient } from "redis"
-import { dictZip, zip } from "../../../utils"
+import { dictZip, parseBigInt, zip } from "../../../utils"
 import range from 'lodash/range'
 import merge from 'lodash/merge'
 import toPairs from 'lodash/toPairs'
@@ -80,7 +80,7 @@ export class RedisHashCache extends BaseRedisHashCache {
     for (const zipped of zip(fields, values)) {
       const [field, result] = zipped
       // logger.debug('getting field %s from %s', field, key)
-      results[field] = result
+      results[field as any] = result
     }
     return results
   }
@@ -135,7 +135,7 @@ export class FallbackHashCache extends RedisHashCache {
     }
     // # start a new map redis or go with the given one
     results = await this._pipeline_if_needed(_get_many, fields)
-    results = zip(fields, results)
+    results = zip(fields, Object.values(results))
 
     // # query missing results from the database && store them
     if (database_fallback) {
@@ -160,6 +160,7 @@ export class FallbackHashCache extends RedisHashCache {
     throw new NotImplementedError('Please implement this')
   }
 }
+
 
 export class ShardedHashCache extends RedisHashCache {
 
@@ -186,29 +187,39 @@ export class ShardedHashCache extends RedisHashCache {
     // field="3,79159750" && returns 7 as the index
     // '''
     // import hashlib
-    // # redis treats everything like strings
-    field = field.toString() // .encode('utf-8')
-    const number = parseInt(md5sum.digest(field), 16)
-    const position = number % this.number_of_keys
-    return `this.key:${position}`
+    // # redis treats everything like strings 
+    field = field.toString() // .encode('utf-8') 
+    const md5sumDigested = crypto.createHash('md5')
+      .update(field)
+      .digest("hex");// md5sum.digest(field) 
+    const number = parseBigInt(md5sumDigested.toString(), 16) 
+    const position = Number(number % BigInt(this.number_of_keys)) 
+    return `${this.key}:${position}`
   }
 
   async get_many(fields) {
-    var results = {}
 
-    async function _get_many(redis, fields) {
-      for (const field of fields) {
+    async function _get_many(redis: RedisClient, fields) {
+      var results = {}
+      for await (const field of fields) {
+        console.log(fields);
         // # allow for easy sharding
         const key = this.get_key(field)
         // logger.debug('getting field %s from %s', field, key)
-        const result = await promisify(redis.hget)(key, field)
+        const result = await (promisify(redis.hget).bind(redis))(key, field)
+        // console.log(result);
+        // console.log(';;;;;;;;;;;;');
+        // console.log('field', field);
         results[field] = result
       }
+      // console.log('return ', results);
       return results
     }
+    var results = {}
     // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many, fields)
-    results = dictZip(zip(fields, results))
+    results = await this._pipeline_if_needed(_get_many.bind(this), fields)
+    console.log('res', results);
+    results = dictZip(zip(fields, Object.values(results)))
 
     return results
   }
@@ -228,7 +239,7 @@ export class ShardedHashCache extends RedisHashCache {
     }
     // # start a new map redis or go with the given one
     results = await this._pipeline_if_needed(_get_many, fields)
-    results = dictZip(zip(fields, results))
+    results = dictZip(zip(fields, Object.values(results)))
     // # results = dict((k, v) for k, v in results.items() if v)
 
     return results

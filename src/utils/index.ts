@@ -46,3 +46,26 @@ export function dictZip(zip) {
   }
   return json
 }
+
+
+export function parseBigInt(
+  numberString,
+  base
+  // keyspace = "0123456789abcdefghijklmnopqrstuvwxyz",
+) {
+  var keyspace
+  if (base === 10) {
+    keyspace = "0123456789"
+  } else if (base === 16) {
+    keyspace = "0123456789abcdef"
+  }
+
+  let result = BigInt(0);
+  const keyspaceLength = BigInt(keyspace.length);
+  for (let i = numberString.length - 1; i >= 0; i--) {
+    const value = keyspace.indexOf(numberString[i]);
+    if (value === -1) throw new Error("invalid string");
+    result = result * keyspaceLength + BigInt(value);
+  }
+  return result;
+}

@@ -36,13 +36,13 @@ export class RedisCache {
     // '''
     // Only load the redis connection if we use it
     // '''
+    // console.log('get_redis: ',this._redis);
     if (!this._redis) {
       this._redis = get_redis_connection(this.redis_server)
       // this.getAsync = promisify(this._redis.get).bind(this._redis);
       // this.delAsync = promisify(this._redis.del).bind(this._redis);
 
     }
-
     return this._redis
   }
 
@@ -54,7 +54,10 @@ export class RedisCache {
   }
 
   // redis = property(get_redis, set_redis)
-  get redis(): redis.RedisClient { return this.get_redis() }
+  get redis(): redis.RedisClient {
+    const redis = this.get_redis() 
+    return redis
+  }
   set redis(value) { this.set_redis(value) }
 
   get_key() {
@@ -84,6 +87,8 @@ export class RedisCache {
     //   operation(pipe, kwargs)
     //   results = pipe.execute()
     // } else {
+
+    // console.log('redis: ', this.redis);
     results = await operation(this.redis, kwargs)
     // }
     return results

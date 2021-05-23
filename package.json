@@ -12,6 +12,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "@types/lodash": "^4.14.170",
     "@types/redis": "^2.8.28",
     "lodash": "^4.17.21",
     "redis": "^3.1.2",

@@ -1,7 +1,10 @@
 import { ValueError } from "../../errors"
-import { zip } from "../../utils"
+// import { zip } from "../../utils"
 import { BaseTimelineStorage } from "../base"
+import { get_redis_connection } from "./connection"
 import { RedisSortedSetCache } from "./structures/sorted_set"
+import zip from 'lodash/zip'
+import chunk from 'lodash/chunk'
 
 export class TimelineCache extends RedisSortedSetCache {
   sort_asc = false
@@ -10,18 +13,25 @@ export class TimelineCache extends RedisSortedSetCache {
 export class RedisTimelineStorage extends BaseTimelineStorage {
 
   get_cache(key) {
-    const redis_server = this.options.get('redis_server', 'default')
-    const cache = new TimelineCache(key, redis_server = redis_server)
+    const redis_server = this.options?.['redis_server'] || 'default'
+    const cache = new TimelineCache(key, null, redis_server)
     return cache
   }
 
   contains(key, activity_id) {
     const cache = this.get_cache(key)
+    console.log(cache);
     const contains = cache.contains(activity_id)
     return contains
   }
 
-  get_slice_from_storage(key, start, stop, filter_kwargs = null, ordering_args = null) {
+  async get_slice_from_storage({
+    key,
+    start,
+    stop,
+    filter_kwargs,
+    ordering_args
+  }) {
     // '''
     // Returns a slice from the storage
     // :param key: the redis key at which the sorted set is located
@@ -34,7 +44,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     //    get_slice_from_storage('feed:13', 0, 10, {activity_id__lte=10})
     // '''
     const cache = this.get_cache(key)
-
+    // console.log('cache', cache);
     // # parse the filter kwargs && translate them to min max
     // # as used by the get results function
     const valid_kwargs = [
@@ -43,38 +53,41 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     ]
     filter_kwargs = filter_kwargs || {}
     const result_kwargs = {}
+
     for (const k of valid_kwargs) {
-      const v = filter_kwargs.pop(k, null)
+      var v = filter_kwargs[k] || null
       if (v) {
-        if (not isinstance(v, (float, six.integer_types))) {
-          throw new ValueError(
-            'Filter kwarg values should be floats, int or long, got %s=%s' % (k, v))
+        // pop k key from filter
+        delete filter_kwargs[k]
+        if (!(typeof v !== 'number')) {
+          throw new ValueError(`Filter kwarg values should be floats, int or long, got ${k}=${v}`)
         }
         // # By default, the interval specified by min_score && max_score is closed (inclusive).
         // # It is possible to specify an open interval (exclusive) by prefixing the score with the character (
-        _, direction = k.split('__')
-        const   equal = 'te' in direction
+        const [_, direction] = k.split('__')
+        const equal = 'te' in (direction as any)
 
-        if ('gt' in direction) {
-          if (not equal) {
-            v = '(' + str(v)
+        if ('gt' in (direction as any)) {
+          if (!equal) {
+            v = '(' + (v)
           }
           result_kwargs['min_score'] = v
         } else {
-          if (not equal) {
-            v = '(' + str(v)
+          if (!equal) {
+            v = '(' + (v)
           }
           result_kwargs['max_score'] = v
         }
       }
     }
-    // # complain if we didn't recognize the filter kwargs
-    if (filter_kwargs)
-      throw new ValueError('Unrecognized filter kwargs %s' % filter_kwargs)
 
-    if (ordering_args) {
+    // # complain if we didn't recognize the filter kwargs
+    if (Object.keys(filter_kwargs).length)
+      throw new ValueError(`Unrecognized filter kwargs ${filter_kwargs}`)
+
+    if (ordering_args && ordering_args.length) {
       if (ordering_args.length > 1)
-        throw new ValueError('Too many order kwargs %s' % ordering_args)
+        throw new ValueError(`Too many order kwargs ${ordering_args}`)
 
       if ('-activity_id' in ordering_args)
         // # descending sort
@@ -82,18 +95,31 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
       else if ('activity_id' in ordering_args)
         cache.sort_asc = true
       else
-        throw new ValueError('Unrecognized order kwargs %s' % ordering_args)
+        throw new ValueError(`Unrecognized order kwargs ${ordering_args}`)
     }
-    // # get the actual results
-    const key_score_pairs = cache.get_results(start, stop, ** result_kwargs)
-    const score_key_pairs = [(score, data) for data, score in key_score_pairs]
+    console.log('result_kwargs', result_kwargs);
+    console.log(cache);
 
+
+    // # get the actual results
+    // python is returning (value, key)
+    // but in node it is in string form value, key, value, key
+    const value_key_strings = await cache.get_results({
+      start,
+      stop,
+      ...result_kwargs
+    }) 
+    const value_key_pairs = chunk(value_key_strings, 2)
+    const score_key_pairs = value_key_pairs.map((vk) => {
+      const [value, key] = vk
+      return [key, value]
+    })  
     return score_key_pairs
   }
   get_batch_interface() {
     return get_redis_connection(
-      server_name = this.options.get('redis_server', 'default')
-    ).pipeline(transaction = false)
+      this.options.get('redis_server', 'default')
+    )// .pipeline(transaction = false)
   }
 
   get_index_of(key, activity_id) {
@@ -101,18 +127,28 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     const index = cache.index_of(activity_id)
     return index
   }
-
-  add_to_storage(key, activities, batch_interface = null, kwargs) {
+  // key,
+  // serialized_activities,
+  // kwargs
+  async add_to_storage(
+    key,
+    activities, // in the form of 123:123
+    kwargs
+  ) {
+    // console.log('l/l/l/ll/l/l/l/l');
+    // console.log(key, activities, kwargs);
+    const { batch_interface } = kwargs
     const cache = this.get_cache(key)
     // # turn it into key value pairs
-    const scores = map(long_t, activities.keys())
-    const score_value_pairs = zip(scores, activities.values())
-    const result = cache.add_many(score_value_pairs)
+    const scores = Object.keys(activities)  // map(long_t, activities.keys())
+    const score_value_pairs = zip(scores, Object.values(activities))
+    // console.log(score_value_pairs);
+    const result = await cache.add_many(score_value_pairs)
     for (const r of result) {
       // # errors in strings?
       // # anyhow throw new them here :)
-      if( hasattr(r, 'isdigit') && not r.isdigit()){
-        throw new ValueError('got error %s in results %s' % (r, result))
+      if (r?.isdigit && !r.isdigit()) {
+        throw new ValueError(`got error ${r} in results ${result}`)
       }
       return result
     }
@@ -133,7 +169,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     const cache = this.get_cache(key)
     cache.delete()
   }
-  
+
   trim(key, length, batch_interface = null) {
     const cache = this.get_cache(key)
     cache.trim(length)

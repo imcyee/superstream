@@ -1,5 +1,7 @@
 import { register } from "./utils"
 
+
+
 export class Verb {
 
   // '''
@@ -8,9 +10,19 @@ export class Verb {
   // http://activitystrea.ms/specs/atom/1.0/#activity.summary
   // '''
   id = 0
+  infinitive
 
-  __str__(self) {
-    return self.infinitive
+  /**
+   * @deprecated use toString 
+   */
+  __str__() {
+    return this.infinitive
+  }
+
+  toString() {
+    if (!this.infinitive)
+      throw new Error('property infinitive not found')
+    return this.infinitive
   }
 
   serialize(self) {
@@ -20,7 +32,8 @@ export class Verb {
 
 }
 
-class Follow {
+export class Follow extends Verb {
+  static _id = 1
   id = 1
   infinitive = 'follow'
   past_tense = 'followed'
@@ -28,7 +41,8 @@ class Follow {
 register(Follow)
 
 
-class Comment {
+export class Comment extends Verb {
+  static _id = 2
   id = 2
   infinitive = 'comment'
   past_tense = 'commented'
@@ -36,7 +50,8 @@ class Comment {
 register(Comment)
 
 
-class Love {
+export class Love extends Verb {
+  static _id = 3
   id = 3
   infinitive = 'love'
   past_tense = 'loved'
@@ -44,7 +59,8 @@ class Love {
 register(Love)
 
 
-class Add extends Verb {
+export class Add extends Verb {
+  static _id = 4
   id = 4
   infinitive = 'add'
   past_tense = 'added'

@@ -4,18 +4,15 @@ import { BaseSerializer } from "./base"
 
 export class SimpleTimelineSerializer extends BaseSerializer {
 
-  loads({
-    serialized_activity,
-    ...kwargs
-  }) {
-    return new DehydratedActivity({
-      serialization_id: serialized_activity
-    })
+  loads(serialization_id, kwargs) {
+    return new DehydratedActivity(serialization_id)
   }
 
-  dumps({
-    activity,
-    ...kwargs }) {
+  // async dumps({
+  //   activity,
+  //   ...kwargs }
+  // ) {
+  dumps(activity) {
     // '''
     // Returns the serialized version of activity and the
     // '''

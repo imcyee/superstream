@@ -1,5 +1,6 @@
 import { Activity, AggregatedActivity } from "../activity"
 import { NotImplementedError } from "../errors"
+import { BaseSerializer } from "../serializers/base"
 import { DummySerializer } from "../serializers/dummy"
 import { SimpleTimelineSerializer } from "../serializers/simple_timeline_serializer"
 import { zip } from "../utils"
@@ -92,6 +93,8 @@ class BaseStorage {
       activity_class: this.activity_class,
       ...kwargs
     })
+
+    console.log(serializer_instance);
     return serializer_instance
   }
 
@@ -114,6 +117,7 @@ class BaseStorage {
     const serialized_activities = {}
     for (const activity of activities) {
       const serialized_activity = this.serialize_activity(activity)
+      console.log(serialized_activity);
       serialized_activities[this.activity_to_id(activity)] = serialized_activity
     }
     return serialized_activities
@@ -127,13 +131,16 @@ class BaseStorage {
     // :param serialized_activities: a dictionary with activity ids && activities
     // '''
     const activities = []
+
+    // console.log('instance of ', typeof serialized_activities); 
     // # handle the case where this is a dict
-    if (serialized_activities instanceof Object) {
-      serialized_activities = serialized_activities.values()
+    if (serialized_activities instanceof Object && !Array.isArray(serialized_activities)) {
+      serialized_activities = Object.values(serialized_activities)
     }
 
     if (serialized_activities) {
       for (const serialized_activity of serialized_activities) {
+        // console.log(serialized_activity);
         const activity = this.serializer.loads(serialized_activity)
         activities.push(activity)
       }
@@ -172,7 +179,7 @@ export class BaseActivityStorage extends BaseStorage {
     // '''
     throw new NotImplementedError()
   }
-  get_from_storage(activity_ids, kwargs) {
+  async get_from_storage(activity_ids, kwargs): Promise<{}> {
     // '''
     // Retrieves the given activities from the storage layer
 
@@ -189,14 +196,15 @@ export class BaseActivityStorage extends BaseStorage {
     // '''
     throw new NotImplementedError()
   }
-  get_many(activity_ids, kwargs) {
+  async get_many(activity_ids, kwargs?) {
     // '''
     // Gets many activities && deserializes them
 
     // :param activity_ids: the list of activity ids
     // '''
     // this.metrics.on_feed_read(this.__class__, activity_ids?.length)
-    const activities_data = this.get_from_storage(activity_ids, kwargs)
+    const activities_data = await this.get_from_storage(activity_ids, kwargs)
+    console.log('activities', activities_data);
     return this.deserialize_activities(activities_data)
   }
 
@@ -268,7 +276,12 @@ export class BaseTimelineStorage extends BaseStorage {
   add(key, activity, kwargs) {
     return this.add_many(key, [activity], kwargs)
   }
-  add_many(key, activities, kwargs) {
+
+  add_many(
+    key,
+    activities,
+    kwargs
+  ) {
     // '''
     // Adds the activities to the feed on the given key
     // (The serialization is done by the serializer class)
@@ -278,6 +291,10 @@ export class BaseTimelineStorage extends BaseStorage {
     // '''
     // this.metrics.on_feed_write(this.__class__, activities?.length)
     const serialized_activities = this.serialize_activities(activities)
+
+    console.log('////////////////');
+    console.log(serialized_activities);
+
     return this.add_to_storage(
       key,
       serialized_activities,
@@ -285,11 +302,11 @@ export class BaseTimelineStorage extends BaseStorage {
     )
   }
 
-  add_to_storage(
+  async add_to_storage(
     key,
     serialized_activities,
     kwargs
-  ) {
+  ): Promise<any[]> {
     throw new NotImplementedError()
   }
 
@@ -337,7 +354,14 @@ export class BaseTimelineStorage extends BaseStorage {
     const activity_id = this.activities_to_ids([activity_or_id])[0]
     return this.get_index_of(key, activity_id)
   }
-  get_slice_from_storage(key, start, stop, filter_kwargs = null, ordering_args = null): any[] {
+
+  async get_slice_from_storage({
+    key,
+    start,
+    stop,
+    filter_kwargs,
+    ordering_args
+  }): Promise<any[]> {
     // '''
     // :param key: the key at which the feed is stored
     // :param start: start
@@ -346,7 +370,8 @@ export class BaseTimelineStorage extends BaseStorage {
     // '''
     throw new NotImplementedError()
   }
-  get_slice({
+
+  async get_slice({
     key,
     start,
     stop,
@@ -358,11 +383,18 @@ export class BaseTimelineStorage extends BaseStorage {
 
     // :param key: the key at which the feed is stored
     // '''
-    const activities_data = this.get_slice_from_storage(
-      key, start, stop, filter_kwargs = filter_kwargs, ordering_args = ordering_args)
+    const activities_data = await this.get_slice_from_storage({
+      key,
+      start,
+      stop,
+      filter_kwargs,
+      ordering_args
+    })
+    // console.log('asdasdasdasd', activities_data);
     var activities = []
     if (activities_data) {
       const serialized_activities = (zip(...activities_data))[1]// list(zip(...activities_data))[1]
+      // console.log(serialized_activities);
       activities = this.deserialize_activities(serialized_activities)
     }
     // this.metrics.on_feed_read(this.__class__, activities?.length)
@@ -385,10 +417,10 @@ export class BaseTimelineStorage extends BaseStorage {
     // :param length: the length to which to trim
     // '''
   }
-  count(key, kwargs) {
+  count(key, kwargs?) {
     throw new NotImplementedError()
   }
-  delete(key, kwargs) {
+  delete(key, kwargs?) {
     throw new NotImplementedError()
   }
 }

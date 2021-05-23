@@ -78,14 +78,15 @@ export class Activity extends BaseActivity {
 
   constructor(
     actor,
-    verb,
+    VerbClass,
     object,
     target = null,
     time = null,
     extra_context = null
   ) {
     super()
-    this.verb = verb
+    this.verb = new VerbClass()
+
     this.time = time || Date.now() // datetime.datetime.utcnow()
     // # either set .actor or .actor_id depending on the data
     this._set_object_or_id('actor', actor)
@@ -121,6 +122,10 @@ export class Activity extends BaseActivity {
   }
 
   // @property
+  /**
+   * beware of js handling large number it will generate scientific notation eg: 1.45e+25
+   * represent the id as string
+   */
   get serialization_id() {
     // '''
     // serialization_id is used to keep items locally sorted and unique
@@ -137,7 +142,7 @@ export class Activity extends BaseActivity {
     // 008 left padded activity verb id (3 digits)
 
     // :returns: int --the serialization id
-    // '''
+    // ''' 
     if (this.object_id >= 10 ** 10 || this.verb.id >= 10 ** 3) {
       throw new TypeError('Fatal: object_id / verb have too many digits !')
     }
@@ -148,8 +153,10 @@ export class Activity extends BaseActivity {
 
     const milliseconds = (Number(datetime_to_epoch(this.time) * 1000))
     // const serialization_id_str = `${milliseconds}%0.10d%0.3d` % (milliseconds, this.object_id, this.verb.id)
-    const serialization_id_str = `${milliseconds}${this.object_id.toFixed(10)}${this.verb.id.toFixed(3)}` // % (milliseconds, this.object_id, this.verb.id)
-    const serialization_id = Number(serialization_id_str)
+    const serialization_id_str = `${milliseconds}${this.object_id.toString().padStart(10, '0')}${this.verb.id.toString().padStart(3, '0')}` // % (milliseconds, this.object_id, this.verb.id)
+    // const serialization_id = Number(serialization_id_str)
+    const serialization_id = serialization_id_str
+    console.log('serialization_id', serialization_id);
     return serialization_id
   }
 
@@ -256,6 +263,8 @@ export class AggregatedActivity extends BaseActivity {
     // :returns: int --the serialization id
     // '''
     const milliseconds = (Number(datetime_to_epoch(this.updated_at)) * 1000).toString()
+    console.log('lllllllllllllllll');
+    console.log('millis', milliseconds);
     return milliseconds
   }
 

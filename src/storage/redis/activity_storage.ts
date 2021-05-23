@@ -6,11 +6,11 @@ class ActivityCache extends ShardedHashCache {
   key_format = 'activity:cache:%s'
 }
 
-class RedisActivityStorage extends BaseActivityStorage {
+export class RedisActivityStorage extends BaseActivityStorage {
   default_serializer_class = ActivitySerializer
 
   get_key() {
-    return this.options.get('key', 'global')
+    return this.options['key'] || 'global'
   }
 
   get_cache() {
@@ -18,14 +18,13 @@ class RedisActivityStorage extends BaseActivityStorage {
     return new ActivityCache(key)
   }
 
-  get_from_storage(activity_ids, kwargs) {
+  async get_from_storage(activity_ids, kwargs) {
     const cache = this.get_cache()
-    var activities = cache.get_many(activity_ids)
-
+    // console.log('activity_ids', activity_ids);
+    var activities = await cache.get_many(activity_ids)
 
     // activities = dict((k, six.text_type(v)) for k, v of activities.items() if v)
-
-
+    // console.log('///', activities);
     return activities
   }
 

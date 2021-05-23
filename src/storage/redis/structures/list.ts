@@ -2,6 +2,10 @@ import { AssertionError, NotImplementedError } from "../../../errors"
 import { RedisCache } from "./base"
 import { promisify } from 'util'
 
+interface Test {
+  get_results(): []
+}
+
 export class BaseRedisListCache extends RedisCache {
 
   // '''
@@ -94,6 +98,7 @@ export class BaseRedisListCache extends RedisCache {
     // # We need check to see if we need to populate more of the cache.
     var results
     try {
+      /* @ts-ignore  mixin infer wrongly */
       results = this.get_results(start, bound)
     } catch (err) {
       // except StopIteration:
@@ -103,9 +108,9 @@ export class BaseRedisListCache extends RedisCache {
     return results
   }
 
-  get_results(start, stop) {
-    throw new NotImplementedError('please define this function in subclasses')
-  }
+  // async get_results(start, stop): Promise<string[]> {
+  //   throw new NotImplementedError('please define this function in subclasses')
+  // }
 }
 
 export class RedisListCache extends BaseRedisListCache {
@@ -113,6 +118,7 @@ export class RedisListCache extends BaseRedisListCache {
   // #: the maximum number of items the list stores
   max_items = 1000
   _filtered
+
   async get_results(start, stop) {
     if (start)
       start = 0

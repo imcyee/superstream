@@ -4,7 +4,7 @@ import { BaseSerializer } from "../serializers/base"
 import { SimpleTimelineSerializer } from "../serializers/simple_timeline_serializer"
 import { BaseActivityStorage, BaseTimelineStorage } from "../storage/base"
 
-class BaseFeed {
+export class BaseFeed {
 
   // '''
   // The feed class allows you to add and remove activities from a feed.
@@ -109,8 +109,8 @@ class BaseFeed {
 
   user_id
   key
-  timeline_storage
-  activity_storage
+  timeline_storage: BaseTimelineStorage
+  activity_storage: BaseActivityStorage
   _filter_kwargs
   _ordering_args
 
@@ -122,8 +122,8 @@ class BaseFeed {
     this.key_format = this.key_format
     this.key = this.key_format(this.user_id) // % { 'user_id': this.user_id }
 
-    this.timeline_storage = BaseFeed.get_timeline_storage()
-    this.activity_storage = BaseFeed.get_activity_storage()
+    this.timeline_storage = (this.constructor as typeof BaseFeed).get_timeline_storage()
+    this.activity_storage = (this.constructor as typeof BaseFeed).get_activity_storage()
 
     // # ability to filter and change ordering(not supported for all
     // # backends)
@@ -141,13 +141,16 @@ class BaseFeed {
     options['activity_class'] = this.activity_class
     return options
   }
+
   // @classmethod
   static get_timeline_storage() {
     // '''
     // Returns an instance of the timeline storage
     // '''
     const options = this.get_timeline_storage_options()
+    // console.log(this.timeline_storage_class);
     const timeline_storage = new this.timeline_storage_class(options)
+    // console.log(timeline_storage);
     return timeline_storage
   }
 
@@ -205,15 +208,20 @@ class BaseFeed {
     return timeline_storage.get_batch_interface()
   }
 
-  add(activity, kwargs) {
-    return this.add_many([activity], kwargs)
+  async add(activity, kwargs?: {
+    batch_interface?,
+    trim?: boolean,
+  }) {
+    return await this.add_many([activity], kwargs)
   }
 
-  add_many(activities, {
-    batch_interface = null,
-    trim = true,
-    ...kwargs
-  }) {
+  async add_many(
+    activities,
+    {
+      batch_interface = null,
+      trim = true,
+      ...kwargs
+    } = {}) {
     // '''
     // Add many activities
 
@@ -222,8 +230,14 @@ class BaseFeed {
     // // '''
     // validate_list_of_strict(activities, (this.activity_class, FakeActivity))
 
-    const add_count = this.timeline_storage.add_many(
-      this.key, activities, batch_interface = batch_interface, kwargs)
+    const add_count = await this.timeline_storage.add_many(
+      this.key,
+      activities,
+      {
+        // this is kwargs
+        batch_interface,
+      }
+    )
 
     // # trim the feed sometimes
     if (trim && Math.random() <= this.trim_chance) {
@@ -232,6 +246,7 @@ class BaseFeed {
     this.on_update_feed({ new_: activities, deleted: [] })
     return add_count
   }
+
   remove(activity_id, kwargs) {
     return this.remove_many([activity_id], kwargs)
   }
@@ -246,7 +261,13 @@ class BaseFeed {
     // :param activity_ids: a list of activities or activity ids
     // '''
     const del_count = this.timeline_storage.remove_many(
-      this.key, activity_ids, batch_interface = null, kwargs)
+      this.key,
+      activity_ids,
+      {
+        batch_interface,
+      }
+      // kwargs
+    )
     // # trim the feed sometimes
     if (trim && Math.random() <= this.trim_chance)
       this.trim()
@@ -353,7 +374,7 @@ class BaseFeed {
   // }
 
   // unable to use this as this is python specific
-  getitem(
+  async get_item(
     start: number = 0,
     stop?: number,
     step?: number
@@ -389,11 +410,12 @@ class BaseFeed {
     var results
     // # We need check to see if we need to populate more of the cache.
     try {
-      results = this.get_activity_slice(start, bound)
+      results = await this.get_activity_slice(start, bound)
     } catch (err) {
       // except StopIteration:
       // # There's nothing left, even though the bound is higher.
       results = null
+      console.error(err);
     }
     return results
   }
@@ -407,23 +429,29 @@ class BaseFeed {
     return this.timeline_storage.index_of(this.key, activity_id)
   }
 
-  hydrate_activities(activities) {
+  async hydrate_activities(activities) {
     // '''
     // hydrates the activities using the activity_storage
     // '''
     const activity_ids = []
     for (const activity of activities) {
-      activity_ids.push(activity._activity_ids)
+      activity_ids.push(...activity._activity_ids)
     }
-    const activity_list = this.activity_storage.get_many(activity_ids)
-
+    // console.log('hello');
+    // console.log(activity_ids);
+    const activity_list = await this.activity_storage.get_many(activity_ids)
+    // console.log('list: ', activity_list);
     var activity_data
     for (const a of activity_list) {
       activity_data[a.serialization_id] = a
     }
+    // console.log('after get many');
+    // console.log(activity_data);
+
     const activities2 = []
     for (const activity of activities) {
-      activities2.push(activity.get_hydrated(activity_data))
+      const hydrated_activity = await activity.get_hydrated(activity_data)
+      activities2.push(hydrated_activity)
     }
     return activities2
     // return [activity.get_hydrated(activity_data) for activity of activities]
@@ -433,27 +461,29 @@ class BaseFeed {
     // '''
     // checks if the activities are dehydrated
     // '''
-    for (const activity of activities) {
-      if (activity?.dehydrated)
-        return true
-    }
-    return false
+    const found = activities.find(a => a?.dehydrated)
+    return found
   }
 
-  get_activity_slice(start = null, stop = null, rehydrate = true) {
+  async get_activity_slice(
+    start = null,
+    stop = null,
+    rehydrate = true
+  ) {
     // '''
     // Gets activity_ids from timeline_storage and then loads the
     // actual data querying the activity_storage
     // '''
-    var activities = this.timeline_storage.get_slice({
+    var activities = await this.timeline_storage.get_slice({
       key: this.key,
       start,
       stop,
       filter_kwargs: this._filter_kwargs,
       ordering_args: this._ordering_args
     })
+
     if (this.needs_hydration(activities) && rehydrate) {
-      activities = this.hydrate_activities(activities)
+      activities = await this.hydrate_activities(activities)
     }
     return activities
   }

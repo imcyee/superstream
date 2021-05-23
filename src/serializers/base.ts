@@ -27,12 +27,12 @@ export class BaseSerializer {
     }
   }
 
-  loads({ serialized_activity }) {
+  loads(serialized_activity, options?) {
     const activity = serialized_activity
     return activity
   }
 
-  dumps({ activity }) {
+  dumps(activity, options?) {
     this.check_type(activity)
     return activity
   }
