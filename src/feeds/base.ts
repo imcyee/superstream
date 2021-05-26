@@ -120,6 +120,7 @@ export class BaseFeed {
     // '''
     this.user_id = user_id
     this.key_format = this.key_format
+
     this.key = this.key_format(this.user_id) // % { 'user_id': this.user_id }
 
     this.timeline_storage = (this.constructor as typeof BaseFeed).get_timeline_storage()
@@ -148,9 +149,7 @@ export class BaseFeed {
     // Returns an instance of the timeline storage
     // '''
     const options = this.get_timeline_storage_options()
-    // console.log(this.timeline_storage_class);
     const timeline_storage = new this.timeline_storage_class(options)
-    // console.log(timeline_storage);
     return timeline_storage
   }
 
@@ -170,7 +169,7 @@ export class BaseFeed {
   }
 
   // @classmethod
-  static insert_activities({ activities, ...kwargs }) {
+  static async insert_activities(activities, kwargs) {
     // '''
     // Inserts an activity to the activity storage
 
@@ -178,17 +177,17 @@ export class BaseFeed {
     // '''
     const activity_storage = this.get_activity_storage()
     if (activity_storage)
-      activity_storage.add_many(activities)
+      return await activity_storage.add_many(activities)
   }
 
   // @classmethod
-  static insert_activity(activity, kwargs) {
+  static async insert_activity(activity, kwargs?) {
     // '''
     // Inserts an activity to the activity storage
 
     // :param activity: the activity class
     // '''
-    this.insert_activities({ activities: [activity] })
+    return await this.insert_activities([activity], kwargs)
   }
 
   // @classmethod
@@ -229,7 +228,6 @@ export class BaseFeed {
     // // :param batch_interface: the batch interface
     // // '''
     // validate_list_of_strict(activities, (this.activity_class, FakeActivity))
-
     const add_count = await this.timeline_storage.add_many(
       this.key,
       activities,
@@ -238,7 +236,6 @@ export class BaseFeed {
         batch_interface,
       }
     )
-
     // # trim the feed sometimes
     if (trim && Math.random() <= this.trim_chance) {
       this.trim()
@@ -437,17 +434,11 @@ export class BaseFeed {
     for (const activity of activities) {
       activity_ids.push(...activity._activity_ids)
     }
-    // console.log('hello');
-    // console.log(activity_ids);
     const activity_list = await this.activity_storage.get_many(activity_ids)
-    // console.log('list: ', activity_list);
-    var activity_data
+    var activity_data = {}
     for (const a of activity_list) {
       activity_data[a.serialization_id] = a
     }
-    // console.log('after get many');
-    // console.log(activity_data);
-
     const activities2 = []
     for (const activity of activities) {
       const hydrated_activity = await activity.get_hydrated(activity_data)
@@ -480,8 +471,7 @@ export class BaseFeed {
       stop,
       filter_kwargs: this._filter_kwargs,
       ordering_args: this._ordering_args
-    })
-
+    }) 
     if (this.needs_hydration(activities) && rehydrate) {
       activities = await this.hydrate_activities(activities)
     }

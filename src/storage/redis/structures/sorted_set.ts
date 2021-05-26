@@ -57,9 +57,8 @@ export class RedisSortedSetCache extends RedisCache {
     // '''
     // StrictRedis so it expects score1, name1
     // ''' 
-    const key = this.get_key()
-    const scores = (zip(...score_value_pairs))[0] as string[]
-    // console.log(zip(...score_value_pairs));
+    const key = this.get_key() 
+    const scores = (zip(...score_value_pairs))[0] as string[] 
     scores.forEach(element => {
       if (isNaN(Number(element)))
         throw new Error(`Please send floats as the first part of the pairs got ${score_value_pairs}`)
@@ -81,39 +80,9 @@ export class RedisSortedSetCache extends RedisCache {
     ) {
       const score_value_list = score_value_pairs.reduce((acc, curr) => acc + curr) // sum(map(list, score_value_pairs), [])
       const score_value_chunks = chunk(score_value_list, 200)
-      console.log(';;;;;;;');
-      console.log(score_value_list);
-      // const args = ["myzset", 1, "one", 2, "two", 3, "three", 99, "ninety-nine"]
-      // redis.zadd(...args, (err, response) => {
-      //   console.log(err);
-      //   console.log('response: ', response);
-
-      //   redis.zrange('myzset', 0, 4, (err, response) => {
-      //     console.log(err);
-      //     console.log('response for myzset: ', response);
-      //   })
-      // })
-
+    
       for await (const score_value_chunk of score_value_chunks) {
-        // redis.zadd(key, ...score_value_chunk as any, (err, response) => {
-        //   console.log(err);
-        //   console.log(response);
-        //   console.log(key);
-        //   redis.zrange(key, 0, 10, (err, response) => {
-        //     console.log(err);
-        //     console.log(response);
-        //   })
-        // })
-
-        // const response = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk as any).catch(err => {
-        //   console.log(err);
-        // }) 
         const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
-
-        // const res = await (promisify(redis.zrange).bind(redis))(key, 0, 100)
-        // const res2 = await (promisify(redis.zrem).bind(redis))(key)
-        // console.log(res.map(a => a));
-        // const result = {}
         // logger.debug('adding to ${} with score_value_chunk ${}',
         //   key, score_value_chunk)
         results.push(result)
@@ -208,7 +177,6 @@ export class RedisSortedSetCache extends RedisCache {
     // '''
     var redis_range_fn
 
-    // console.log(this.sort_asc);
     if (this.sort_asc)
       redis_range_fn = promisify(this.redis.zrangebyscore).bind(this.redis)
     else
@@ -249,24 +217,7 @@ export class RedisSortedSetCache extends RedisCache {
     }
 
     // #handle the starting score support
-
-    // console.log(
-    //   key,
-    //   min_score,
-    //   max_score,
-    //   true,
-    //   limit,
-    //   start,
-    // );
-    // const results = await redis_range_fn(
-    //   key,
-    //   min_score,
-    //   max_score,
-    //   true,
-    //   limit,
-    //   start,
-    // )
-
+  
     const results = await redis_range_fn(
       key,
       min_score,
@@ -275,28 +226,7 @@ export class RedisSortedSetCache extends RedisCache {
       "LIMIT",
       start,
       limit,
-    )
-    console.log(results);
-    // // console.log(this.redis);
-    // const r1 = await (
-    //   promisify(this.redis.zrange).bind(this.redis)
-    // )(
-    //   key,
-    //   0, 10
-    // )
-    // console.log("r1", r1);
-    // const results = await (
-    //   promisify(this.redis.zrevrangebyscore).bind(this.redis)
-    // )(
-    //   key,
-    //   min_score,
-    //   max_score,
-    //   "WITHSCORES",
-    //   "LIMIT",
-    //   start,
-    //   limit,
-    // )
-    // console.log(results);
+    ) 
     return results
   }
 }

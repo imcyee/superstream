@@ -1,3 +1,4 @@
+import { zip } from "lodash"
 import { ActivitySerializer } from "../../serializers/activity_serializer"
 import { BaseActivityStorage } from "../base"
 import { ShardedHashCache } from "./structures/hash"
@@ -20,20 +21,19 @@ export class RedisActivityStorage extends BaseActivityStorage {
 
   async get_from_storage(activity_ids, kwargs) {
     const cache = this.get_cache()
-    // console.log('activity_ids', activity_ids);
     var activities = await cache.get_many(activity_ids)
 
     // activities = dict((k, six.text_type(v)) for k, v of activities.items() if v)
-    // console.log('///', activities);
     return activities
   }
 
-  add_to_storage(serialized_activities, kwargs) {
+  async add_to_storage(serialized_activities, kwargs) {
     const cache = this.get_cache()
-    const key_value_pairs = serialized_activities.items()
-    const result = cache.set_many(key_value_pairs)
+    const key_value_pairs = zip(Object.keys(serialized_activities), Object.values(serialized_activities))
+    const result = await cache.set_many(key_value_pairs)
     var insert_count = 0
     if (result) {
+      // should check number of ok in result
       insert_count = (key_value_pairs).length
     }
     return insert_count

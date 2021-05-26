@@ -36,7 +36,6 @@ export class RedisCache {
     // '''
     // Only load the redis connection if we use it
     // '''
-    // console.log('get_redis: ',this._redis);
     if (!this._redis) {
       this._redis = get_redis_connection(this.redis_server)
       // this.getAsync = promisify(this._redis.get).bind(this._redis);
@@ -88,7 +87,6 @@ export class RedisCache {
     //   results = pipe.execute()
     // } else {
 
-    // console.log('redis: ', this.redis);
     results = await operation(this.redis, kwargs)
     // }
     return results

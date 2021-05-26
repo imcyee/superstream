@@ -95,19 +95,20 @@ export class RedisHashCache extends BaseRedisHashCache {
   async set_many(key_value_pairs) {
     var results = []
 
-    async function _set_many(redis, key_value_pairs) {
+    async function _set_many(redis: RedisClient, key_value_pairs) {
       for (const a of key_value_pairs) {
         const [field, value] = a
         const key = this.get_key(field)
+
         // logger.debug(
         // 'writing hash(%s) field %s to %s', key, field, value)
-        const result = await promisify(redis.hmset)(key, { field: value })
+        const result = await (promisify(redis.hmset).bind(redis))(key, { [field]: value })
         results.push(result)
       }
       return results
     }
     // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_set_many, key_value_pairs)
+    results = await this._pipeline_if_needed(_set_many.bind(this), key_value_pairs)
 
     return results
   }
@@ -192,8 +193,8 @@ export class ShardedHashCache extends RedisHashCache {
     const md5sumDigested = crypto.createHash('md5')
       .update(field)
       .digest("hex");// md5sum.digest(field) 
-    const number = parseBigInt(md5sumDigested.toString(), 16) 
-    const position = Number(number % BigInt(this.number_of_keys)) 
+    const number = parseBigInt(md5sumDigested.toString(), 16)
+    const position = Number(number % BigInt(this.number_of_keys))
     return `${this.key}:${position}`
   }
 
@@ -202,23 +203,17 @@ export class ShardedHashCache extends RedisHashCache {
     async function _get_many(redis: RedisClient, fields) {
       var results = {}
       for await (const field of fields) {
-        console.log(fields);
         // # allow for easy sharding
         const key = this.get_key(field)
         // logger.debug('getting field %s from %s', field, key)
         const result = await (promisify(redis.hget).bind(redis))(key, field)
-        // console.log(result);
-        // console.log(';;;;;;;;;;;;');
-        // console.log('field', field);
         results[field] = result
       }
-      // console.log('return ', results);
       return results
     }
     var results = {}
     // # start a new map redis or go with the given one
     results = await this._pipeline_if_needed(_get_many.bind(this), fields)
-    console.log('res', results);
     results = dictZip(zip(fields, Object.values(results)))
 
     return results

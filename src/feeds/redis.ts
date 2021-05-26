@@ -27,8 +27,6 @@ export class RedisFeed extends BaseFeed {
     // const options = super(RedisFeed, cls).get_timeline_storage_options()
     const options = super.get_timeline_storage_options()
     options['redis_server'] = this.redis_server
-    // console.log('././././././.');
-    // console.log(options);
     return options
   }
 

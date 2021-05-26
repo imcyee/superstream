@@ -45,11 +45,9 @@ export class DehydratedActivity extends BaseActivity {
   get_hydrated(activities) {
     // '''
     // returns the full hydrated Activity from activities
-
     // :param activities a dict {'activity_id': Activity}
-
-    // '''
-    const activity = activities[parseInt(this.serialization_id)]
+    // ''' 
+    const activity = activities[this.serialization_id] 
     activity.dehydrated = false
     return activity
   }
@@ -152,11 +150,8 @@ export class Activity extends BaseActivity {
     }
 
     const milliseconds = (Number(datetime_to_epoch(this.time) * 1000))
-    // const serialization_id_str = `${milliseconds}%0.10d%0.3d` % (milliseconds, this.object_id, this.verb.id)
     const serialization_id_str = `${milliseconds}${this.object_id.toString().padStart(10, '0')}${this.verb.id.toString().padStart(3, '0')}` // % (milliseconds, this.object_id, this.verb.id)
-    // const serialization_id = Number(serialization_id_str)
     const serialization_id = serialization_id_str
-    console.log('serialization_id', serialization_id);
     return serialization_id
   }
 
@@ -169,14 +164,13 @@ export class Activity extends BaseActivity {
     // field = object
     // '''
     const id_field = `${field}_id` // '%s_id' % field
-    if (Number.isInteger(object_)) {
+
+    if (Number.isInteger(object_) || Number.isInteger(Number(object_))) {
       this[id_field] = object_
       // setattr(id_field, object_)
     } else if (!object_) {
       this[field] = null
       this[id_field] = null
-      // setattr(field, null)
-      // setattr(id_field, null)
     } else {
       this[field] = object_
       this[id_field] = object_.id
@@ -263,8 +257,6 @@ export class AggregatedActivity extends BaseActivity {
     // :returns: int --the serialization id
     // '''
     const milliseconds = (Number(datetime_to_epoch(this.updated_at)) * 1000).toString()
-    console.log('lllllllllllllllll');
-    console.log('millis', milliseconds);
     return milliseconds
   }
 

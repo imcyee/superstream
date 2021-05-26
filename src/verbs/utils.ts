@@ -27,20 +27,20 @@ export function register(verb) {
   // }
 
   const registered_verb = get_verb_storage()?.[verb._id] || verb
- 
+
   if (registered_verb != verb) {
     throw new ValueError(`cant register verb ${verb} with id ${verb._id} (clashing with verb ${registered_verb})`)
   }
 
   get_verb_storage()[verb._id] = verb
-  console.log('hello');
 }
 
 export function get_verb_by_id(verb_id) {
-  if (!(typeof verb_id === 'number'))
+  const verb_id_number = Number(verb_id)
+  if (isNaN(verb_id_number))
     throw new ValueError(`please provide a verb id, got ${verb_id}`)
 
   // throw new ValueError('please provide a verb id, got %r' % verb_id)
 
-  return get_verb_storage()[verb_id]
+  return get_verb_storage()[verb_id_number]
 }
