@@ -19,7 +19,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
   }
 
   contains(key, activity_id) {
-    const cache = this.get_cache(key) 
+    const cache = this.get_cache(key)
     const contains = cache.contains(activity_id)
     return contains
   }
@@ -42,7 +42,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     // **Example**::
     //    get_slice_from_storage('feed:13', 0, 10, {activity_id__lte=10})
     // ''' 
-    const cache = this.get_cache(key)  
+    const cache = this.get_cache(key)
     // # parse the filter kwargs && translate them to min max
     // # as used by the get results function
     const valid_kwargs = [
@@ -94,8 +94,8 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
         cache.sort_asc = true
       else
         throw new ValueError(`Unrecognized order kwargs ${ordering_args}`)
-    } 
- 
+    }
+
     // # get the actual results
     // python is returning (value, key)
     // but in node it is in string form value, key, value, key 
@@ -104,7 +104,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
       stop,
       ...result_kwargs
     })
- 
+
     const value_key_pairs = chunk(value_key_strings, 2)
     const score_key_pairs = value_key_pairs.map((vk) => {
       const [value, key] = vk
@@ -131,12 +131,13 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     key,
     activities, // in the form of 123:123
     kwargs
-  ) { 
+  ) {
     const { batch_interface } = kwargs
     const cache = this.get_cache(key)
     // # turn it into key value pairs
     const scores = Object.keys(activities)  // map(long_t, activities.keys())
-    const score_value_pairs = zip(scores, Object.values(activities)) 
+    const score_value_pairs = zip(scores, Object.values(activities))
+    console.log(score_value_pairs);
     const result = await cache.add_many(score_value_pairs)
     for (const r of result) {
       // # errors in strings?

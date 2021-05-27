@@ -27,22 +27,31 @@ pool.on('ready', () => {
     user_id: 123
   })
 
+  // const activity = new Activity(
+  //   123,
+  //   Add,
+  //   12,
+  //   13
+  // )
+
   const activity = new Activity(
-    123,
+    '123asd',
     Add,
-    12
+    12,
+    13
   )
-  
+  console.log(activity);
   async function runAsync() {
     // # add into the global activity cache (if we are using it)
     const addedActivity = await User2Feed.insert_activity(activity) // static
-    console.log('addedActivity ', addedActivity);
+    // console.log('addedActivity ', addedActivity);
     const result = await userRedisFeed.add(activity)
-    console.log(result);
-
-    const result1 = await userRedisFeed.get_item(0, 10)
-    console.log('result1', result1);
-    // console.log(result1);
+    // console.log(result);
+    const results1 = await userRedisFeed.get_item(0, 10)
+    // console.log('result1', results1);
+    // results1.forEach(element => {
+    //   console.log(element.serialization_id);
+    // }); 
   }
   runAsync()
 })

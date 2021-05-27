@@ -123,7 +123,6 @@ class BaseStorage {
   deserialize_activities(serialized_activities) {
     // '''
     // Serializes the list of activities
-
     // :param serialized_activities: the list of activities
     // :param serialized_activities: a dictionary with activity ids && activities
     // '''

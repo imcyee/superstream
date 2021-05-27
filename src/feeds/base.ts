@@ -3,6 +3,7 @@ import { AssertionError } from "../errors"
 import { BaseSerializer } from "../serializers/base"
 import { SimpleTimelineSerializer } from "../serializers/simple_timeline_serializer"
 import { BaseActivityStorage, BaseTimelineStorage } from "../storage/base"
+import { RedisTimelineStorage } from "../storage/redis/timeline_storage"
 
 export class BaseFeed {
 
@@ -109,7 +110,7 @@ export class BaseFeed {
 
   user_id
   key
-  timeline_storage: BaseTimelineStorage
+  timeline_storage: BaseTimelineStorage | RedisTimelineStorage
   activity_storage: BaseActivityStorage
   _filter_kwargs
   _ordering_args
@@ -471,7 +472,7 @@ export class BaseFeed {
       stop,
       filter_kwargs: this._filter_kwargs,
       ordering_args: this._ordering_args
-    }) 
+    })
     if (this.needs_hydration(activities) && rehydrate) {
       activities = await this.hydrate_activities(activities)
     }
