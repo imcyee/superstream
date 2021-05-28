@@ -96,23 +96,27 @@ export class Activity extends BaseActivity {
   object_id
   actor_id
   target_id
+  verb_id
 
-  constructor(
+  constructor({
     actor,
-    VerbClass,
+    verb,
     object,
     target = null,
     time = null,
     extra_context = null
-  ) {
+  }) {
     super()
-    this.verb = new VerbClass()
+    // this.verb = new VerbClass()
+    this._set_object_or_id('verb', verb)
 
     this.time = time || Date.now() // datetime.datetime.utcnow()
     // # either set .actor or .actor_id depending on the data
     this._set_object_or_id('actor', actor)
     this._set_object_or_id('object', object)
     this._set_object_or_id('target', target)
+
+
     // # store the extra context which gets serialized
     this.extra_context = extra_context || {}
     this.dehydrated = false
@@ -121,7 +125,6 @@ export class Activity extends BaseActivity {
   get_dehydrated() {
     // '''
     // returns the dehydrated version of the current activity
-
     // '''
     return new DehydratedActivity(this.serialization_id)
   }
@@ -183,6 +186,8 @@ export class Activity extends BaseActivity {
   /**
    * beware of js handling large number it will generate scientific notation eg: 1.45e+25
    * represent the id as string
+   * collision will occur when multiple activity generated at the same milli second
+   * with the same object_id and verb_id
    */
   get serialization_id() {
     // serialization_id is used to keep items locally sorted and unique
@@ -202,7 +207,11 @@ export class Activity extends BaseActivity {
     //   throw new TypeError('Fatal: object_id / verb have too many digits !')
     // }
 
-
+    // support int with max 999 
+    // if (this.verb.id >= 1000) {
+    // if (this.verb_id >= 1000) {
+    //   throw new TypeError('Fatal: object_id / verb have too many digits !')
+    // }
 
     if (!this.time) {
       throw new TypeError('Cant serialize activities without a time')
@@ -212,15 +221,12 @@ export class Activity extends BaseActivity {
     // convert any string to int any number and truncate the number to fixed size
     // using object id and verb
     // which can be generated repeatedly under any machine
-
-
-
     const milliseconds = (Number(datetime_to_epoch(this.time) * 1000))
-    // const objectIdPad = this.object_id.toString().padStart(10, '0')
+    const objectIdPad = hashCodePositive(this.object_id + this.verb_id).toString().padStart(10, '0')
     // const verdIdPad = this.verb.id.toString().padStart(3, '0')
-    const objectIdPad = hashCodePositive(this.object_id).toString().padStart(10, '0')
-    const verdIdPad = this.verb.id.toString().padStart(3, '0')
-    const serialization_id_str = `${milliseconds}${objectIdPad}${verdIdPad}` // % (milliseconds, this.object_id, this.verb.id)
+    // const verdIdPad = this.verb_id.toString().padStart(3, '0')
+    // const serialization_id_str = `${milliseconds}${objectIdPad}${verdIdPad}` // % (milliseconds, this.object_id, this.verb.id)
+    const serialization_id_str = `${milliseconds}${objectIdPad}` // % (milliseconds, this.object_id, this.verb.id)
     const serialization_id = serialization_id_str
     return serialization_id
   }
@@ -234,7 +240,7 @@ export class Activity extends BaseActivity {
     // field = object
     // '''
     const id_field = `${field}_id` // '%s_id' % field
-
+    // console.log(field, object_, object_.id);
     if (Number.isInteger(object_) || typeof object_ === 'string') {
       this[id_field] = object_
       // setattr(id_field, object_)

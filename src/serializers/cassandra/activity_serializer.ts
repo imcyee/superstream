@@ -32,7 +32,8 @@ export class CassandraActivitySerializer extends BaseSerializer {
       activity_id: activity.serialization_id, // long_t(activity.serialization_id),
       actor_id: activity.actor_id,
       time: activity.time,
-      verb: activity.verb.id,
+      // verb: activity.verb.id,
+      verb_id: activity.verb_id,
       object_id: activity.object_id,
       target_id: activity.target_id,
       extra_context: Buffer.from(JSON.stringify(activity.extra_context)) // pickle.dumps(activity.extra_context)
@@ -43,7 +44,8 @@ export class CassandraActivitySerializer extends BaseSerializer {
     console.log('serialized_activity', serialized_activity);
     delete serialized_activity['activity_id']
     delete serialized_activity['feed_id']
-    serialized_activity['verb'] = get_verb_by_id(serialized_activity['verb'])
+    // serialized_activity['verb'] = get_verb_by_id(serialized_activity['verb'])
+    // serialized_activity['verb'] = get_verb_by_id(serialized_activity['verb'])
     // serialized_activity['extra_context'] = pickle.loads(
     //   serialized_activity['extra_context']
     // )
@@ -54,13 +56,13 @@ export class CassandraActivitySerializer extends BaseSerializer {
     //  )
     console.log(this.activity_class);
 
-    return new this.activity_class(
-      serialized_activity.actor_id,
-      serialized_activity.verb,
-      serialized_activity.object_id,
-      serialized_activity.target_id,
-      serialized_activity.time,
-      serialized_activity.extra_context
-    )
+    return new this.activity_class({
+      actor: serialized_activity.actor_id,
+      verb: serialized_activity.verb_id,
+      object: serialized_activity.object_id,
+      target: serialized_activity.target_id,
+      time: serialized_activity.time,
+      extra_context: serialized_activity.extra_context
+    })
   }
 }

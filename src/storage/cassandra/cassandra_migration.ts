@@ -29,7 +29,7 @@ export function runCassandraMigration() {
             object_id ascii,
             target_id ascii,
             time timestamp,
-            verb int,
+            verb_id ascii,
             activities blob,
             created_at timestamp,
             group ascii,

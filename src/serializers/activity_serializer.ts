@@ -24,7 +24,7 @@ export class ActivitySerializer extends BaseSerializer {
     const activity_time = datetime_to_epoch(activity.time).toFixed(6) // '%.6f' % datetime_to_epoch(activity.time)
     const parts = [
       activity.actor_id,
-      activity.verb.id,
+      activity.verb_id, // activity.verb.id,
       activity.object_id,
       activity.target_id || 0
     ]
@@ -61,7 +61,8 @@ export class ActivitySerializer extends BaseSerializer {
     // if (!target_id) {
     //   target_id = null
     // }
-    const verb = get_verb_by_id(verb_id)
+    // const verb = get_verb_by_id(verb_id)
+
     var extra_context = {}
     if (pickle_string) {
       // if (six.PY3) {
@@ -80,13 +81,13 @@ export class ActivitySerializer extends BaseSerializer {
     // )
     const activity = new this.activity_class(
       actor_id,
-      verb,
+      verb_id, // verb,
       object_id,
       target_id,
       activity_datetime,
       extra_context
     )
-  
+
     return activity
   }
 }
