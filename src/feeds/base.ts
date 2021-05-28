@@ -173,7 +173,6 @@ export class BaseFeed {
   static async insert_activities(activities, kwargs) {
     // '''
     // Inserts an activity to the activity storage
-
     // :param activity: the activity class
     // '''
     const activity_storage = this.get_activity_storage()
@@ -185,7 +184,6 @@ export class BaseFeed {
   static async insert_activity(activity, kwargs?) {
     // '''
     // Inserts an activity to the activity storage
-
     // :param activity: the activity class
     // '''
     return await this.insert_activities([activity], kwargs)
@@ -195,7 +193,6 @@ export class BaseFeed {
   static remove_activity(activity, kwargs) {
     // '''
     // Removes an activity from the activity storage
-
     // :param activity: the activity class or an activity id
     // '''
     const activity_storage = this.get_activity_storage()
@@ -436,12 +433,16 @@ export class BaseFeed {
       activity_ids.push(...activity._activity_ids)
     }
     const activity_list = await this.activity_storage.get_many(activity_ids)
+
+    // activity_list.forEach(al => console.log(al.serialization_id))
     var activity_data = {}
     for (const a of activity_list) {
       activity_data[a.serialization_id] = a
     }
-    const activities2 = []
-    for (const activity of activities) {
+
+    // console.log(activity_data);
+    const activities2 = [] 
+    for (const activity of activities) { 
       const hydrated_activity = await activity.get_hydrated(activity_data)
       activities2.push(hydrated_activity)
     }

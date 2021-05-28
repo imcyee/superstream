@@ -3,6 +3,13 @@ import { datetime_to_epoch, make_list_unique } from "./utils"
 
 const MAX_AGGREGATED_ACTIVITIES_LENGTH = 15
 
+/**
+ * Simple hash function for serializable_id and others
+ * will generate negative number 
+ * max 2147483647 min -214748367
+ * @param str 
+ * @returns 
+ */
 function hashCode(str) {
   var hash = 0;
   if (str.length == 0) return hash;
@@ -12,6 +19,22 @@ function hashCode(str) {
     hash = hash & hash; // Convert to 32bit integer
   }
   return hash;
+}
+
+const MAX_SIGNED_INT_32B = 2147483648
+// similar to hashCode but convert to positive
+function hashCodePositive(str) {
+  var sanitizeStr = typeof str === 'number'
+    ? str.toString()
+    : str
+
+  const convertedNumber = hashCode(sanitizeStr)
+  if (convertedNumber < 0) {
+    // js support 64bit increment 
+    // no issue in convert signed to unsigned 
+    return (convertedNumber * -1) + MAX_SIGNED_INT_32B
+  } else
+    return convertedNumber
 }
 
 class BaseActivity {
@@ -46,7 +69,7 @@ export class DehydratedActivity extends BaseActivity {
     // '''
     // returns the full hydrated Activity from activities
     // :param activities a dict {'activity_id': Activity}
-    // ''' 
+    // '''   
     const activity = activities[this.serialization_id]
     activity.dehydrated = false
     return activity
@@ -119,6 +142,7 @@ export class Activity extends BaseActivity {
     return hashCode(this.serialization_id)
   }
 
+
   // // @property
   // /**
   //  * beware of js handling large number it will generate scientific notation eg: 1.45e+25
@@ -137,6 +161,7 @@ export class Activity extends BaseActivity {
   //   // 008 left padded activity verb id (3 digits)
   //   // :returns: int --the serialization id
 
+  //   // remove object_id to only 
   //   if (this.object_id >= 10 ** 10 || this.verb.id >= 10 ** 3) {
   //     throw new TypeError('Fatal: object_id / verb have too many digits !')
   //   }
@@ -146,7 +171,9 @@ export class Activity extends BaseActivity {
   //   }
 
   //   const milliseconds = (Number(datetime_to_epoch(this.time) * 1000))
-  //   const serialization_id_str = `${milliseconds}${this.object_id.toString().padStart(10, '0')}${this.verb.id.toString().padStart(3, '0')}` // % (milliseconds, this.object_id, this.verb.id)
+  //   const objectIdPad = this.object_id.toString().padStart(10, '0')
+  //   const verdIdPad = this.verb.id.toString().padStart(3, '0')
+  //   const serialization_id_str = `${milliseconds}${objectIdPad}${verdIdPad}` // % (milliseconds, this.object_id, this.verb.id)
   //   const serialization_id = serialization_id_str
   //   return serialization_id
   // }
@@ -170,17 +197,30 @@ export class Activity extends BaseActivity {
     // 008 left padded activity verb id (3 digits)
     // :returns: int --the serialization id
 
-    // remove object_id to only 
-    if (this.object_id >= 10 ** 10 || this.verb.id >= 10 ** 3) {
-      throw new TypeError('Fatal: object_id / verb have too many digits !')
-    }
+    // // remove object_id to only 
+    // if (this.object_id >= 10 ** 10 || this.verb.id >= 10 ** 3) {
+    //   throw new TypeError('Fatal: object_id / verb have too many digits !')
+    // }
+
+
 
     if (!this.time) {
       throw new TypeError('Cant serialize activities without a time')
     }
 
+    // remove all the unhashable key such as :;,
+    // convert any string to int any number and truncate the number to fixed size
+    // using object id and verb
+    // which can be generated repeatedly under any machine
+
+
+
     const milliseconds = (Number(datetime_to_epoch(this.time) * 1000))
-    const serialization_id_str = `${milliseconds}${this.object_id.toString().padStart(10, '0')}${this.verb.id.toString().padStart(3, '0')}` // % (milliseconds, this.object_id, this.verb.id)
+    // const objectIdPad = this.object_id.toString().padStart(10, '0')
+    // const verdIdPad = this.verb.id.toString().padStart(3, '0')
+    const objectIdPad = hashCodePositive(this.object_id).toString().padStart(10, '0')
+    const verdIdPad = this.verb.id.toString().padStart(3, '0')
+    const serialization_id_str = `${milliseconds}${objectIdPad}${verdIdPad}` // % (milliseconds, this.object_id, this.verb.id)
     const serialization_id = serialization_id_str
     return serialization_id
   }
@@ -195,7 +235,7 @@ export class Activity extends BaseActivity {
     // '''
     const id_field = `${field}_id` // '%s_id' % field
 
-    if (Number.isInteger(object_) || Number.isInteger(Number(object_))) {
+    if (Number.isInteger(object_) || typeof object_ === 'string') {
       this[id_field] = object_
       // setattr(id_field, object_)
     } else if (!object_) {

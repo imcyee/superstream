@@ -7,7 +7,6 @@ export class BaseSerializer {
   // '''
   // The base serializer class, only defines the signature for
   // loads and dumps
-
   // It serializes Activity objects
   // '''
   activity_class

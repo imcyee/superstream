@@ -26,3 +26,15 @@ services:
       - ./src:/usr/src/app/src
     networks:
       - app-tier
+      
+  cassandra: 
+    image: 'cassandra:latest' 
+    ports:
+      - "9042:9042" 
+    networks:
+      - app-tier 
+    environment:
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_CLUSTER_NAME=MyCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=datacenter

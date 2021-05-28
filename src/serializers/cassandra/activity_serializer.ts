@@ -3,6 +3,7 @@
 // from stream_framework.utils.five import long_t
 // import pickle
 
+import { get_verb_by_id } from "../../verbs/utils"
 import { BaseSerializer } from "../base"
 
 
@@ -13,31 +14,44 @@ export class CassandraActivitySerializer extends BaseSerializer {
   // and dumps returns a CQLEngine model instance)
   // '''
 
-  __init__(self, model, kwargs) {
-    BaseSerializer.__init__(self, kwargs)
-    self.model = model
+  // model
+
+  constructor({
+    model,
+    activity_class,
+    ...kwargs
+  }) {
+    super({ activity_class, ...kwargs })
+    // this.model = model
   }
 
-  dumps(self, activity) {
-    self.check_type(activity)
-    return self.model(
-      activity_id = long_t(activity.serialization_id),
-      actor = activity.actor_id,
-      time = activity.time,
-      verb = activity.verb.id,
-      object = activity.object_id,
-      target = activity.target_id,
-      extra_context = pickle.dumps(activity.extra_context)
-    )
+  dumps(activity) {
+    this.check_type(activity)
+    return {
+      activity_id: activity.serialization_id, // long_t(activity.serialization_id),
+      actor: activity.actor_id,
+      time: activity.time,
+      verb: activity.verb.id,
+      object: activity.object_id,
+      target: activity.target_id,
+      extra_context: activity.extra_context// pickle.dumps(activity.extra_context)
+    }
   }
 
-  loads(self, serialized_activity) {
+  loads(serialized_activity) {
     serialized_activity.pop('activity_id')
     serialized_activity.pop('feed_id')
-    serialized_activity['verb'] = get_verb_by_id(int(serialized_activity['verb']))
-    serialized_activity['extra_context'] = pickle.loads(
-      serialized_activity['extra_context']
+    serialized_activity['verb'] = get_verb_by_id(serialized_activity['verb'])
+    // serialized_activity['extra_context'] = pickle.loads(
+    //   serialized_activity['extra_context']
+    // )
+    return this.activity_class(
+      serialized_activity.actor_id,
+      serialized_activity.verb,
+      serialized_activity.object_id,
+      serialized_activity.target_id,
+      serialized_activity.time,
+      serialized_activity.extra_context
     )
-    return self.activity_class(serialized_activity)
   }
 }

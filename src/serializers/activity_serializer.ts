@@ -18,7 +18,7 @@ export class ActivitySerializer extends BaseSerializer {
   // null values are stored as 0
   // '''
 
-  dumps(activity) { 
+  dumps(activity) {
     this.check_type(activity)
     // keep the milliseconds
     const activity_time = datetime_to_epoch(activity.time).toFixed(6) // '%.6f' % datetime_to_epoch(activity.time)
@@ -27,7 +27,7 @@ export class ActivitySerializer extends BaseSerializer {
       activity.verb.id,
       activity.object_id,
       activity.target_id || 0
-    ] 
+    ]
     const extra_context = Object.assign({}, activity.extra_context) // activity.extra_context.copy()
     var pickle_string = ''
     // if (extra_context) {
@@ -50,7 +50,7 @@ export class ActivitySerializer extends BaseSerializer {
     return serialized_activity
   }
 
-  loads(serialized_activity) { 
+  loads(serialized_activity) {
     // const parts = serialized_activity.split(',', 5)
     const parts = serialized_activity.split(',')
     // convert these to ids
@@ -61,7 +61,7 @@ export class ActivitySerializer extends BaseSerializer {
     // if (!target_id) {
     //   target_id = null
     // }
-    const verb = get_verb_by_id(verb_id) 
+    const verb = get_verb_by_id(verb_id)
     var extra_context = {}
     if (pickle_string) {
       // if (six.PY3) {
@@ -86,7 +86,7 @@ export class ActivitySerializer extends BaseSerializer {
       activity_datetime,
       extra_context
     )
-
+  
     return activity
   }
 }

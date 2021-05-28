@@ -93,7 +93,7 @@ class BaseStorage {
       activity_class: this.activity_class,
       ...kwargs
     })
- 
+
     return serializer_instance
   }
 
@@ -127,17 +127,17 @@ class BaseStorage {
     // :param serialized_activities: a dictionary with activity ids && activities
     // '''
     const activities = []
- 
+
     // # handle the case where this is a dict
     if (serialized_activities instanceof Object && !Array.isArray(serialized_activities)) {
       serialized_activities = Object.values(serialized_activities)
-    } 
+    }
     if (serialized_activities) {
-      for (const serialized_activity of serialized_activities) { 
+      for (const serialized_activity of serialized_activities) {
         const activity = this.serializer.loads(serialized_activity)
         activities.push(activity)
       }
-    } 
+    }
     return activities
   }
 }
@@ -196,7 +196,8 @@ export class BaseActivityStorage extends BaseStorage {
     // :param activity_ids: the list of activity ids
     // '''
     // this.metrics.on_feed_read(this.__class__, activity_ids?.length) 
-    const activities_data = await this.get_from_storage(activity_ids, kwargs) 
+    const activities_data = await this.get_from_storage(activity_ids, kwargs)
+    // console.log('activities_data', activities_data);
     return this.deserialize_activities(activities_data)
   }
 
@@ -378,7 +379,7 @@ export class BaseTimelineStorage extends BaseStorage {
       stop,
       filter_kwargs,
       ordering_args
-    }) 
+    })
     var activities = []
     if (activities_data) {
       const serialized_activities = (zip(...activities_data))[1]// list(zip(...activities_data))[1]
