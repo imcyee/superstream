@@ -38,3 +38,5 @@ services:
       - CASSANDRA_CLUSTER_NAME=MyCluster
       - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
       - CASSANDRA_DC=datacenter
+    volumes: 
+      - /cassandra_docker_volume:/var/lib/cassandra

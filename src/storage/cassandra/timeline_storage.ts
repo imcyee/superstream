@@ -1,23 +1,9 @@
-// from __future__ import division
-// import stream_framework.storage.cassandra.monkey_patch
-// from cassandra.query import SimpleStatement
-// from cassandra.cqlengine.connection import get_session
-// from cassandra.cqlengine.connection import execute
-// from cassandra.cqlengine.query import BatchQuery
-// from stream_framework.storage.base import BaseTimelineStorage
-// from stream_framework.storage.cassandra import models
-// from stream_framework.serializers.cassandra.activity_serializer import CassandraActivitySerializer
-// from stream_framework.utils import memoized
-// import logging
-
-import zip from "lodash/zip"
+import * as cassandra from 'cassandra-driver'
 import { ValueError } from "../../errors"
 import { CassandraActivitySerializer } from "../../serializers/cassandra/activity_serializer"
-import { dictZip } from "../../utils"
 import { BaseTimelineStorage } from "../base"
 import { getClient } from "./connection"
 import { models } from "./models"
-import * as cassandra from 'cassandra-driver'
 
 const client = getClient()
 const UnderscoreCqlToCamelCaseMappings = cassandra.mapping.UnderscoreCqlToCamelCaseMappings;
@@ -29,82 +15,17 @@ const mapper = new Mapper(client, {
     'Activity': {
       keyspace: keyspace,
       tables: ['feeds'],
-      mappings: new UnderscoreCqlToCamelCaseMappings()
+      // mappings: new UnderscoreCqlToCamelCaseMappings()
     },
   }
 });
 
-// logger = logging.getLogger(__name__)
-
-
-// class Batch extends BatchQuery {
-//   // '''
-//   // Performs a batch of insert queries using async connections
-//   // '''
-
-//   instances
-//   _batch
-
-//   constructor() {
-//     super()
-//     this.instances = []
-//     this._batch = BatchQuery()
-//   }
-
-//   batch_insert(model_instance) {
-//     this.instances.append(model_instance)
-//   }
-
-//   __enter__() {
-//     return this
-//   }
-
-//   add_query(query) {
-//     this._batch.add_query(query)
-//   }
-
-//   add_callback(fn, kwargs) {
-//     throw new TypeError('not supported')
-//   }
-
-//   execute() {
-//     const promises = []
-//     const session = get_session()
-//     for (const instance of this.instances) {
-//       const query = instance.__dmlquery__(instance.__class__, instance)
-//       query.batch(this._batch)
-//       query.save()
-//     }
-//     for (const query of this._batch.queries) {
-//       const statement = SimpleStatement(str(query))
-//       const params = query.get_context()
-//       promises.append(session.execute_async(statement, params))
-//     }
-//     return [r.result() for r in promises]
-//   }
-//   __exit__(exc_type, exc_val, exc_tb) {
-//     this.execute()
-//   }
-// }
-
-// // @memoized
-// function factor_model(base_model, column_family_name) {
-//   const camel_case = column_family_name.split('_').map((s: string) => s.toUpperCase()).join('')
-//   // const camel_case = ''.join([s.capitalize()  for s in column_family_name.split('_')])
-//   const class_name = `${camel_case}FeedModel` // % camel_case
-//   return type(class_name, (base_model,), { '__table_name__': column_family_name })
-// }
-
 export class CassandraTimelineStorage extends BaseTimelineStorage {
-
   // """
   // A feed timeline implementation that uses Apache Cassandra 2.0 for storage.
   // CQL3 is used to access the data stored on Cassandra via the ORM
   // library CqlEngine.
   // """
-
-  // // from stream_framework.storage.cassandra.connection import setup_connection
-  // setup_connection()
 
   default_serializer_class = CassandraActivitySerializer as any
   insert_batch_size = 100
@@ -113,33 +34,38 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
   base_model
   column_family_name
 
-  constructor(
+  constructor({
     serializer_class = null,
     modelClass = models.Activity,
-    options
-  ) {
+    ...options
+  }) {
     super({
       serializer_class,
-      options
+      ...options
     })
-    this.column_family_name = options.pop('column_family_name')
+    this.column_family_name = options['column_family_name']
     this.base_model = modelClass
     // super(CassandraTimelineStorage, this).__init__(serializer_class, options)
     this.model = mapper.forModel(modelClass)
-
     // this.model = this.get_model(this.base_model, this.column_family_name)
   }
 
-  async add_to_storage({
+  async add_to_storage(
     key,
     activities,
-    batch_interface = null,
-    kwargs
-  }) {
+    {
+      batch_interface = null,
+      kwargs
+    }
+  ) {
     const changes = []
+
     // const batch = batch_interface || this.get_batch_interface()
-    for (const model_instance of activities.values()) {
+    for (const model_instance of Object.values(activities)) {
+      // @ts-ignore
       model_instance.feed_id = key.toString()
+      console.log('///////');
+      console.log(model_instance);
       // batch.batch_insert(model_instance)
       changes.push(this.model.batching.insert(model_instance))
     }
@@ -243,11 +169,12 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     const kwargs = {}
     if (this['aggregated_activity_class'])
       kwargs['aggregated_activity_class'] = this.aggregated_activity_class
-    const serializer_instance = serializer_class(
-      this.model,
-      this.activity_class,
-      kwargs
-    )
+
+    const serializer_instance = new serializer_class({
+      model: this.model,
+      activity_class: this.activity_class,
+      ...kwargs
+    })
     return serializer_instance
   }
 
@@ -282,10 +209,10 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
 
   async get_nth_item(key, index, ordering_args = null) {
     const ordering = this.get_ordering_or_default(ordering_args)
-    const results = await (await this.model.find(
+    const results = (await this.model.find(
       { feed_id: key, },
       { orderBy: ordering, limit: (index + 1) }
-    ))
+    )).toArray()
     return results[index]
     // return this.model.objects.filter(feed_id = key).order_by(* ordering).limit(index + 1)[index]
   }
@@ -330,10 +257,13 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     try {
       if (!start || start !== 0) {
         const offset_activity_id = await this.get_nth_item(key, start, ordering)
+        console.log(offset_activity_id);
+        console.log(offset_activity_id.activity_id);
         findOptions = { ...findOptions, activity_id: q.lte(offset_activity_id.activity_id) }
         // query = query.filter(activity_id__lte = offset_activity_id.activity_id)
       }
     } catch (err) {
+      console.error(err);
       console.error('Index error');
       // except IndexError:
       return []
@@ -345,9 +275,9 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     }
 
     // const cols = this.get_columns_to_read(query)
-
+    console.log(findOptions);
     const queryResults = await this.model.find(findOptions, { orderBy: ordering, limit: limit })
-
+    console.log(queryResults);
     // for (const values of query.values_list(* cols).order_by(* ordering).limit(limit)) {
     for (const activity of queryResults.toArray()) {
       // const activity = dictZip(zip(cols, values))

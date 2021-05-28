@@ -1,23 +1,23 @@
 import * as cassandra from 'cassandra-driver'
-import { CassandraActivitySerializer } from '../../serializers/cassandra/activity_serializer';
-import { getClient } from './connection';
+// import { CassandraActivitySerializer } from '../../serializers/cassandra/activity_serializer';
+// import { getClient } from './connection';
 
-const Mapper = cassandra.mapping.Mapper;
-const Client = cassandra.Client
+// const Mapper = cassandra.mapping.Mapper;
+// const Client = cassandra.Client
 const UnderscoreCqlToCamelCaseMappings = cassandra.mapping.UnderscoreCqlToCamelCaseMappings;
 
-const client = getClient()
+// const client = getClient()
 
-const mapper = new Mapper(client, {
-  models: {
-    'Activity': {
-      tables: ['feeds'],
-      mappings: new UnderscoreCqlToCamelCaseMappings()
-    },
-  }
-});
+// const mapper = new Mapper(client, {
+//   models: {
+//     'Activity': {
+//       tables: ['feeds'],
+//       mappings: new UnderscoreCqlToCamelCaseMappings()
+//     },
+//   }
+// });
 
-const feedsMapper = mapper.forModel('Activity');
+// const feedsMapper = mapper.forModel('Activity');
 
 export const modelsOption: cassandra.mapping.MappingOptions = {
   models: {

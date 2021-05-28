@@ -21,9 +21,9 @@ export class CassandraFeed extends BaseFeed {
   // Activities are stored completely in the timeline storage
   // """
 
-  activity_storage_class = CassandraActivityStorage
-  timeline_storage_class = CassandraTimelineStorage
-  timeline_serializer = CassandraActivitySerializer
+  static activity_storage_class = CassandraActivityStorage
+  static timeline_storage_class = CassandraTimelineStorage
+  static timeline_serializer = CassandraActivitySerializer
   static timeline_model = models.Activity
 
   // # ; the name of the column family

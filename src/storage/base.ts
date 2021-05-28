@@ -42,7 +42,6 @@ class BaseStorage {
   constructor({
     serializer_class = null,
     activity_class = null,
-    //  ** options
     ...options
   }) {
     // '''
@@ -57,6 +56,7 @@ class BaseStorage {
     if (aggregated_activity_class)
       this.aggregated_activity_class = aggregated_activity_class
   }
+  
   flush() {
     // '''
     // Flushes the entire storage
@@ -252,15 +252,12 @@ export class BaseTimelineStorage extends BaseStorage {
   // '''
   // The Timeline storage class handles the feed/timeline sorted part of storing
   // a feed.
-
   // **Example**::
-
   //     storage = BaseTimelineStorage()
   //     storage.add_many(key, activities)
   //     # get a sorted slice of the feed
   //     storage.get_slice(key, start, stop)
   //     storage.remove_many(key, activities)
-
   // The storage specific functions are located in
   // '''
 

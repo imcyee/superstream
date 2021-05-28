@@ -21,6 +21,7 @@ export class CassandraActivitySerializer extends BaseSerializer {
     activity_class,
     ...kwargs
   }) {
+    console.log('activity class ', activity_class);
     super({ activity_class, ...kwargs })
     // this.model = model
   }
@@ -29,23 +30,31 @@ export class CassandraActivitySerializer extends BaseSerializer {
     this.check_type(activity)
     return {
       activity_id: activity.serialization_id, // long_t(activity.serialization_id),
-      actor: activity.actor_id,
+      actor_id: activity.actor_id,
       time: activity.time,
       verb: activity.verb.id,
-      object: activity.object_id,
-      target: activity.target_id,
-      extra_context: activity.extra_context// pickle.dumps(activity.extra_context)
+      object_id: activity.object_id,
+      target_id: activity.target_id,
+      extra_context: Buffer.from(JSON.stringify(activity.extra_context)) // pickle.dumps(activity.extra_context)
     }
   }
 
   loads(serialized_activity) {
-    serialized_activity.pop('activity_id')
-    serialized_activity.pop('feed_id')
+    console.log('serialized_activity', serialized_activity);
+    delete serialized_activity['activity_id']
+    delete serialized_activity['feed_id']
     serialized_activity['verb'] = get_verb_by_id(serialized_activity['verb'])
     // serialized_activity['extra_context'] = pickle.loads(
     //   serialized_activity['extra_context']
     // )
-    return this.activity_class(
+    serialized_activity['extra_context'] = JSON.parse(serialized_activity['extra_context'].toString());
+
+    //  pickle.loads(
+    //       serialized_activity['extra_context']
+    //  )
+    console.log(this.activity_class);
+
+    return new this.activity_class(
       serialized_activity.actor_id,
       serialized_activity.verb,
       serialized_activity.object_id,

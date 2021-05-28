@@ -10,9 +10,7 @@ export class BaseFeed {
   // '''
   // The feed class allows you to add and remove activities from a feed.
   // Please find below a quick usage example.
-
   // **Usage Example**::
-
   //     feed = BaseFeed(user_id)
   //     # start by adding some existing activities to a feed
   //     feed.add_many([activities])
@@ -23,56 +21,38 @@ export class BaseFeed {
   //     # counting the number of items in the feed
   //     count = feed.count()
   //     feed.delete()
-
-
   // The feed is easy to subclass.
   // Commonly you'll want to change the max_length and the key_format.
-
   // **Subclassing**::
-
   //     class MyFeed(BaseFeed){
   //         key_format = 'user_feed:%(user_id)s'
   //         max_length = 1000
-
-
   // **Filtering and Pagination**::
-
   //     feed.filter(activity_id__gte=1)[:10]
   //     feed.filter(activity_id__lte=1)[:10]
   //     feed.filter(activity_id__gt=1)[:10]
   //     feed.filter(activity_id__lt=1)[:10]
 
-
   // **Activity storage and Timeline storage**
-
   // To keep reduce timelines memory utilization the BaseFeed supports
   // normalization of activity data.
-
   // The full activity data is stored only in the activity_storage while the timeline
   // only keeps a activity references (refered as activity_id in the code)
-
   // For this reason when an activity is created it must be stored in the activity_storage
   // before other timelines can refer to it
-
   // eg. ::
-
   //     feed = BaseFeed(user_id)
   //     feed.insert_activity(activity)
   //     follower_feed = BaseFeed(follower_user_id)
   //     feed.add(activity)
-
   // It is also possible to store the full data in the timeline storage
-
   // The strategy used by the BaseFeed depends on the serializer utilized by the timeline_storage
-
   // When activities are stored as dehydrated (just references) the BaseFeed will query the
   // activity_storage to return full activities
 
   // eg. ::
-
   //     feed = BaseFeed(user_id)
   //     feed[:10]
-
   // gets the first 10 activities from the timeline_storage, if the results are not complete activities then
   // the BaseFeed will hydrate them via the activity_storage
 
@@ -221,7 +201,7 @@ export class BaseFeed {
     } = {}) {
     // '''
     // Add many activities
-
+    console.log(activities);
     // // :param activities: a list of activities
     // // :param batch_interface: the batch interface
     // // '''
@@ -441,8 +421,8 @@ export class BaseFeed {
     }
 
     // console.log(activity_data);
-    const activities2 = [] 
-    for (const activity of activities) { 
+    const activities2 = []
+    for (const activity of activities) {
       const hydrated_activity = await activity.get_hydrated(activity_data)
       activities2.push(hydrated_activity)
     }
