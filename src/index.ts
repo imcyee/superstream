@@ -9,6 +9,8 @@ import { CassandraFeed } from "./feeds/cassandra";
 import { runCassandraMigration } from "./storage/cassandra/cassandra_migration";
 import express from 'express'
 import routes from "./routes";
+import { CassandraTimelineStorage } from "./storage/cassandra/timeline_storage";
+import { SimpleTimelineSerializer } from "./serializers/simple_timeline_serializer";
 
 const app = express()
 // parse json request body
@@ -29,22 +31,31 @@ const UnderscoreCqlToCamelCaseMappings = cassandra.mapping.UnderscoreCqlToCamelC
 const client = getClient()
 
 client.connect().then(async () => {
-  // runCassandraMigration()
-  const cassandraFeed = new CassandraFeed({ user_id: 'user:123' })
 
-  const activity = new Activity({
-    actor: 'user:123',
-    verb: 'pin:4', //Add,
-    object: 'object:13',
-    target: 'test:124445566',
-    time: null,
-    extra_context: { extra: 123 }
+  const cassandra = new CassandraTimelineStorage({
+    serializer_class: SimpleTimelineSerializer,
+    column_family_name: "feeds"
   })
-  const result2 = await cassandraFeed.add(activity)
-  const result3 = await cassandraFeed.get_item(0, 10)
-  result3.forEach(element => {
-    console.log(element);
-  });
+
+  // cassandra.trim('feed_uuuusrrrrr:123', 10)
+  // // // runCassandraMigration()
+  // const cassandraFeed = new CassandraFeed({ user_id: 'user:123' })
+
+  // const activity = new Activity({
+  //   actor: 'user:123',
+  //   verb: 'pin:4', //Add,
+  //   object: 'object:13',
+  //   target: 'test:124445566',
+  //   time: null,
+  //   extra_context: { extra: 123 }
+  // })
+  // const result2 = await cassandraFeed.add(activity)
+  // console.log(result2);
+  // const result3 = await cassandraFeed.get_item(0, 10)
+  // console.log(result3);
+  // result3.forEach(element => {
+  //   console.log(element);
+  // });
   // .then(result => console.log('User with email %s', result));
 })
 

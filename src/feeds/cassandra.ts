@@ -27,7 +27,7 @@ export class CassandraFeed extends BaseFeed {
   static timeline_model = models.Activity
 
   // # ; the name of the column family
-  static timeline_cf_name = 'stream' // 'example'
+  static timeline_cf_name = 'feeds' // 'example'
 
   // # : clarify that this feed supports filtering and ordering
   filtering_supported = true

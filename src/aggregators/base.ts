@@ -43,7 +43,6 @@ class BaseAggregator {
     //     activities = [Activity(1), Activity(2)]
     //     aggregated_activities = aggregator.aggregate(activities)
     // '''
-
     const aggregate_dict = this.group_activities(activities)
     const aggregated_activities = Object.values(aggregate_dict)
     const ranked_aggregates = this.rank(aggregated_activities)

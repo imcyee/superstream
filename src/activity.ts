@@ -107,6 +107,14 @@ export class Activity extends BaseActivity {
     extra_context = null
   }) {
     super()
+
+    // sanitize invalid activity
+    if (!verb) // verb writetime is require to purge old data
+      throw new Error('This does not seems like a valid activity, verb is required')
+
+    if (!actor && !object && !target)
+      throw new Error('This does not seems like a valid activity')
+
     // this.verb = new VerbClass()
     this._set_object_or_id('verb', verb)
 

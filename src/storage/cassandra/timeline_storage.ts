@@ -6,7 +6,6 @@ import { getClient } from "./connection"
 import { models } from "./models"
 
 const client = getClient()
-const UnderscoreCqlToCamelCaseMappings = cassandra.mapping.UnderscoreCqlToCamelCaseMappings;
 const Mapper = cassandra.mapping.Mapper;
 const q = cassandra.mapping.q;
 const keyspace = 'stream'
@@ -15,7 +14,6 @@ const mapper = new Mapper(client, {
     'Activity': {
       keyspace: keyspace,
       tables: ['feeds'],
-      // mappings: new UnderscoreCqlToCamelCaseMappings()
     },
   }
 });
@@ -45,9 +43,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     })
     this.column_family_name = options['column_family_name']
     this.base_model = modelClass
-    // super(CassandraTimelineStorage, this).__init__(serializer_class, options)
     this.model = mapper.forModel(modelClass)
-    // this.model = this.get_model(this.base_model, this.column_family_name)
   }
 
   async add_to_storage(
@@ -60,39 +56,25 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
   ) {
     const changes = []
 
-    // const batch = batch_interface || this.get_batch_interface()
     for (const model_instance of Object.values(activities)) {
       // @ts-ignore
       model_instance.feed_id = key.toString()
-      console.log('///////');
-      console.log(model_instance);
-      // batch.batch_insert(model_instance)
       changes.push(this.model.batching.insert(model_instance))
     }
     const results = await mapper.batch(changes)
     return results.toArray()
-    // if (!batch_interface) {
-    //   batch.execute()
-    // }
+
   }
 
   async remove_from_storage(key, activities, batch_interface = null) {
-    // const batch = batch_interface || this.get_batch_interface()
-    // for (const activity_id of activities.keys()) {
-    //   this.model(feed_id = key, activity_id = activity_id).batch(batch).delete()
-    // }
-    // if (!batch_interface) {
-    //   batch.execute()
-    // }
     const changes = []
     for (const activity_id of activities.keys()) {
       changes.push(this.model.batching.remove({ feed_id: key, activity_id: activity_id }))
-      // this.model(feed_id = key, activity_id = activity_id).batch(batch).delete()
     }
     await mapper.batch(changes)
   }
 
-  async trim(key, length, batch_interface = null) {
+  async trim(key, max_length, batch_interface = null) {
     // trim using Cassandra's tombstones black magic
     // retrieve the WRITETIME of the last item we want to keep
     // then delete everything written after that
@@ -100,43 +82,57 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     // length amount of items
     // WARNING: since activities created using Batch share the same timestamp
     // trim can trash up to (batch_size - 1) more activities than requested
+    const variable = this.base_model === models.Activity
+      ? 'verb_id' // must make sure null is not allow to be empty
+      : 'group'
 
-    // const query = "SELECT WRITETIME(%s) as wt FROM %s.%s WHERE feed_id='%s' ORDER BY activity_id DESC LIMIT %s;"
-    // const query = "SELECT WRITETIME(?) as wt FROM ?.? WHERE feed_id=? ORDER BY activity_id DESC LIMIT ?;"
-    const query = "SELECT WRITETIME(feed_id) as wt FROM ?.? WHERE feed_id=? ORDER BY activity_id DESC LIMIT ?;"
-    // const trim_col = [c for c in this.model._columns.keys() if c not in this.model._primary_keys.keys()][0]
-    const parameters = [
-      // trim_col,
-      keyspace, // this.model._get_keyspace(),
-      this.column_family_name,
+    const query = `
+      SELECT 
+        WRITETIME(${variable}) as wt 
+      FROM 
+        ${keyspace}.${this.column_family_name} 
+      WHERE 
+        feed_id=? 
+      ORDER BY 
+        activity_id DESC 
+      LIMIT 
+        ?;
+    `
+
+    const parameters = [,
       key,
-      length + 1
+      max_length + 1
     ]
 
-    // const results = execute(query % parameters)
-    const results = await client.execute(query, parameters)
+    const results = await client.execute(query, parameters, { prepare: true })
 
     // # compatibility with both cassandra driver 2.7 and 3.0
-    // const results_length = results['current_rows']
-    //   ? results.current_rows.length
-    //   : results.length
     const results_length = results.rowLength
-    if (results_length < length) {
+
+    // length is still within max
+    if (results_length < max_length)
       return
-    }
-    const trim_ts = (results[-1]['wt'] + results[-2]['wt']) // 2
-    // const delete_query = "DELETE FROM %s.%s USING TIMESTAMP %s WHERE feed_id='%s';"
-    const delete_query = "DELETE FROM ?.? USING TIMESTAMP ? WHERE feed_id=?;"
+
+    const { rows } = results
+    const rowsLength = rows.length
+
+    // beware of this function delete with timestamp larger than current time will remove all records up till the timestamp
+    // anything that insert after that timestamp is unable to insert
+    const trim_ts_number = (Number(rows[rowsLength - 1]['wt']) + Number(rows[rowsLength - 2]['wt'])) / 2
+    const trim_ts = Math.floor(trim_ts_number)
+
+    // safety check 
+    if (trim_ts > Date.now() * 1000) // in micro
+      throw new Error("trim timestamp should not be more than current timestamp")
+
+    const delete_query = `DELETE FROM ${keyspace}.${this.column_family_name} USING TIMESTAMP ? WHERE feed_id=?;`
     const delete_params = [
-      keyspace, //this.model._get_keyspace(), 
-      this.column_family_name,
-      trim_ts,
+      trim_ts, // in microseconds
       key
     ]
 
+    await client.execute(delete_query, delete_params, { prepare: true })
 
-    // execute(delete_query % delete_params)
-    await client.execute(delete_query, delete_params)
   }
 
   async count(key) {
@@ -147,17 +143,6 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
   async delete(key) {
     return await this.model.remove({ feed_id: key })
   }
-
-  // // @classmethod
-  // static get_model(cls, base_model, column_family_name) {
-  //   // '''
-  //   // Creates an instance of the base model with the table_name (column family name)
-  //   // set to column family name
-  //   // :param base_model: the model to extend from
-  //   // :param column_family_name: the name of the column family
-  //   // '''
-  //   return factor_model(base_model, column_family_name)
-  // }
 
   // @property
   // overwriting parent method
@@ -177,10 +162,6 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     })
     return serializer_instance
   }
-
-  // get_batch_interface() {
-  //   return new Batch(batch_size = this.insert_batch_size, atomic_inserts = False)
-  // }
 
   async contains(key, activity_id) {
     const results = await this.model.find({ feed_id: key, activity_id })
@@ -214,18 +195,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
       { orderBy: ordering, limit: (index + 1) }
     )).toArray()
     return results[index]
-    // return this.model.objects.filter(feed_id = key).order_by(* ordering).limit(index + 1)[index]
   }
-
-  // get_columns_to_read(query) {
-  //   var columns = this.model._columns.keys()
-  //   const deferred_fields = query['defer_fields'] || []
-  //   query['_defer_fields'] = []
-  //   columns = [c for c in columns if c not in deferred_fields]
-  //   // # Explicitly set feed_id as column because it is deferred in new
-  //   // # versions of the cassandra driver.
-  //   return list(set(columns + ['feed_id']))
-  // }
 
   async get_slice_from_storage({
     key,
@@ -245,22 +215,17 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     var findOptions = {} as any;
     findOptions.feed_id = key
 
-    // var query =  this.model.objects.filter(feed_id = key)
     if (filter_kwargs) {
       findOptions = {
         ...findOptions,
         ...filter_kwargs
       }
-      // query = query.filter(** filter_kwargs)
     }
 
     try {
-      if (!start || start !== 0) {
+      if (start === null || start != 0) {
         const offset_activity_id = await this.get_nth_item(key, start, ordering)
-        console.log(offset_activity_id);
-        console.log(offset_activity_id.activity_id);
         findOptions = { ...findOptions, activity_id: q.lte(offset_activity_id.activity_id) }
-        // query = query.filter(activity_id__lte = offset_activity_id.activity_id)
       }
     } catch (err) {
       console.error(err);
@@ -270,19 +235,14 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
 
     }
 
-    if (stop) {
+    if (stop)
       limit = (stop - (start || 0))
-    }
 
-    // const cols = this.get_columns_to_read(query)
-    console.log(findOptions);
     const queryResults = await this.model.find(findOptions, { orderBy: ordering, limit: limit })
-    console.log(queryResults);
-    // for (const values of query.values_list(* cols).order_by(* ordering).limit(limit)) {
-    for (const activity of queryResults.toArray()) {
-      // const activity = dictZip(zip(cols, values))
+
+    for (const activity of queryResults.toArray())
       results.push([activity['activity_id'], activity])
-    }
+
     return results
   }
 }

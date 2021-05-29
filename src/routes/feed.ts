@@ -27,6 +27,7 @@ router.route('/feeds')
     const { actorId, verbId, objectId, targetId, time, extraContext } = req.body
     const { group, id } = req.query
     const cassandraFeed = new CassandraFeed({ user_id: `${group}:${id}` })
+    console.log(actorId, verbId, objectId, targetId, time, extraContext);
     const activity = new Activity({
       actor: actorId,
       verb: verbId,
@@ -36,6 +37,7 @@ router.route('/feeds')
       extra_context: extraContext
     })
     const result = await cassandraFeed.add(activity)
+    console.log(result);
     return res.json(result)
   })
 

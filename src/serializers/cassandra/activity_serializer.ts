@@ -49,7 +49,9 @@ export class CassandraActivitySerializer extends BaseSerializer {
     // serialized_activity['extra_context'] = pickle.loads(
     //   serialized_activity['extra_context']
     // )
-    serialized_activity['extra_context'] = JSON.parse(serialized_activity['extra_context'].toString());
+    serialized_activity['extra_context'] = serialized_activity['extra_context']
+      ? JSON.parse(serialized_activity['extra_context'].toString())
+      : null
 
     //  pickle.loads(
     //       serialized_activity['extra_context']

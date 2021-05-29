@@ -56,7 +56,7 @@ class BaseStorage {
     if (aggregated_activity_class)
       this.aggregated_activity_class = aggregated_activity_class
   }
-  
+
   flush() {
     // '''
     // Flushes the entire storage
@@ -394,7 +394,7 @@ export class BaseTimelineStorage extends BaseStorage {
     // '''
     throw new NotImplementedError()
   }
-  trim(key, length) {
+  trim(key, max_length) {
     // '''
     // Trims the feed to the given length
 

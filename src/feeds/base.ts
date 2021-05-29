@@ -454,9 +454,11 @@ export class BaseFeed {
       filter_kwargs: this._filter_kwargs,
       ordering_args: this._ordering_args
     })
+
     if (this.needs_hydration(activities) && rehydrate) {
       activities = await this.hydrate_activities(activities)
     }
+    
     return activities
   }
 
