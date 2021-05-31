@@ -39,7 +39,7 @@ client.connect().then(async () => {
 
   // cassandra.trim('feed_uuuusrrrrr:123', 10)
   // // // runCassandraMigration()
-  // const cassandraFeed = new CassandraFeed({ user_id: 'user:123' })
+  // const cassandraFeed = new CassandraFeed( 'user:123' )
 
   // const activity = new Activity({
   //   actor: 'user:123',
@@ -68,13 +68,10 @@ class User2Feed extends RedisFeed {
 
 pool.on('ready', () => {
   console.log('redis client is ready');
-  // const userFeed = new User2Feed({
-  //   user_id: 123 // change to string later
-  // })
+  // const userFeed = new User2Feed(user_id: 123 )// change to string later
 
-  // const userRedisFeed = new RedisFeed({
-  //   user_id: 123
-  // })
+
+  // const userRedisFeed = new RedisFeed( 123)
 
   // const activity = new Activity(
   //   'user:123',

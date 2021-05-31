@@ -322,6 +322,7 @@ export class BaseTimelineStorage extends BaseStorage {
     } else {
       serialized_activities = this.serialize_activities(activities)
     }
+    console.log(serialized_activities);
     return this.remove_from_storage(key, serialized_activities, kwargs)
   }
 

@@ -95,7 +95,7 @@ export class BaseFeed {
   _filter_kwargs
   _ordering_args
 
-  constructor({ user_id }) {
+  constructor(user_id: string) {
     // '''
     // :param user_id: the id of the user who's feed we're working on
     // '''
@@ -222,7 +222,7 @@ export class BaseFeed {
     return add_count
   }
 
-  remove(activity_id, kwargs) {
+  remove(activity_id, kwargs = {}) {
     return this.remove_many([activity_id], kwargs)
   }
   remove_many(activity_ids, {
@@ -240,6 +240,7 @@ export class BaseFeed {
       activity_ids,
       {
         batch_interface,
+        ...kwargs
       }
       // kwargs
     )
@@ -458,7 +459,7 @@ export class BaseFeed {
     if (this.needs_hydration(activities) && rehydrate) {
       activities = await this.hydrate_activities(activities)
     }
-    
+
     return activities
   }
 

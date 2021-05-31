@@ -55,7 +55,6 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     }
   ) {
     const changes = []
-
     for (const model_instance of Object.values(activities)) {
       // @ts-ignore
       model_instance.feed_id = key.toString()
@@ -63,13 +62,15 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     }
     const results = await mapper.batch(changes)
     return results.toArray()
-
   }
 
-  async remove_from_storage(key, activities, batch_interface = null) {
+  async remove_from_storage(key, activities, { batch_interface = null }) {
     const changes = []
-    for (const activity_id of activities.keys()) {
-      changes.push(this.model.batching.remove({ feed_id: key, activity_id: activity_id }))
+    for (const activity_id of Object.keys(activities)) {
+      changes.push(this.model.batching.remove({
+        feed_id: key,
+        activity_id: activity_id
+      }))
     }
     await mapper.batch(changes)
   }

@@ -98,6 +98,19 @@ export class Activity extends BaseActivity {
   target_id
   verb_id
 
+  // override 
+  toJSON() {
+    return {
+      activity_id: this.serialization_id,
+      time: this.time,
+      extra_context: this.extra_context,
+      object_id: this.object_id,
+      actor_id: this.actor_id,
+      target_id: this.target_id,
+      verb_id: this.verb_id
+    }
+  }
+
   constructor({
     actor,
     verb,
