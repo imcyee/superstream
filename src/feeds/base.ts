@@ -5,78 +5,86 @@ import { SimpleTimelineSerializer } from "../serializers/simple_timeline_seriali
 import { BaseActivityStorage, BaseTimelineStorage } from "../storage/base"
 import { RedisTimelineStorage } from "../storage/redis/timeline_storage"
 
-export class BaseFeed {
 
-  // '''
-  // The feed class allows you to add and remove activities from a feed.
-  // Please find below a quick usage example.
-  // **Usage Example**::
-  //     feed = BaseFeed(user_id)
-  //     # start by adding some existing activities to a feed
-  //     feed.add_many([activities])
-  //     # querying results
-  //     results = feed[:10]
-  //     # removing activities
-  //     feed.remove_many([activities])
-  //     # counting the number of items in the feed
-  //     count = feed.count()
-  //     feed.delete()
-  // The feed is easy to subclass.
-  // Commonly you'll want to change the max_length and the key_format.
-  // **Subclassing**::
-  //     class MyFeed(BaseFeed){
-  //         key_format = 'user_feed:%(user_id)s'
-  //         max_length = 1000
-  // **Filtering and Pagination**::
-  //     feed.filter(activity_id__gte=1)[:10]
-  //     feed.filter(activity_id__lte=1)[:10]
-  //     feed.filter(activity_id__gt=1)[:10]
-  //     feed.filter(activity_id__lt=1)[:10]
+// The feed class allows you to add and remove activities from a feed.
+// Please find below a quick usage example.
+// **Usage Example**::
+//     feed = BaseFeed(user_id)
+//     # start by adding some existing activities to a feed
+//     feed.add_many([activities])
+//     # querying results
+//     results = feed[:10]
+//     # removing activities
+//     feed.remove_many([activities])
+//     # counting the number of items in the feed
+//     count = feed.count()
+//     feed.delete()
+// The feed is easy to subclass.
+// Commonly you'll want to change the max_length and the key_format.
+// **Subclassing**::
+//     class MyFeed(BaseFeed){
+//         key_format = 'user_feed:%(user_id)s'
+//         max_length = 1000
+// **Filtering and Pagination**::
+//     feed.filter(activity_id__gte=1)[:10]
+//     feed.filter(activity_id__lte=1)[:10]
+//     feed.filter(activity_id__gt=1)[:10]
+//     feed.filter(activity_id__lt=1)[:10]
 
-  // **Activity storage and Timeline storage**
-  // To keep reduce timelines memory utilization the BaseFeed supports
-  // normalization of activity data.
-  // The full activity data is stored only in the activity_storage while the timeline
-  // only keeps a activity references (refered as activity_id in the code)
-  // For this reason when an activity is created it must be stored in the activity_storage
-  // before other timelines can refer to it
-  // eg. ::
-  //     feed = BaseFeed(user_id)
-  //     feed.insert_activity(activity)
-  //     follower_feed = BaseFeed(follower_user_id)
-  //     feed.add(activity)
-  // It is also possible to store the full data in the timeline storage
-  // The strategy used by the BaseFeed depends on the serializer utilized by the timeline_storage
-  // When activities are stored as dehydrated (just references) the BaseFeed will query the
-  // activity_storage to return full activities
+// **Activity storage and Timeline storage**
+// To keep reduce timelines memory utilization the BaseFeed supports
+// normalization of activity data.
+// The full activity data is stored only in the activity_storage while the timeline
+// only keeps a activity references (refered as activity_id in the code)
+// For this reason when an activity is created it must be stored in the activity_storage
+// before other timelines can refer to it
+// eg. ::
+//     feed = BaseFeed(user_id)
+//     feed.insert_activity(activity)
+//     follower_feed = BaseFeed(follower_user_id)
+//     feed.add(activity)
+// It is also possible to store the full data in the timeline storage
+// The strategy used by the BaseFeed depends on the serializer utilized by the timeline_storage
+// When activities are stored as dehydrated (just references) the BaseFeed will query the
+// activity_storage to return full activities
 
-  // eg. ::
-  //     feed = BaseFeed(user_id)
-  //     feed[:10]
-  // gets the first 10 activities from the timeline_storage, if the results are not complete activities then
-  // the BaseFeed will hydrate them via the activity_storage
+// eg. ::
+//     feed = BaseFeed(user_id)
+//     feed[:10]
+// gets the first 10 activities from the timeline_storage, if the results are not complete activities then
+// the BaseFeed will hydrate them via the activity_storage
+export abstract class BaseFeed {
 
-  // '''
   // the format of the key used when storing the data
   // key_format = 'feed_%(user_id)s'
-  key_format(user_id) {
-    return `feed_${user_id}`
-  }
+  key_format(user_id) { return `feed_${user_id}` }
 
   // the max length after which we start trimming
   max_length = 100
 
-  // the activity class to use
+  /**
+   * the activity class to use
+   */
   static activity_class = Activity
 
-  // the activity storage class to use (Redis, Cassandra etc)
+  /**
+   * the activity storage class to use (Redis, Cassandra etc)
+   */
   static activity_storage_class = BaseActivityStorage
-  // the timeline storage class to use (Redis, Cassandra etc)
+
+  /**
+   * the timeline storage class to use (Redis, Cassandra etc)
+   */
   static timeline_storage_class = BaseTimelineStorage
 
-  // the class the activity storage should use for serialization
+  /**
+   * the class the activity storage should use for serialization
+   */
   static activity_serializer = BaseSerializer
-  // the class the timline storage should use for serialization
+
+  /**
+   * the class the timline storage should use for serialization
+   */
   static timeline_serializer = SimpleTimelineSerializer
 
   // the chance that we trim the feed, the goal is not to keep the feed
@@ -87,7 +95,9 @@ export class BaseFeed {
   filtering_supported = false
   ordering_supported = false
 
-
+  /**
+   * user_id: the id of the user who's feed we're working on
+   */
   user_id
   key
   timeline_storage: BaseTimelineStorage | RedisTimelineStorage
@@ -96,11 +106,8 @@ export class BaseFeed {
   _ordering_args
 
   constructor(user_id: string) {
-    // '''
-    // :param user_id: the id of the user who's feed we're working on
-    // '''
+
     this.user_id = user_id
-    this.key_format = this.key_format
 
     this.key = this.key_format(this.user_id) // % { 'user_id': this.user_id }
 
@@ -115,9 +122,7 @@ export class BaseFeed {
 
   // @classmethod
   static get_timeline_storage_options() {
-    // '''
     // Returns the options for the timeline storage
-    // '''
     const options = {}
     options['serializer_class'] = this.timeline_serializer
     options['activity_class'] = this.activity_class
@@ -126,9 +131,7 @@ export class BaseFeed {
 
   // @classmethod
   static get_timeline_storage() {
-    // '''
     // Returns an instance of the timeline storage
-    // '''
     const options = this.get_timeline_storage_options()
     const timeline_storage = new this.timeline_storage_class(options)
     return timeline_storage
@@ -136,9 +139,7 @@ export class BaseFeed {
 
   // @classmethod
   static get_activity_storage() {
-    // '''
     // Returns an instance of the activity storage
-    // '''
     const options = {}
     options['serializer_class'] = this.activity_serializer
     options['activity_class'] = this.activity_class
@@ -150,31 +151,25 @@ export class BaseFeed {
   }
 
   // @classmethod
+  // Inserts an activity to the activity storage
+  // :param activity: the activity class
   static async insert_activities(activities, kwargs) {
-    // '''
-    // Inserts an activity to the activity storage
-    // :param activity: the activity class
-    // '''
     const activity_storage = this.get_activity_storage()
     if (activity_storage)
       return await activity_storage.add_many(activities)
   }
 
   // @classmethod
+  // Inserts an activity to the activity storage
+  // :param activity: the activity class
   static async insert_activity(activity, kwargs?) {
-    // '''
-    // Inserts an activity to the activity storage
-    // :param activity: the activity class
-    // '''
     return await this.insert_activities([activity], kwargs)
   }
 
   // @classmethod
+  // Removes an activity from the activity storage
+  // :param activity: the activity class or an activity id
   static remove_activity(activity, kwargs) {
-    // '''
-    // Removes an activity from the activity storage
-    // :param activity: the activity class or an activity id
-    // '''
     const activity_storage = this.get_activity_storage()
     activity_storage.remove(activity)
   }
@@ -199,12 +194,12 @@ export class BaseFeed {
       trim = true,
       ...kwargs
     } = {}) {
-    // '''
+
     // Add many activities
     console.log(activities);
     // // :param activities: a list of activities
     // // :param batch_interface: the batch interface
-    // // '''
+    // 
     // validate_list_of_strict(activities, (this.activity_class, FakeActivity))
     const add_count = await this.timeline_storage.add_many(
       this.key,
@@ -230,11 +225,9 @@ export class BaseFeed {
     trim = true,
     ...kwargs
   }) {
-    // '''
-    // Remove many activities
 
+    // Remove many activities
     // :param activity_ids: a list of activities or activity ids
-    // '''
     const del_count = this.timeline_storage.remove_many(
       this.key,
       activity_ids,
@@ -255,34 +248,25 @@ export class BaseFeed {
   }
 
   on_update_feed({ new_, deleted }) {
-    // '''
     // A hook called when activities area created or removed from the feed
-    // '''
   }
 
   trim(length = null) {
-    // '''
     // Trims the feed to the length specified
-
     // :param length: the length to which to trim the feed, defaults to this.max_length
-    // '''
     length = length || this.max_length
     this.timeline_storage.trim(this.key, length)
   }
 
   count() {
-    // '''
     // Count the number of items in the feed
-    // '''
     return this.timeline_storage.count(this.key)
   }
 
   __len__ = this.count
 
   delete() {
-    // '''
     // Delete the entire feed
-    // '''
     return this.timeline_storage.delete(this.key)
   }
 
@@ -355,10 +339,7 @@ export class BaseFeed {
     stop?: number,
     step?: number
   ) {
-
-    // """
     // Retrieves an item or slice from the set of results.
-    // """
     if (!start && !stop) {
       throw new TypeError()
     }
@@ -397,18 +378,13 @@ export class BaseFeed {
   }
 
   index_of(activity_id) {
-    // '''
     // Returns the index of the activity id
-
     // :param activity_id: the activity id
-    // '''
     return this.timeline_storage.index_of(this.key, activity_id)
   }
 
   async hydrate_activities(activities) {
-    // '''
     // hydrates the activities using the activity_storage
-    // '''
     const activity_ids = []
     for (const activity of activities) {
       activity_ids.push(...activity._activity_ids)
@@ -432,9 +408,7 @@ export class BaseFeed {
   }
 
   needs_hydration(activities) {
-    // '''
     // checks if the activities are dehydrated
-    // '''
     const found = activities.find(a => a?.dehydrated)
     return found
   }
@@ -444,10 +418,8 @@ export class BaseFeed {
     stop = null,
     rehydrate = true
   ) {
-    // '''
     // Gets activity_ids from timeline_storage and then loads the
     // actual data querying the activity_storage
-    // '''
     var activities = await this.timeline_storage.get_slice({
       key: this.key,
       start,
@@ -463,10 +435,8 @@ export class BaseFeed {
     return activities
   }
 
+  // Copy the feed instance
   _clone() {
-    // '''
-    // Copy the feed instance
-    // '''
     // const feed_copy = copy.copy(this)
     const feed_copy = Object.assign(Object.create(Object.getPrototypeOf(this)), this)
     // const filter_kwargs = copy.copy(this._filter_kwargs)
@@ -477,27 +447,20 @@ export class BaseFeed {
   }
 
   filter(kwargs) {
-    // '''
     // Filter based on the kwargs given, uses django orm like syntax
-
     // **Example** ::
     //     # filter between 100 and 200
     //     feed = feed.filter(activity_id__gte=100)
     //     feed = feed.filter(activity_id__lte=200)
     //     # the same statement but in one step
     //     feed = feed.filter(activity_id__gte=100, activity_id__lte=200)
-
-    // '''
     const new_ = this._clone()
     new_._filter_kwargs.update(kwargs)
     return new_
   }
 
   order_by(...ordering_args) {
-    // '''
     // Change default ordering
-
-    // '''
     const new_ = this._clone()
     new_._ordering_args = ordering_args
     return new_
@@ -505,11 +468,8 @@ export class BaseFeed {
 }
 
 export class UserBaseFeed extends BaseFeed {
-
-  // '''
   // Implementation of the base feed with a different
   // Key format and a really large max_length
-  // '''
   key_format = (user_id) => `user_feed:${user_id}`
   max_length = 10 ** 6
 }

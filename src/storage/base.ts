@@ -5,7 +5,7 @@ import { DummySerializer } from "../serializers/dummy"
 import { SimpleTimelineSerializer } from "../serializers/simple_timeline_serializer"
 import { zip } from "../utils"
 
-class BaseStorage {
+abstract class BaseStorage {
   // '''
   // The feed uses two storage classes, the
   // - Activity Storage && the
@@ -57,16 +57,11 @@ class BaseStorage {
       this.aggregated_activity_class = aggregated_activity_class
   }
 
-  flush() {
-    // '''
-    // Flushes the entire storage
-    // '''
-  }
+  // Flushes the entire storage
+  flush() { }
 
+  // Utility function for lower levels to chose either serialize 
   activities_to_ids(activities_or_ids) {
-    // '''
-    // Utility function for lower levels to chose either serialize
-    // '''
     const ids = []
     for (const activity_or_id of activities_or_ids)
       ids.push(this.activity_to_id(activity_or_id))
@@ -78,12 +73,9 @@ class BaseStorage {
 
   // @property
   get serializer() {
-    // '''
     // Returns an instance of the serializer class
-
     // The serializer needs to know about the activity &&
     // aggregated activity classes we're using
-    // '''
     const serializer_class = this.serializer_class
     const kwargs = {}
     if (this.aggregated_activity_class) {
@@ -98,20 +90,15 @@ class BaseStorage {
   }
 
   serialize_activity(activity) {
-    // '''
     // Serialize the activity && returns the serialized activity
-
     // :returns str: the serialized activity
-    // '''
     const serialized_activity = this.serializer.dumps(activity)
     return serialized_activity
   }
 
   serialize_activities(activities) {
-    // '''
     // Serializes the list of activities
-    // :param activities: the list of activities
-    // ''' 
+    // :param activities: the list of activities 
     const serialized_activities = {}
     for (const activity of activities) {
       const serialized_activity = this.serialize_activity(activity)
@@ -121,11 +108,9 @@ class BaseStorage {
   }
 
   deserialize_activities(serialized_activities) {
-    // '''
     // Serializes the list of activities
     // :param serialized_activities: the list of activities
     // :param serialized_activities: a dictionary with activity ids && activities
-    // '''
     const activities = []
 
     // # handle the case where this is a dict
@@ -145,7 +130,6 @@ class BaseStorage {
 
 export class BaseActivityStorage extends BaseStorage {
 
-  // '''
   // The Activity storage globally stores a key value mapping.
   // This is used to store the mapping between an activity_id && the actual
   // activity object.
@@ -160,41 +144,28 @@ export class BaseActivityStorage extends BaseStorage {
 
   // - add_to_storage
   // - get_from_storage
-  // - remove_from_storage
-  // '''
+  // - remove_from_storage 
 
   // add_to_storage(serialized_activities, *args, ** kwargs) {
   add_to_storage(serialized_activities, kwargs) {
-    // '''
-    // Adds the serialized activities to the storage layer
-
+    // Adds the serialized activities to the storage layer 
     // :param serialized_activities: a dictionary with {id: serialized_activity}
-    // '''
     throw new NotImplementedError()
   }
   async get_from_storage(activity_ids, kwargs): Promise<{}> {
-    // '''
     // Retrieves the given activities from the storage layer
-
     // :param activity_ids: the list of activity ids
     // :returns dict: a dictionary mapping activity ids to activities
-    // '''
     throw new NotImplementedError()
   }
   remove_from_storage(activity_ids, kwargs) {
-    // '''
     // Removes the specified activities
-
     // :param activity_ids: the list of activity ids
-    // '''
     throw new NotImplementedError()
   }
   async get_many(activity_ids, kwargs?) {
-    // '''
     // Gets many activities && deserializes them
-
     // :param activity_ids: the list of activity ids
-    // '''
     // this.metrics.on_feed_read(this.__class__, activity_ids?.length) 
     const activities_data = await this.get_from_storage(activity_ids, kwargs)
     // console.log('activities_data', activities_data);
@@ -213,12 +184,9 @@ export class BaseActivityStorage extends BaseStorage {
   }
 
   add_many(activities, kwargs) {
-    // '''
     // Adds many activities && serializes them before forwarding
-    // this to add_to_storage
-
+    // this to add_to_storage 
     // :param activities: the list of activities
-    // '''
     // this.metrics.on_feed_write(this.__class__, activities?.length)
     const serialized_activities = this.serialize_activities(activities)
     return this.add_to_storage(serialized_activities, kwargs)
@@ -229,12 +197,9 @@ export class BaseActivityStorage extends BaseStorage {
   }
 
   remove_many(activities, kwargs) {
-    // '''
     // Figures out the ids of the given activities && forwards
-    // The removal to the remove_from_storage function
-
-    // :param activities: the list of activities
-    // '''
+    // The removal to the remove_from_storage function 
+    // :param activities: the list of activities 
     // this.metrics.on_feed_remove(this.__class__, (activities).length)
     var activity_ids
     // if (activities && isinstance(activities[0], (six.string_types, six.integer_types, uuid.UUID))) {
@@ -248,8 +213,6 @@ export class BaseActivityStorage extends BaseStorage {
 }
 
 export class BaseTimelineStorage extends BaseStorage {
-
-  // '''
   // The Timeline storage class handles the feed/timeline sorted part of storing
   // a feed.
   // **Example**::
@@ -258,9 +221,7 @@ export class BaseTimelineStorage extends BaseStorage {
   //     # get a sorted slice of the feed
   //     storage.get_slice(key, start, stop)
   //     storage.remove_many(key, activities)
-  // The storage specific functions are located in
-  // '''
-
+  // The storage specific functions are located in  
   default_serializer_class = SimpleTimelineSerializer
 
   add(key, activity, kwargs) {

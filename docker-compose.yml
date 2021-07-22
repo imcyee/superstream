@@ -7,26 +7,38 @@ networks:
 
 
 services:
-  redis:
-    image: redis
-    ports:
-      - 6379
-    networks:
-      - app-tier
+
   web:
     build: .
     command: npm run start:dev
     ports:
       - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_healthy
+      cassandra:
+        condition: service_healthy
     environment:
       - REDISTOGO_URL=redis://redis:6379
-    depends_on:
-      - redis
+    # depends_on:
+    #   - redis
     volumes: 
       - ./src:/usr/src/app/src
     networks:
       - app-tier
-      
+
+  redis:
+    image: redis
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 1s
+      timeout: 3s
+      retries: 30
+    ports:
+      - 6379
+    networks:
+      - app-tier
+
   cassandra: 
     image: 'cassandra:latest' 
     ports:
@@ -40,3 +52,8 @@ services:
       - CASSANDRA_DC=datacenter
     volumes: 
       - /cassandra_docker_volume:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
