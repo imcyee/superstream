@@ -1,14 +1,10 @@
 import { register } from "./utils"
 
-
-
+// Every activity has a verb and an object.
+// Nomenclatura is loosly based on
+// http://activitystrea.ms/specs/atom/1.0/#activity.summary
 export class Verb {
 
-  // '''
-  // Every activity has a verb and an object.
-  // Nomenclatura is loosly based on
-  // http://activitystrea.ms/specs/atom/1.0/#activity.summary
-  // '''
   id = 0
   infinitive
 

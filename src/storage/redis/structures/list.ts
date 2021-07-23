@@ -3,7 +3,7 @@ import { RedisCache } from "./base"
 import { promisify } from 'util'
 
 interface Test {
-  get_results(): []
+  getResults(): []
 }
 
 export class BaseRedisListCache extends RedisCache {
@@ -13,8 +13,8 @@ export class BaseRedisListCache extends RedisCache {
 
   // Retrieve the sorted list/sorted set by using python slicing
   // '''
-  key_format = 'redis:base_list_cache:%s'
-  max_length = 100
+  keyFormat = (s) => `redis:base_list_cache:${s}`
+  maxLength = 100
 
   // __getitem__(
   //   k
@@ -51,7 +51,7 @@ export class BaseRedisListCache extends RedisCache {
   //   // # We need check to see if we need to populate more of the cache.
   //   var results
   //   try {
-  //     results = this.get_results(start, bound)
+  //     results = this.getResults(start, bound)
   //   } catch (err) {
   //     except StopIteration:
   //     // # There's nothing left, even though the bound is higher.
@@ -62,7 +62,7 @@ export class BaseRedisListCache extends RedisCache {
 
 
   // unable to use this as this is python specific
-  getitem(
+  async getitem(
     start: number = 0,
     stop?: number,
     step?: number
@@ -99,7 +99,7 @@ export class BaseRedisListCache extends RedisCache {
     var results
     try {
       /* @ts-ignore  mixin infer wrongly */
-      results = this.get_results(start, bound)
+      results = await this.getResults(start, bound)
     } catch (err) {
       // except StopIteration:
       // # There's nothing left, even though the bound is higher.
@@ -108,42 +108,44 @@ export class BaseRedisListCache extends RedisCache {
     return results
   }
 
-  // async get_results(start, stop): Promise<string[]> {
+  // async getResults(start, stop): Promise<string[]> {
   //   throw new NotImplementedError('please define this function in subclasses')
   // }
 }
 
 export class RedisListCache extends BaseRedisListCache {
-  key_format = 'redis:list_cache:%s'
+  keyFormat = (s) => `redis:list_cache:${s}`
   // #: the maximum number of items the list stores
   max_items = 1000
   _filtered
 
-  async get_results(start, stop) {
+  async getResults(start, stop) {
     if (start)
       start = 0
 
     if (stop)
       stop = -1
 
-    const key = this.get_key()
-    const results = await promisify(this.redis.lrange)(key, start, stop)
+    const key = this.getKey()
+    const results = await (promisify(this.redis.lrange).bind(this.redis))(key, start, stop)
     return results
   }
-  append(value) {
+
+  async append(value) {
     const values = [value]
-    const results = this.append_many(values)
+    const results = await this.append_many(values)
     const result = results[0]
     return result
   }
+
   async append_many(values) {
-    const key = this.get_key()
+    const key = this.getKey()
     var results = []
 
     async function _append_many(redis, values) {
       for (const value of values) {
         // logger.debug('adding to %s with value %s', key, value)
-        const result = await promisify(redis.rpush)(key, value)
+        const result = await (promisify(redis.rpush).bind(this.redis))(key, value)
         results.push(result)
       }
       return results
@@ -156,19 +158,19 @@ export class RedisListCache extends BaseRedisListCache {
 
   async remove(value) {
     const values = [value]
-    const results = await this.remove_many(values)
+    const results = await this.removeMany(values)
     const result = results[0]
     return result
   }
 
-  async remove_many(values) {
-    const key = this.get_key()
+  async removeMany(values) {
+    const key = this.getKey()
     var results = []
 
     async function _remove_many(redis, values) {
       for await (const value of values) {
         // logger.debug('removing from %s with value %s', key, value)
-        const result = await promisify(redis.lrem)(key, 10, value)
+        const result = await (promisify(redis.lrem).bind(this))(key, 10, value)
         results.push(result)
       }
       return results
@@ -179,22 +181,28 @@ export class RedisListCache extends BaseRedisListCache {
     return results
   }
 
-  count() {
-    const key = this.get_key()
-    const count = this.redis.llen(key)
+  async count() {
+    const key = this.getKey()
+    // const count = await this.redis.llen(key)
+
+    const count = await (promisify(this.redis.llen).bind(this))(key)
+
+
     return count
   }
 
-  trim() {
+  async trim() {
     // '''
     // Removes the old items in the list
     // '''
     // # clean up everything with a rank lower than max items up to the end of
     // # the list
-    const key = this.get_key()
-    const removed = this.redis.ltrim(key, 0, this.max_items - 1)
+    const key = this.getKey()
+    // const removed = await this.redis.ltrim(key, 0, this.max_items - 1)
+
+    const removed = await (promisify(this.redis.ltrim).bind(this))(key, 0, this.max_items - 1)
     const msg_format = 'cleaning up the list %s to a max of %s items'
-    // logger.info(msg_format, this.get_key(), this.max_items)
+    // logger.info(msg_format, this.getKey(), this.max_items)
     return removed
   }
 }
@@ -205,19 +213,19 @@ export class FallbackRedisListCache extends RedisListCache {
   // Redis list cache which after retrieving all items from redis falls back
   // to a main data source (like the database)
   // '''
-  key_format = 'redis:db_list_cache:%s'
+  keyFormat = s => `redis:db_list_cache:${s}`
 
-  get_fallback_results(start, stop) {
+  async get_fallback_results(start, stop) {
     throw new NotImplementedError('please define this function in subclasses')
   }
-  get_results(start, stop) {
+  async getResults(start, stop) {
     // '''
     // Retrieves results from redis && the fallback datasource
     // '''
     var redis_results
     var results
     if (stop) {
-      redis_results = this.get_redis_results(start, stop - 1)
+      redis_results = await this.get_redis_results(start, stop - 1)
       const required_items = stop - start
       var enough_results = redis_results.length == required_items
       if (!(redis_results <= required_items))
@@ -226,62 +234,62 @@ export class FallbackRedisListCache extends RedisListCache {
     } else {
       // # [start:] slicing does not know what's enough so
       // # does not hit the db unless the cache is empty
-      redis_results = this.get_redis_results(start, stop)
+      redis_results = await this.get_redis_results(start, stop)
       enough_results = true
     }
 
     if (!redis_results || !enough_results) {
       this.source = 'fallback'
       const filtered = this._filtered || false // getattr("_filtered", false)
-      const db_results = this.get_fallback_results(start, stop)
+      const db_results = await this.get_fallback_results(start, stop)
 
       if (start == 0 && !redis_results && !filtered) {
         // logger.info('setting cache for type %s with len %s',
-        // this.get_key(), len(db_results.length))
+        // this.getKey(), len(db_results.length))
         // # only cache when we have no results, to prevent duplicates
-        this.cache(db_results)
+        await this.cache(db_results)
       } else if (start == 0 && redis_results && !filtered) {
         // logger.info('overwriting cache for type %s with len %s',
-        // this.get_key(), len(db_results))
+        // this.getKey(), len(db_results))
         // # clear the cache && add these values
-        this.overwrite(db_results)
+        await this.overwrite(db_results)
       }
       results = db_results
       // logger.info(
       // 'retrieved %s to %s from db && not from cache with key %s' %
-      // (start, stop, this.get_key()))
+      // (start, stop, this.getKey()))
     } else {
       results = redis_results
       // logger.info('retrieved %s to %s from cache on key %s' %
-      // (start, stop, this.get_key()))
+      // (start, stop, this.getKey()))
     }
     return results
   }
 
-  get_redis_results(start, stop) {
+  async get_redis_results(start, stop) {
     // '''
     // Returns the results from redis
 
     // :param start: the beginning
     // :param stop: the end
     // '''
-    const results = super.get_results(start, stop)
+    const results = await super.getResults(start, stop)
     return results
   }
 
-  cache(fallback_results) {
+  async cache(fallback_results) {
     // '''
     // Hook to write the results from the fallback to redis
     // '''
-    this.append_many(fallback_results)
+    await this.append_many(fallback_results)
   }
 
-  overwrite(fallback_results) {
+  async overwrite(fallback_results) {
     // '''
     // Clear the cache && write the results from the fallback
     // '''
-    this.delete()
-    this.cache(fallback_results)
+    await this.delete()
+    await this.cache(fallback_results)
   }
 
 }

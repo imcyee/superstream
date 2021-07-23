@@ -2,11 +2,11 @@ import lodashZip from 'lodash/zip'
 
 export const zip = lodashZip
 
-export const datetime_to_epoch = (datetime) => {
-  return (new Date(datetime).getTime() / 1000) // '%.6f' % datetime_to_epoch(activity.time)
+export const datetimeToEpoch = (datetime) => {
+  return (new Date(datetime).getTime() / 1000) // '%.6f' % datetimeToEpoch(activity.time)
 }
 
-export const epoch_to_datetime = (epoch) => {
+export const epochToDatetime = (epoch) => {
   return new Date(epoch * 1000)
 }
 
@@ -68,4 +68,43 @@ export function parseBigInt(
     result = result * keyspaceLength + BigInt(value);
   }
   return result;
+}
+
+
+
+/**
+ * Simple hash function for serializable_id and others
+ * string to number
+ * will generate negative number 
+ * max 2147483647 min -214748367
+ * @param str 
+ * @returns 
+ * @link https://werxltd.com/wp/2010/05/13/javascript-implementation-of-javas-string-hashcode-method/
+ */
+export function hashCode(str) {
+  var hash = 0;
+  if (str.length == 0) return hash;
+  for (var i = 0; i < str.length; i++) {
+    var char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash;
+}
+
+const MAX_SIGNED_INT_32B = 2147483648
+
+// similar to hashCode but convert to positive
+export function hashCodePositive(str) {
+  var sanitizeStr = typeof str === 'number'
+    ? str.toString()
+    : str
+
+  const convertedNumber = hashCode(sanitizeStr)
+  if (convertedNumber < 0) {
+    // js support 64bit increment 
+    // no issue in convert signed to unsigned 
+    return (convertedNumber * -1) + MAX_SIGNED_INT_32B
+  } else
+    return convertedNumber
 }

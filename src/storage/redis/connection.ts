@@ -1,61 +1,76 @@
 // import redis
 //   from stream_framework import settings
 import * as redis from 'redis'
+import asyncRedis, { AsyncRedis } from "async-redis"
 
 var connection_pool = null
-var connection: redis.RedisClient;
+var connection: redis.RedisClient
 
-export function get_redis_connection(server_name: string = 'default') {
-  // // '''
+export function getRedisConnection(serverName: string = 'default') {
+  // 
   // // Gets the specified redis connection
-  // // '''
+  // 
   // global connection_pool
-  if (!connection) { 
-    const pool = setup_redis() 
+  if (!connection) {
+    const pool = setupRedis()
+    // @ts-ignore
+    // const asyncRedisClient = asyncRedis.decorate(pool);
+
     connection = pool
-  }  
+    // connection = asyncRedisClient
+  }
   return connection
-  // const pool = connection_pool[server_name]
+  // const pool = connection_pool[serverName]
   // return redis.StrictRedis(connection_pool = pool)
   // return redis.StrictRedis(connection_pool = pool)
 }
 
 
-const config = {}
+let config = {}
 
-export function setup_redis() {
-  // '''
+export function setupConfig(_config: {
+  port,
+  host
+}) {
+  config = {
+    ...config,
+    ..._config
+  }
+  return
+}
+
+export function setupRedis() {
   // Starts the connection pool for all configured redis servers
-  // ''' 
   const pool = redis.createClient(
     config['port'] || 6379,
     config['host'] || 'redis'
-  ) 
+  )
+
   return pool
 }
 
-// get_redis_connection()
+// getRedisConnection()
 
 
 
-// export function get_redis_connection(server_name = 'default') {
-//   // // '''
+// export function getRedisConnection(serverName = 'default') {
+//   // 
 //   // // Gets the specified redis connection
-//   // // '''
+//   // 
 //   // global connection_pool
 
 //   if (connection_pool)
-//     connection_pool = setup_redis()
+//     connection_pool = setupRedis()
 
-//   const pool = connection_pool[server_name]
+//   const pool = connection_pool[serverName]
 
 //   return redis.StrictRedis(connection_pool = pool)
 // }
 
-// export function setup_redis() {
-//   // '''
+// export function setupRedis() {
+//   
 //   // Starts the connection pool for all configured redis servers
-//   // '''
+//   
 //   const pools = {}
 //   for (name, config of settings.STREAM_REDIS_CONFIG.items()) {
 

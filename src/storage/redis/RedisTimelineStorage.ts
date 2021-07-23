@@ -1,7 +1,7 @@
-import { ValueError } from "../../errors"
+import { NotImplementedError, ValueError } from "../../errors"
 // import { zip } from "../../utils"
 import { BaseTimelineStorage } from "../base"
-import { get_redis_connection } from "./connection"
+import { getRedisConnection } from "./connection"
 import { RedisSortedSetCache } from "./structures/sorted_set"
 import zip from 'lodash/zip'
 import chunk from 'lodash/chunk'
@@ -12,51 +12,52 @@ export class TimelineCache extends RedisSortedSetCache {
 
 export class RedisTimelineStorage extends BaseTimelineStorage {
 
-  get_cache(key) {
+  flush() { throw new NotImplementedError() }
+
+  getCache(key) {
     const redis_server = this.options?.['redis_server'] || 'default'
     const cache = new TimelineCache(key, null, redis_server)
     return cache
   }
 
-  contains(key, activity_id) {
-    const cache = this.get_cache(key)
-    const contains = cache.contains(activity_id)
+  contains(key, activityId) {
+    const cache = this.getCache(key)
+    const contains = cache.contains(activityId)
     return contains
   }
 
-  async get_slice_from_storage({
+  /**
+   * Returns a slice from the storage
+   * **Example**::
+   *    getSliceFromStorage('feed:13', 0, 10, {activity_id__lte=10})
+   * @param key: the redis key at which the sorted set is located
+   * @param start: the start
+   * @param stop: the stop
+   * @param filterKwargs: a dict of filter kwargs
+   * @param orderingArgs: a list of fields used for sorting
+   */
+  async getSliceFromStorage({
     key,
     start,
     stop,
-    filter_kwargs,
-    ordering_args
+    filterKwargs,
+    orderingArgs
   }) {
-    // '''
-    // Returns a slice from the storage
-    // :param key: the redis key at which the sorted set is located
-    // :param start: the start
-    // :param stop: the stop
-    // :param filter_kwargs: a dict of filter kwargs
-    // :param ordering_args: a list of fields used for sorting
-
-    // **Example**::
-    //    get_slice_from_storage('feed:13', 0, 10, {activity_id__lte=10})
-    // ''' 
-    const cache = this.get_cache(key)
+    const cache = this.getCache(key)
     // # parse the filter kwargs && translate them to min max
     // # as used by the get results function
     const valid_kwargs = [
       'activity_id__gte', 'activity_id__lte',
       'activity_id__gt', 'activity_id__lt',
     ]
-    filter_kwargs = filter_kwargs || {}
+    filterKwargs = filterKwargs || {}
     const result_kwargs = {}
 
     for (const k of valid_kwargs) {
-      var v = filter_kwargs[k] || null
+      var v = filterKwargs[k] || null
       if (v) {
         // pop k key from filter
-        delete filter_kwargs[k]
+        delete filterKwargs[k]
         if (!(typeof v !== 'number')) {
           throw new ValueError(`Filter kwarg values should be floats, int or long, got ${k}=${v}`)
         }
@@ -80,65 +81,67 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     }
 
     // # complain if we didn't recognize the filter kwargs
-    if (Object.keys(filter_kwargs).length)
-      throw new ValueError(`Unrecognized filter kwargs ${filter_kwargs}`)
+    if (Object.keys(filterKwargs).length)
+      throw new ValueError(`Unrecognized filter kwargs ${filterKwargs}`)
 
-    if (ordering_args && ordering_args.length) {
-      if (ordering_args.length > 1)
-        throw new ValueError(`Too many order kwargs ${ordering_args}`)
+    if (orderingArgs && orderingArgs.length) {
+      if (orderingArgs.length > 1)
+        throw new ValueError(`Too many order kwargs ${orderingArgs}`)
 
-      if ('-activity_id' in ordering_args)
+      if ('-activityId' in orderingArgs)
         // # descending sort
         cache.sort_asc = false
-      else if ('activity_id' in ordering_args)
+      else if ('activityId' in orderingArgs)
         cache.sort_asc = true
       else
-        throw new ValueError(`Unrecognized order kwargs ${ordering_args}`)
+        throw new ValueError(`Unrecognized order kwargs ${orderingArgs}`)
     }
 
     // # get the actual results
     // python is returning (value, key)
     // but in node it is in string form value, key, value, key 
-    const value_key_strings = await cache.get_results({
+    const value_key_strings = await cache.getResults({
       start,
       stop,
       ...result_kwargs
-    })
-
-    const value_key_pairs = chunk(value_key_strings, 2)
-    const score_key_pairs = value_key_pairs.map((vk) => {
+    }) 
+    const valueKeyPairs = chunk(value_key_strings, 2)
+    const score_key_pairs = valueKeyPairs.map((vk) => {
       const [value, key] = vk
       return [key, value]
     })
     return score_key_pairs
   }
 
-  get_batch_interface() {
-    return get_redis_connection(
+  getBatchInterface() {
+    return getRedisConnection(
       this.options.get('redis_server', 'default')
     )// .pipeline(transaction = false)
   }
 
-  get_index_of(key, activity_id) {
-    const cache = this.get_cache(key)
-    const index = cache.index_of(activity_id)
+  getIndexOf(key, activityId) {
+    const cache = this.getCache(key)
+    const index = cache.indexOf(activityId)
     return index
   }
+
   // key,
-  // serialized_activities,
+  // serializedActivities,
   // kwargs
-  async add_to_storage(
+  async addToStorage(
     key,
     activities, // in the form of 123:123
-    kwargs
-  ) {
-    const { batch_interface } = kwargs
-    const cache = this.get_cache(key)
+    kwargs = {} as any
+  ) { 
+
+    const { batchInterface } = kwargs
+    const cache = this.getCache(key)
     // # turn it into key value pairs
     const scores = Object.keys(activities)  // map(long_t, activities.keys())
-    const score_value_pairs = zip(scores, Object.values(activities))
-    console.log(score_value_pairs);
-    const result = await cache.add_many(score_value_pairs)
+    const scoreValuePairs = zip(scores, Object.values(activities))
+ 
+    const result = await cache.addMany(scoreValuePairs)
+
     for (const r of result) {
       // # errors in strings?
       // # anyhow throw new them here :)
@@ -149,24 +152,25 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     }
   }
 
-  remove_from_storage(key, activities, batch_interface = null) {
-    const cache = this.get_cache(key)
-    const results = cache.remove_many(activities.values())
+  removeFromStorage(key, activities, batchInterface = null) {
+    const cache = this.getCache(key)
+    // const results = cache.removeMany(activities.values())
+    const results = cache.removeMany(Object.values(activities))
     return results
   }
 
   count(key) {
-    const cache = this.get_cache(key)
+    const cache = this.getCache(key)
     return Number(cache.count())
   }
 
   delete(key) {
-    const cache = this.get_cache(key)
+    const cache = this.getCache(key)
     cache.delete()
   }
 
-  trim(key, length, batch_interface = null) {
-    const cache = this.get_cache(key)
+  trim(key, length, batchInterface = null) {
+    const cache = this.getCache(key)
     cache.trim(length)
   }
 }

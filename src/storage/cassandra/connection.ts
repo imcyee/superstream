@@ -3,21 +3,31 @@
 import cassandra from 'cassandra-driver'
 import { runCassandraMigration } from './cassandra_migration'
 
-var client: cassandra.Client 
+var client: cassandra.Client
 export function getClient() {
-
-  const client = setup_connection()
+  client = setupCassandraConnection()
   return client
 }
 
-export function setup_connection() {
+export function setupCassandraConnection(options: {
+  host?: string,
+  port?: string | number
+} = {}) {
   if (!client) {
+    var contactPoint = '192.168.0.146:9042'
+    if (options.host && options.port) {
+      contactPoint = `${options.host}:${options.port}`
+    }
+    
+
+
     client = new cassandra.Client({
-      contactPoints: ['192.168.0.146:9042'],
-      localDataCenter: 'datacenter',
+      contactPoints: [contactPoint],
+      // localDataCenter: 'datacenter',
+      localDataCenter: 'datacenter1',
       // keyspace: 'ks1'
     });
-
+    // 
     /**
      * Creates a table and retrieves its information
      */

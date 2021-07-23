@@ -4,14 +4,14 @@ import cassandra from 'cassandra-driver'
 import { getClient } from './connection';
 
 var client: cassandra.Client
-  
-export function runCassandraMigration() {
+
+export async function runCassandraMigration() {
   const client = getClient()
 
   /**
    * Creates a table and retrieves its information
    */
-  client.connect()
+  await client.connect()
     .then(function () {
       const query = `CREATE KEYSPACE IF NOT EXISTS stream WITH replication = 
         {'class': 'SimpleStrategy', 'replication_factor': '1' }`;

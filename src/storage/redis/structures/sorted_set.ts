@@ -5,19 +5,18 @@ import { promisify } from 'util'
 import { BaseRedisHashCache } from "./hash"
 import chunk from 'lodash/chunk'
 import { RedisCache } from "./base"
-import { RedisClient } from "redis"
+import { Commands, RedisClient } from "redis"
+import { Activity } from "../../../activity/Activity"
 
 // export class RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache {
 export class RedisSortedSetCache extends RedisCache {
 
   sort_asc = false
 
+  // Returns the number of elements in the sorted set
   async count() {
-    // '''
-    // Returns the number of elements in the sorted set
-    // '''
-    const key = this.get_key()
-    const redis_result = await promisify(this.redis.zcard)(key)
+    const key = this.getKey()
+    const redis_result = await (promisify(this.redis.zcard).bind(this.redis))(key)
     // #lazily convert this to an int, this keeps it compatible with
     // #distributed connections
     // const redis_count = lambda: int(redis_result)
@@ -26,18 +25,17 @@ export class RedisSortedSetCache extends RedisCache {
     // return lazy_object
     return Number(redis_result)
   }
-  index_of(value) {
-    // '''
-    // Returns the index of the given value
-    // '''
-    var redis_rank_fn
-    if (this.sort_asc) {
-      redis_rank_fn = this.redis.zrank
-    } else {
-      redis_rank_fn = this.redis.zrevrank
-    }
-    const key = this.get_key()
-    var result = redis_rank_fn(key, value)
+
+
+  // Returns the index of the given value
+  async indexOf(value) {
+    var redis_rank_fn = this.sort_asc
+      ? this.redis.zrank
+      : this.redis.zrevrank
+
+    const key = this.getKey()
+
+    var result = await (promisify(redis_rank_fn).bind(this.redis))(key, value)
     if (result) {
       result = Number(result)
     }
@@ -47,21 +45,22 @@ export class RedisSortedSetCache extends RedisCache {
     }
     return result
   }
-  add(score, key) {
-    const score_value_pairs = [[score, key]]
-    const results = this.add_many(score_value_pairs)
+
+  async add(score, key) {
+    const scoreValuePairs = [[score, key]]
+
+    const results = await this.addMany(scoreValuePairs)
     const result = results[0]
     return result
   }
-  async add_many(score_value_pairs) {
-    // '''
-    // StrictRedis so it expects score1, name1
-    // ''' 
-    const key = this.get_key() 
-    const scores = (zip(...score_value_pairs))[0] as string[] 
+
+  // StrictRedis so it expects score1, name1
+  async addMany(scoreValuePairs) {
+    const key = this.getKey()
+    const scores = (zip(...scoreValuePairs))[0] as string[]
     scores.forEach(element => {
       if (isNaN(Number(element)))
-        throw new Error(`Please send floats as the first part of the pairs got ${score_value_pairs}`)
+        throw new Error(`Please send floats as the first part of the pairs got ${scoreValuePairs}`)
 
       // if (typeof element === "number")
       return true
@@ -69,42 +68,65 @@ export class RedisSortedSetCache extends RedisCache {
 
     // const numeric_types = (float,) + six.integer_types
     // if (not all([isinstance(score, numeric_types) for score in scores])) {
-    //   const msg_format = `Please send floats as the first part of the pairs got ${score_value_pairs}`
+    //   const msg_format = `Please send floats as the first part of the pairs got ${scoreValuePairs}`
     //   throw new ValueError(msg_format)
     // }
     var results = []
 
-    async function _add_many(
+    async function _addMany(
       redis: RedisClient,
-      score_value_pairs
+      scoreValuePairs
     ) {
-      const score_value_list = score_value_pairs.reduce((acc, curr) => acc + curr) // sum(map(list, score_value_pairs), [])
+      /**
+       * main purpose for this is:
+       * convert from 
+       * [['bac', 3], ['abc', 4]]
+       * to this in chunk
+       * [bac, 3, abc, 4]
+       */
+      // sum(map(list, scoreValuePairs), [])
+      console.log('scoreValuePairs', scoreValuePairs);
+
+      // const score_value_list = scoreValuePairs.reduce((acc, curr) => acc + curr)
+      const score_value_list = scoreValuePairs.reduce((acc, curr) => {
+        curr.forEach(element => {
+          acc.push(element)
+        });
+        // acc.push(curr[0])
+        // acc.push(curr[1])
+        return acc
+      }, [])
       const score_value_chunks = chunk(score_value_list, 200)
-    
+
+      console.log('score_value_chunks', score_value_chunks);
+      console.log('key', key);
       for await (const score_value_chunk of score_value_chunks) {
+        // const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
         const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
-        // logger.debug('adding to ${} with score_value_chunk ${}',
-        //   key, score_value_chunk)
+        // const result = await (promisify(redis.zadd).bind(redis))(key, activityId, JSON.stringify(activity))
+
+        // logger.debug('adding to ${} with score_value_chunk ${}', key, score_value_chunk)
         results.push(result)
       }
       return results
     }
+
     // #start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_add_many, score_value_pairs)
+    results = await this._pipeline_if_needed(_addMany, scoreValuePairs)
 
     return results
   }
-  async remove_many(values) {
-    // '''
-    // values
-    // '''
-    const key = this.get_key()
+
+  // values
+  async removeMany(values) {
+
+    const key = this.getKey()
     var results = []
 
     async function _remove_many(redis, values) {
       for (const value of values) {
         // logger.debug('removing value ${} from ${}', value, key)
-        const result = await promisify(redis.zrem)(key, value)
+        const result = await (promisify(redis.zrem).bind(redis))(key, value)
         results.push(result)
       }
       return results
@@ -114,8 +136,9 @@ export class RedisSortedSetCache extends RedisCache {
 
     return results
   }
+
   async remove_by_scores(scores) {
-    const key = this.get_key()
+    const key = this.getKey()
     var results = []
 
     function _remove_many(redis, scores) {
@@ -131,50 +154,47 @@ export class RedisSortedSetCache extends RedisCache {
 
     return results
   }
+
+  // Uses zscore to see if the given activity is present in our sorted set
   contains(value) {
-    // '''
-    // Uses zscore to see if the given activity is present in our sorted set
-    // '''
-    const key = this.get_key()
+    const key = this.getKey()
     const result = this.redis.zscore(key, value)
     const activity_found = !!(result)
     return activity_found
   }
 
-  trim(max_length = null) {
-    // '''
-    // Trim the sorted set to max length
-    // zremrangebyscore
-    // '''
-    const key = this.get_key()
-    if (!max_length) {
-      max_length = this.max_length
+  // Trim the sorted set to max length
+  // zremrangebyscore
+  trim(maxLength = null) {
+
+    const key = this.getKey()
+    if (!maxLength) {
+      maxLength = this.maxLength
     }
     // #map things to the funny redis syntax
     var begin, end
     if (this.sort_asc) {
-      begin = max_length
+      begin = maxLength
       end = -1
     } else {
       begin = 0
-      end = (max_length * -1) - 1
+      end = (maxLength * -1) - 1
     }
     const removed = this.redis.zremrangebyrank(key, begin, end)
     // logger.info('cleaning up the sorted set ${} to a max of ${} items' %
-    //   (key, max_length))
+    //   (key, maxLength))
     return removed
   }
 
-  async get_results({
+  // Retrieve results from redis using zrevrange
+  // O(log(N)+M) with N being the number of elements in the sorted set && M the number of elements returned.
+  async getResults({
     start = null,
     stop = null,
     min_score = null,
     max_score = null
   }) {
-    // '''
-    // Retrieve results from redis using zrevrange
-    // O(log(N)+M) with N being the number of elements in the sorted set && M the number of elements returned.
-    // '''
+
     var redis_range_fn
 
     if (this.sort_asc)
@@ -196,7 +216,7 @@ export class RedisSortedSetCache extends RedisCache {
     } else {
       limit = -1
     }
-    const key = this.get_key()
+    const key = this.getKey()
 
     // #some type validations
     if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string')) {
@@ -217,7 +237,6 @@ export class RedisSortedSetCache extends RedisCache {
     }
 
     // #handle the starting score support
-  
     const results = await redis_range_fn(
       key,
       min_score,
@@ -226,12 +245,13 @@ export class RedisSortedSetCache extends RedisCache {
       "LIMIT",
       start,
       limit,
-    ) 
+    )
     return results
   }
 }
 
 export interface RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache { }
+
 // Apply the mixins into the base class via
 // the JS at runtime
 applyMixins(RedisSortedSetCache, [BaseRedisListCache, BaseRedisHashCache]);

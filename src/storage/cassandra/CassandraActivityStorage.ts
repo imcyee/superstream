@@ -8,13 +8,18 @@ import { BaseActivityStorage } from "../base"
  */
 export class CassandraActivityStorage extends BaseActivityStorage {
 
-  async get_from_storage(activity_ids, kwargs): Promise<{}> {
+  async getFromStorage(activityIds, kwargs): Promise<{}> {
     throw new NotImplementedError('Not implemented')
   }
-  async add_to_storage(serialized_activities, kwargs) {
+  async addToStorage(serializedActivities, kwargs) {
     throw new NotImplementedError('Not implemented')
   }
-  async remove_from_storage(activity_ids, kwargs) {
+  async removeFromStorage(activityIds, kwargs) {
     throw new NotImplementedError('Not implemented')
+  }
+
+  flush() {
+    throw new Error('Not implement')
+    return 'not_implemented'
   }
 }

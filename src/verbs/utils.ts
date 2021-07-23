@@ -35,12 +35,12 @@ export function register(verb) {
   get_verb_storage()[verb._id] = verb
 }
 
-export function get_verb_by_id(verb_id) {
-  const verb_id_number = Number(verb_id)
+export function get_verb_by_id(verbId) {
+  const verb_id_number = Number(verbId)
   if (isNaN(verb_id_number))
-    throw new ValueError(`please provide a verb id, got ${verb_id}`)
+    throw new ValueError(`please provide a verb id, got ${verbId}`)
 
-  // throw new ValueError('please provide a verb id, got %r' % verb_id)
+  // throw new ValueError('please provide a verb id, got %r' % verbId)
 
   return get_verb_storage()[verb_id_number]
 }

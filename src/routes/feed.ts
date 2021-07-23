@@ -1,11 +1,14 @@
 import { CassandraFeed } from "../feeds/cassandra";
 import express from 'express';
-import { Activity } from "../activity";
+import { Activity } from "../activity/Activity";
 import { Add } from "../verbs/base";
 
 const router = express.Router();
 
 router.route('/feeds')
+  // implement group
+  // eg: notification, timeline, user
+  // each group will store it differently
   .get(async (req, res) => {
     const query = req.query
     const { offset, limit, group, id } = query
@@ -13,16 +16,10 @@ router.route('/feeds')
     if (limit > 100)
       throw new Error("max limit 100")
 
-    // implement group
-    // eg: notification, timeline, user
-    // each group will store it differently
-
     const cassandraFeed = new CassandraFeed(id)
 
-    const results = await cassandraFeed.get_item(offset, limit)
-    results.forEach(element => {
-      console.log(element.serialization_id);
-    });
+    const results = await cassandraFeed.getItem(offset, limit)
+ 
     return res.json(results)
   })
   .post(async (req, res) => {
@@ -35,7 +32,7 @@ router.route('/feeds')
       object: objectId,
       target: targetId,
       time,
-      extra_context: extraContext
+      extraContext: extraContext
     })
     const result = await cassandraFeed.add(activity)
     return res.json(result)
