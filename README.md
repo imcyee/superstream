@@ -2,7 +2,7 @@
 Currently is in pre-alpha stage, which is not battle-tested, but the code is translate directly from a production ready source [https://github.com/tschellenbach/Stream-Framework]
 
 # PLRESE READ THIS
-This library is currently consists of codes and bugs. This public Github release is to seek help to improve the Port, hence be prepared.
+This library is currently in the process of porting and developing. This public Github release is to seek help to improve the Port, hence be prepared for the bumby road.
 
 # Features: 
 Activity Feed: Example are facebook feeds
@@ -14,18 +14,44 @@ Yes, I am (shorts of hands). If you wish to help, PR is welcome.
 
 # Get started
 ``
-import { RedisFeed, Activity} from 'feed'
+  import { Manager, setupRedisConfig } from 'superstream'
+  import faker from 'faker'
 
-const feed = new RedisFeed('1235-12367-123213-123213') // your userId
-const activity = new Activity({
-  actor: 'user:256',
-  verb: 'themepark:play',
-  object: 'rollercoaster:457'
-})
-await RedisFeed.insertActivity(activity)
-await feed.add(activity) // add activity
+  class CustomManager extends Manager {
+      // copy activities to your user's follower
+      async getUserFollowerIds(userId) {
+          const followerIds = await this.myDatabase.getFollowers(userId)
+          return {
+            [FanoutPriority.HIGH] : followerIds
+          }
+      }
+  }
 
-await feed.getItem(0, 5)
+  (()=>{
+      setupRedisConfig({
+        host: 'localhost',
+        port: 6379
+      })
+      const customManager = new CustomManager()
+
+      // user creates an activity
+      const newActivity = new Activity({
+        actor: `user:${faker.datatype.uuid()}`,
+        verb: faker.random.arrayElement([`cinema:book`, 'themepark:go']),
+        object: `movie:${faker.datatype.number()}`,
+        target: 'cinema:gold_bridge_cinema',
+        extraContext: {
+          price: 12
+        }
+      })
+
+      // add to user feed
+      await feed.addUserActivity(userId, activity1)
+
+      // get current user feed
+      const userFeed = feed.getUserFeed(userId)
+      const activities = await userFeed.getItem(0, 5)
+  })
 ``
 
 

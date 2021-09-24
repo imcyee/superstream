@@ -13,11 +13,7 @@ export function getRedisConnection(serverName: string = 'default') {
   // global connection_pool
   if (!connection) {
     const pool = setupRedis()
-    // @ts-ignore
-    // const asyncRedisClient = asyncRedis.decorate(pool);
-
     connection = pool
-    // connection = asyncRedisClient
   }
   return connection
   // const pool = connection_pool[serverName]
@@ -28,7 +24,7 @@ export function getRedisConnection(serverName: string = 'default') {
 
 let config = {}
 
-export function setupConfig(_config: {
+export function setupRedisConfig(_config: {
   port,
   host
 }) {
@@ -56,7 +52,7 @@ export function setupRedis() {
 
   const port = config['port'] || 6379
   const host = config['host'] || 'redis'
-  console.log('url', `redis://${host}:${port}`);
+
   const pool = redis.createClient({
     url: `redis://${host}:${port}`
     // socket: {
@@ -64,11 +60,14 @@ export function setupRedis() {
     //   host: config['host'] || 'redis'
     // }
   })
-  pool.connect().then(() => {
-    console.log('connected');
-  }).catch(err => {
-    console.log('err', err);
-  })
+
+  pool
+    .connect()
+    .then(() => {
+      console.log('Redis connected');
+    }).catch(err => {
+      console.log('err', err);
+    })
   return pool
 }
 

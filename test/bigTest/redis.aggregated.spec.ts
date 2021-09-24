@@ -1,7 +1,7 @@
 import faker from 'faker';
 import { GenericContainer } from "testcontainers";
 import { RedisAggregatedFeed } from '../../src/feeds/aggregated_feed/redis';
-import { setupConfig } from "../../src/storage/redis/connection";
+import { setupRedisConfig } from "../../src/storage/redis/connection";
 import { generateActivity } from '../utils/generateActivity';
 
 describe("GenericContainer", () => {
@@ -13,7 +13,7 @@ describe("GenericContainer", () => {
       .withExposedPorts(6379)
       .start();
 
-    setupConfig({
+    setupRedisConfig({
       host: container.getHost(),
       port: container.getMappedPort(6379),
     })
