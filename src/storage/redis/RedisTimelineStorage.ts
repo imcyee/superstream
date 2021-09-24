@@ -143,8 +143,9 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     const scores = Object.keys(activities)  // map(long_t, activities.keys())
     const scoreValuePairs = zip(scores, Object.values(activities))
 
-    const result = await cache.addMany(scoreValuePairs)
     console.log(scoreValuePairs);
+    const result = await cache.addMany(scoreValuePairs)
+    
     for (const r of result) {
       // # errors in strings?
       // # anyhow throw new them here :)

@@ -78,61 +78,86 @@ export class RedisSortedSetCache extends RedisCache {
     // }
     var results = []
 
+    //   async function _addMany(
+    //     redis: RedisClientType,
+    //     scoreValuePairs
+    //   ) {
+    //     /**
+    //      * main purpose for this is:
+    //      * convert from 
+    //      * [['bac', 3], ['abc', 4]]
+    //      * to this in chunk
+    //      * [bac, 3, abc, 4]
+    //      */
+    //     // sum(map(list, scoreValuePairs), [])
+    //     console.log('scoreValuePairs', scoreValuePairs);
+
+    //     // const score_value_list = scoreValuePairs.reduce((acc, curr) => acc + curr)
+    //     const score_value_list = scoreValuePairs.reduce((acc, curr) => {
+    //       curr.forEach(element => {
+    //         acc.push(element)
+    //       });
+    //       // acc.push(curr[0])
+    //       // acc.push(curr[1])
+    //       return acc
+    //     }, [])
+    //     const score_value_chunks = chunk(score_value_list, 200) as string[][]
+
+    //     console.log('score_value_chunks', score_value_chunks);
+    //     console.log('key', key);
+    //     for await (const score_value_chunk of score_value_chunks) {
+    //       // const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
+
+    //       // @ts-ignore
+
+    //       console.log('adding', score_value_chunk);
+    //       // change of zadd member 
+    //       // const members = score_value_chunk.map(s => {
+    //       //   return {
+    //       //     score: s[0],
+    //       //     value: s[1]
+    //       //   }
+    //       // })
+
+    //       const members = {
+    //         score: Number(score_value_chunk[0]),
+    //         value: score_value_chunk[1]
+    //       }
+
+
+    //       // const result = await redis.zAdd(key, ...score_value_chunk)
+    //       const result = await redis.zAdd(key, members)
+
+    //       // const result = await redis.zAdd(key, ...score_value_chunk)
+
+
+    //       // const result = await (promisify(redis.zadd).bind(redis))(key, activityId, JSON.stringify(activity))
+
+    //       // logger.debug('adding to ${} with score_value_chunk ${}', key, score_value_chunk)
+    //       results.push(result)
+    //     }
+    //     return results
+    //   }
+
+    //   // #start a new map redis or go with the given one
+    //   results = await this._pipeline_if_needed(_addMany, scoreValuePairs)
+
+    //   return results
+    // }
+
+
     async function _addMany(
       redis: RedisClientType,
       scoreValuePairs
     ) {
-      /**
-       * main purpose for this is:
-       * convert from 
-       * [['bac', 3], ['abc', 4]]
-       * to this in chunk
-       * [bac, 3, abc, 4]
-       */
-      // sum(map(list, scoreValuePairs), [])
-      console.log('scoreValuePairs', scoreValuePairs);
+      const members = scoreValuePairs.map((svp) => ({
+        score: Number(svp[0]),
+        value: svp[1],
+      }))
+      const membersChunk = chunk(members, 200) as { value: string, score: number }[][]
 
-      // const score_value_list = scoreValuePairs.reduce((acc, curr) => acc + curr)
-      const score_value_list = scoreValuePairs.reduce((acc, curr) => {
-        curr.forEach(element => {
-          acc.push(element)
-        });
-        // acc.push(curr[0])
-        // acc.push(curr[1])
-        return acc
-      }, [])
-      const score_value_chunks = chunk(score_value_list, 200) as string[][]
-
-      console.log('score_value_chunks', score_value_chunks);
-      console.log('key', key);
-      for await (const score_value_chunk of score_value_chunks) {
-        // const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
-
-        // @ts-ignore
-
-        console.log('adding', score_value_chunk);
-        // change of zadd member 
-        // const members = score_value_chunk.map(s => {
-        //   return {
-        //     score: s[0],
-        //     value: s[1]
-        //   }
-        // })
-
-        const members = {
-          score: Number(score_value_chunk[0]),
-          value: score_value_chunk[1]
-        }
-
-
-        // const result = await redis.zAdd(key, ...score_value_chunk)
+      for await (const members of membersChunk) {
         const result = await redis.zAdd(key, members)
-
-        // const result = await redis.zAdd(key, ...score_value_chunk)
-
-
-        // const result = await (promisify(redis.zadd).bind(redis))(key, activityId, JSON.stringify(activity))
-
         // logger.debug('adding to ${} with score_value_chunk ${}', key, score_value_chunk)
         results.push(result)
       }

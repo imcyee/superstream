@@ -1,6 +1,7 @@
 import { BaseListsStorage } from "../base_lists_storage"
 import { getRedisConnection } from "./connection"
-import { promisify } from 'util' 
+import { promisify } from 'util'
+import { RedisClientType } from "redis/dist/lib/client"
 
 export class RedisListsStorage extends BaseListsStorage {
   private _redis
@@ -18,7 +19,7 @@ export class RedisListsStorage extends BaseListsStorage {
 
 
 
-  
+
 
 
 
@@ -36,7 +37,7 @@ export class RedisListsStorage extends BaseListsStorage {
   }
 
   // @property
-  get redis()//: RedisClient
+  get redis(): RedisClientType //: RedisClient
   {
     // '''
     // Lazy load the redis connection
@@ -109,11 +110,11 @@ export class RedisListsStorage extends BaseListsStorage {
         for (const value of values) {
           // pipe.rpush(key, value)
 
-          promises.push(await (promisify(this.redis.rpush).bind(this.redis))(key, value))
+          promises.push(this.redis.rPush(key, value))
         }
         // # Removes items from list's head
         // pipe.ltrim(key, -this.maxLength, -1)
-        promises.push(await (promisify(this.redis.ltrim).bind(this.redis))(key, -this.maxLength, -1))
+        promises.push(this.redis.lTrim(key, -this.maxLength, -1))
       }
     }
 
@@ -131,9 +132,9 @@ export class RedisListsStorage extends BaseListsStorage {
     // pipe.execute()
   }
 
-  remove(kwargs) {
+  async remove(kwargs) {
     if (kwargs) {
-      const pipe = this.redis.pipeline()
+      const promises = []
 
       for (const k in kwargs) {
         const list_name = k
@@ -142,7 +143,7 @@ export class RedisListsStorage extends BaseListsStorage {
         const key = this.getKey(list_name)
         for (const value in values) {
           // # Removes all occurrences of value in the list
-          pipe.lrem(key, 0, value)
+          promises.push(this.redis.lRem(key, 0, value))
         }
       }
 
@@ -153,18 +154,18 @@ export class RedisListsStorage extends BaseListsStorage {
       //     pipe.lrem(key, 0, value)
       //   }
       // }
-      pipe.execute()
+      await Promise.all(promises)
     }
   }
 
   async count(...args) {
+    const promises = []
     if (args) {
       const keys = this.getKeys(args)
-      const pipe = this.redis.pipeline()
       for (const key of keys) {
-        pipe.llen(key)
+        promises.push(this.redis.lLen(key))
       }
-      const results = await pipe.execute()
+      const results = await Promise.all(promises)
       return this._toResult(results)
     }
   }
@@ -177,7 +178,7 @@ export class RedisListsStorage extends BaseListsStorage {
       const promises = []
       for (const key of keys) {
         // promises.push(await (promisify(this.redis.rpush).bind(this.redis))(key, value))
-        promises.push(await (promisify(this.redis.lrange).bind(this.redis))(key, 0, -1))
+        promises.push(this.redis.lRange(key, 0, -1))
         // pipe.lrange(key, 0, -1)
       }
       // var results = pipe.execute()
@@ -190,7 +191,9 @@ export class RedisListsStorage extends BaseListsStorage {
   flush(args) {
     if (args) {
       const keys = this.getKeys(args)
-      this.redis.delete(...keys)
+      // this.redis.delete(...keys)
+      this.redis.del(keys)
     }
+
   }
 }

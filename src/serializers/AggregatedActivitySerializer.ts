@@ -69,20 +69,16 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
   }
 
   loads(serializedAggregated) {
-    console.log(serializedAggregated);
-    console.log(this.ActivityClass);
-
+    console.log('serializedAggregated', serializedAggregated);
     const activitySerializer = new this.ActivitySerializerClass({ ActivityClass: this.ActivityClass })
     try {
-      // serializedAggregated = serializedAggregated[2:]
 
       serializedAggregated = serializedAggregated.slice(2)
-      console.log('0');
+
       const parts = serializedAggregated.split(';;')
       // # start with the group
       const group = parts[0]
 
-      console.log('1');
       const aggregated = new this.AggregatedActivityClass(group)
       // const aggregated = new AggregatedActivity(group)
 
@@ -91,7 +87,7 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
       const date_dict = this.dateFields.map(function (e, i) {
         return [e, slicedParts[i]];
       });
-      console.log('2');
+
       // dict(zip(this.dateFields, parts.slice(1, 5)))
       for (const date_dict_tuple of date_dict) {
         const [k, v] = date_dict_tuple
@@ -103,9 +99,8 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
       }
       // # write the activities
       const serializations = parts[5].split(';')
-      console.log('3');
+
       if (this.dehydrate) {
-        console.log('4');
         // don't parse it to number or else we will need bigInt
         // or we get truncated id eg: 1.3567e21
         const activityIds = serializations.map((sl) => sl)
@@ -113,18 +108,14 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
         aggregated._activityIds = activityIds
         aggregated.dehydrated = true
       } else {
-        console.log('4');
         const activities = []
         for (const s of serializations) {
-          console.log('loading', s);
           activities.push(activitySerializer.loads(s))
-          console.log('after loading');
         }
         // const activities = [activitySerializer.loads(s) for s of serializations]
         aggregated.activities = activities
         aggregated.dehydrated = false
       }
-      console.log('5');
       // # write the minimized activities
       const minimized = parseInt(parts[6])
       aggregated.minimizedActivities = minimized
