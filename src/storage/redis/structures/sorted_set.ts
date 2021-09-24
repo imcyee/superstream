@@ -5,7 +5,8 @@ import { promisify } from 'util'
 import { BaseRedisHashCache } from "./hash"
 import chunk from 'lodash/chunk'
 import { RedisCache } from "./base"
-import { RedisClientType } from "redis/dist/lib/client"
+import { ClientCommandOptions, RedisClientType } from "redis/dist/lib/client"
+import { CommandOptions } from "redis/dist/lib/command-options"
 
 
 // export class RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache {
@@ -100,18 +101,33 @@ export class RedisSortedSetCache extends RedisCache {
         // acc.push(curr[1])
         return acc
       }, [])
-      const score_value_chunks = chunk(score_value_list, 200)
+      const score_value_chunks = chunk(score_value_list, 200) as string[][]
 
       console.log('score_value_chunks', score_value_chunks);
       console.log('key', key);
       for await (const score_value_chunk of score_value_chunks) {
         // const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
 
-        console.log(score_value_chunk);
-
         // @ts-ignore
-        const result = await redis.zAdd(key, ...score_value_chunk)
- 
+
+        console.log('adding', score_value_chunk);
+        // change of zadd member 
+        // const members = score_value_chunk.map(s => {
+        //   return {
+        //     score: s[0],
+        //     value: s[1]
+        //   }
+        // })
+
+        const members = {
+          score: Number(score_value_chunk[0]),
+          value: score_value_chunk[1]
+        }
+
+
+        // const result = await redis.zAdd(key, ...score_value_chunk)
+        const result = await redis.zAdd(key, members)
+
         // const result = await redis.zAdd(key, ...score_value_chunk)
 
 
@@ -217,10 +233,6 @@ export class RedisSortedSetCache extends RedisCache {
     //   redis_range_fn = promisify(this.redis.zrangebyscore).bind(this.redis)
     // else
     //   redis_range_fn = promisify(this.redis.zrevrangebyscore).bind(this.redis)
-    if (this.sort_asc)
-      redis_range_fn = this.redis.zRemRangeByScore
-    else
-      redis_range_fn = this.redis.zRemRangeByScore
 
     // #-1 means infinity
     if (!stop) {
@@ -256,16 +268,52 @@ export class RedisSortedSetCache extends RedisCache {
       max_score = this.sort_asc ? '+inf' : '-inf'
     }
 
-    // #handle the starting score support
-    const results = await redis_range_fn(
+    // this.redis.zRemRangeByScore(
+    //   key as string,
+    //   min_score as number,
+    //   max_score as number,
+    // )
+
+    // if (this.sort_asc)
+    //   redis_range_fn = this.redis.zRangeWithScores
+    // else
+    //   redis_range_fn = this.redis.zRemRangeByScore
+
+    const results = await this.redis.zRangeWithScores(
       key,
       min_score,
       max_score,
-      "WITHSCORES",
-      "LIMIT",
-      start,
-      limit,
+      {
+        BY: 'SCORE',
+        ...(this.sort_asc ? {} : { REV: true }),
+        REV: true,
+        LIMIT: {
+          offset: start,
+          count: limit
+        }
+      }
     )
+
+    console.log('zrangeResult', results);
+
+    const a = []
+    const str = results.forEach(element => {
+      a.push(element.value)
+      a.push(element.score)
+    })
+    console.log(a);
+    return a
+
+    // // #handle the starting score support
+    // const results = await redis_range_fn(
+    //   key,
+    //   min_score,
+    //   max_score,
+    //   "WITHSCORES",
+    //   "LIMIT",
+    //   start,
+    //   limit,
+    // )
     return results
   }
 }

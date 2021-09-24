@@ -208,6 +208,7 @@ export class ShardedHashCache extends RedisHashCache {
         const key = this.getKey(field)
         // logger.debug('getting field %s from %s', field, key)
         // const result = await (promisify(redis.hget).bind(redis))(key, field)
+        console.log(key, field);
         const result = await redis.hGet(key, field)
         results[field] = result
       }
@@ -220,6 +221,7 @@ export class ShardedHashCache extends RedisHashCache {
 
     return results
   }
+ 
 
   async delete_many(fields) {
     var results = {}

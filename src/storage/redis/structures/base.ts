@@ -59,7 +59,7 @@ export class RedisCache {
     const key = this.getKey()
     await this.redis.del(key)
     return
-    
+
     // return await new Promise((resolve, reject) => {
     //   this.redis.del(key, (err, reply) => {
     //     if (err)

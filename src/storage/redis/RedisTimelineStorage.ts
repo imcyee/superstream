@@ -97,6 +97,8 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
         throw new ValueError(`Unrecognized order kwargs ${orderingArgs}`)
     }
 
+
+    console.log('cache getting results');
     // # get the actual results
     // python is returning (value, key)
     // but in node it is in string form value, key, value, key 
@@ -110,6 +112,8 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
       const [value, key] = vk
       return [key, value]
     })
+
+    console.log(score_key_pairs);
     return score_key_pairs
   }
 
@@ -140,7 +144,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     const scoreValuePairs = zip(scores, Object.values(activities))
 
     const result = await cache.addMany(scoreValuePairs)
-
+    console.log(scoreValuePairs);
     for (const r of result) {
       // # errors in strings?
       // # anyhow throw new them here :)

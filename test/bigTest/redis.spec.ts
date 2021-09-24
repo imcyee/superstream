@@ -34,7 +34,7 @@ describe("GenericContainer", () => {
     await feed.add(activity1)
 
     const result = await feed.getItem(0, 5)
-
+    console.log(result);
     expect(result.length).toBe(1)
   });
 

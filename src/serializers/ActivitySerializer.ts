@@ -37,7 +37,7 @@ export class ActivitySerializer extends BaseSerializer {
   }
 
   loads(serializedActivity) {
-    console.log('inside serializer');
+    console.log('inside serializer', serializedActivity);
     const parts = serializedActivity.split(',')
 
     // convert these to ids
