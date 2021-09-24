@@ -1,7 +1,7 @@
-import { CassandraFeed } from "../feeds/cassandra";
+import { CassandraFeed } from "../../src/feeds/cassandra";
 import express from 'express';
-import { Activity } from "../activity/Activity";
-import { Add } from "../verbs/base";
+import { Activity } from "../../src/activity/Activity";
+import { Add } from "../../src/verbs/base";
 
 const router = express.Router();
 
