@@ -104,7 +104,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
       start,
       stop,
       ...result_kwargs
-    }) 
+    })
     const valueKeyPairs = chunk(value_key_strings, 2)
     const score_key_pairs = valueKeyPairs.map((vk) => {
       const [value, key] = vk
@@ -114,9 +114,8 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
   }
 
   getBatchInterface() {
-    return getRedisConnection(
-      this.options.get('redis_server', 'default')
-    )// .pipeline(transaction = false)
+    const serverName = this.options['redis_server'] || 'default'
+    return getRedisConnection(serverName)// .pipeline(transaction = false)
   }
 
   getIndexOf(key, activityId) {
@@ -132,14 +131,14 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     key,
     activities, // in the form of 123:123
     kwargs = {} as any
-  ) { 
+  ) {
 
     const { batchInterface } = kwargs
     const cache = this.getCache(key)
     // # turn it into key value pairs
     const scores = Object.keys(activities)  // map(long_t, activities.keys())
     const scoreValuePairs = zip(scores, Object.values(activities))
- 
+
     const result = await cache.addMany(scoreValuePairs)
 
     for (const r of result) {

@@ -102,17 +102,20 @@ abstract class BaseStorage {
   // :param activities: the list of activities 
   serializeActivities(activities) {
     const serializedActivities = {}
-    console.log('before serialized here', activities);
+
+    // console.log('before serialized here', activities);
+    console.log('before serialized here');
+
     for (const activity of activities) {
       const serializedActivity = this.serializeActivity(activity)
 
       const serializationId = this.activity_to_id(activity)
-      console.log('serializationId', serializationId);
+      // console.log('serializationId', serializationId);
 
       // there will be collision if serializationId is generated at the same time
       serializedActivities[serializationId] = serializedActivity
     }
-    console.log('serialized here', serializedActivities);
+    // console.log('serialized here', serializedActivities);
     return serializedActivities
   }
 
@@ -193,8 +196,7 @@ export abstract class BaseActivityStorage extends BaseStorage {
   // this.metrics.on_feed_write(this.__class__, activities?.length)
   addMany(activities, opts) {
     const serializedActivities = this.serializeActivities(activities)
-
-    console.log(this);
+ 
     return this.addToStorage(serializedActivities, opts)
   }
 

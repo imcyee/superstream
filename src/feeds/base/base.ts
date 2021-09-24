@@ -71,7 +71,7 @@ export abstract class BaseFeed {
   keyFormat(userId) { return `feed_${userId}` }
 
   // the max length after which we start trimming
-  maxLength = 100
+  get maxLength() { return 100 }
 
   /**
    * the activity class to use
@@ -120,7 +120,7 @@ export abstract class BaseFeed {
     this.userId = userId
     this.key = this.keyFormat(this.userId)
 
-    this.timelineStorage = (this.constructor as typeof BaseFeed).getTimelineStorage() 
+    this.timelineStorage = (this.constructor as typeof BaseFeed).getTimelineStorage()
     this.activityStorage = (this.constructor as typeof BaseFeed).getActivityStorage()
 
     // ability to filter and change ordering(not supported for all backends)
@@ -139,7 +139,7 @@ export abstract class BaseFeed {
 
 
   // Returns an instance of the timeline storage
-  static getTimelineStorage() { 
+  static getTimelineStorage() {
     const options = this.getTimelineStorageOptions()
     // @ts-ignore
     const timelineStorage = new this.TimelineStorageClass(options)
@@ -206,12 +206,14 @@ export abstract class BaseFeed {
   // // @param batchInterface: the batch interface
   // 
   async addMany(
-    activities, {
+    activities,
+    optsArg?
+  ) {
+    const {
       batchInterface = null,
       trim = true,
       ...opts
-    } = {}) {
-
+    } = optsArg || {}
     // validate_list_of_strict(activities, (this.ActivityClass, FakeActivity))
 
     const add_count = await this.timelineStorage.addMany(
@@ -403,8 +405,8 @@ export abstract class BaseFeed {
     const activityIds = []
     for (const activity of activities) {
       activityIds.push(...activity._activityIds)
-    } 
-    
+    }
+
     const activity_list = await this.activityStorage.getMany(activityIds)
 
     var activityData = {}
@@ -440,8 +442,8 @@ export abstract class BaseFeed {
       stop,
       filterKwargs: this._filterKwargs,
       orderingArgs: this._orderingArgs
-    }) 
-    
+    })
+
     if (this.needsHydration(activities) && rehydrate) {
       activities = await this.hydrateActivities(activities)
     }
