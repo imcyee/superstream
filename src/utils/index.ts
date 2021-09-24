@@ -94,7 +94,12 @@ export function hashCode(str) {
 
 const MAX_SIGNED_INT_32B = 2147483648
 
-// similar to hashCode but convert to positive
+/**
+ * Convert string to integer
+ * similar to hashCode but convert to positive
+ * @param str 
+ * @returns 
+ */
 export function hashCodePositive(str) {
   var sanitizeStr = typeof str === 'number'
     ? str.toString()

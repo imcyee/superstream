@@ -92,30 +92,17 @@ export class AggregatedActivity extends BaseActivity {
 
   // Works on both hydrated and not hydrated activities
   get length() {
-    // if (this._activityIds) {
-    //   length = len(this.activityIds)
-    // } else {
-    //   length = len(this.activities)
-    // }
-    if (this._activityIds) {
-      length = this.activityIds?.length
-    } else {
-      length = this.activities?.length
-    }
-    return length
+    return this._activityIds
+      ? this.activityIds?.length
+      : this.activities?.length
   }
 
 
   // Returns a list of activity ids
   get activityIds(): string[] {
-    var activityIds
-    if (this._activityIds) {
-      activityIds = this._activityIds
-    }
-    else {
-      activityIds = this.activities.map(a => a.serializationId) // [a.serializationId for a in this.activities]
-    }
-    return activityIds
+    return this._activityIds
+      ? this._activityIds
+      : this.activities.map(a => a.serializationId)
   }
 
   // replace with valueOf || primitive
@@ -155,13 +142,11 @@ export class AggregatedActivity extends BaseActivity {
   }
 
   // Checks if activity is present in this aggregated
-  contains(activity) {
+  contains(activity: Activity) {
     if (!(activity instanceof Activity) && typeof activity !== 'number' && typeof activity !== 'string') {
       throw new ValueError(`contains needs an activity or long not ${activity}`)
     }
-    const activityId = (activity as any)?.serializationId
-    // activityId = getattr(activity, 'serializationId', activity)
-
+    const activityId = activity.serializationId
     const found = this.activities.find(a => a.serializationId === activityId)
     return found
     // return activityId in set([a.serializationId for a in this.activities])
@@ -197,7 +182,6 @@ export class AggregatedActivity extends BaseActivity {
 
   remove(activity) {
     if (!this.contains(activity)) {
-      // throw new stream_framework_exceptions.ActivityNotFound()
       throw new ActivityNotFound()
     }
 
@@ -206,7 +190,7 @@ export class AggregatedActivity extends BaseActivity {
     }
     // # remove the activity
     const activityId = activity?.serializationId
-    this.activities = this.activities.filter(a => a.serializationId !== activityId)  // [a for a in this.activities if a.serializationId != activityId]
+    this.activities = this.activities.filter(a => a.serializationId != activityId)
 
     // # now time to update the times
     this.updated_at = this.last_activity.time

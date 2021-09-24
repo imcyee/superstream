@@ -1,22 +1,12 @@
-// from stream_framework.feeds.base import UserBaseFeed
-// from stream_framework.tasks import follow_many, unfollow_many
-// from stream_framework.tasks import fanout_operation
-// from stream_framework.tasks import fanout_operation_hi_priority
-// from stream_framework.tasks import fanout_operation_low_priority
-// from stream_framework.utils import chunks
-// from stream_framework.utils import get_metrics_instance
-// from stream_framework.utils.timing import timer
-// import logging
-// from stream_framework.feeds.redis import RedisFeed
-
 import { NotImplementedError, ValueError } from "../errors"
 import { BaseFeed } from "../feeds/base/base"
 import { RedisFeed } from "../feeds/RedisFeed"
 import { fanout_operation, fanout_operation_hi_priority, fanout_operation_low_priority, follow_many, unfollow_many } from "../task"
 import { chunk } from 'lodash'
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
+import createDebug from 'debug'
 
-// logger = logging.getLogger(__name__)
+const debug = createDebug('ns:debug:base')
 
 
 async function add_operation(feed, {
@@ -28,27 +18,32 @@ async function add_operation(feed, {
   // Add the activities to the feed
   // functions used in tasks need to be at the main level of the module
   // '''
-  // const t = timer()
-  // const msg_format = 'running %s.addMany operation for %s activities batch interface %s and trim %s'
-  // logger.debug(msg_format, feed, len(activities), batchInterface, trim)
+  const time = new Date().getTime()
+  const msg_format = (a, b, c, d) => `running ${a}.addMany operation for ${b} activities batch interface ${c} and trim ${d}`
+  debug(msg_format(feed, activities.length, batchInterface, trim))
   await feed.addMany(activities, { batchInterface, trim })
-  // logger.debug('add many operation took %s seconds', t.next())
+
+  const now = new Date().getTime()
+  const elapsedInSeconds = (now - time) / 1000
+  debug(`add many operation took ${elapsedInSeconds} seconds`)
 }
 
+// '''
+// Remove the activities from the feed
+// functions used in tasks need to be at the main level of the module
+// '''
 async function remove_operation(feed, {
   activities,
   trim = true,
   batchInterface = null
 }) {
-  // '''
-  // Remove the activities from the feed
-  // functions used in tasks need to be at the main level of the module
-  // '''
-  // const t = timer()
-  // const msg_format = 'running %s.removeMany operation for %s activities batch interface %s'
-  // logger.debug(msg_format, feed, len(activities), batchInterface)
+  const time = new Date().getTime()
+  const msg_format = (a, b, c) => `running ${a}.removeMany operation for ${b} activities batch interface ${c}`
+  debug(msg_format(feed, activities.length, batchInterface))
   await feed.removeMany(activities, { trim, batchInterface })
-  // logger.debug('remove many operation took %s seconds', t.next())
+  const now = new Date().getTime()
+  const elapsedInSeconds = (now - time) / 1000
+  debug(`remove many operation took ${elapsedInSeconds} seconds`)
 }
 
 class FanoutPriority {
@@ -211,15 +206,15 @@ export class Manager {
     // this.metrics.on_activity_removed()
   }
 
+  // '''
+  // get the feed that contains the sum of all activity
+  // from feeds :userId is subscribed to
+
+  // :returns dict: a dictionary with the feeds we're pushing to
+  // '''
   getFeeds(userId): {
     [key: string]: BaseFeed
   } {
-    // '''
-    // get the feed that contains the sum of all activity
-    // from feeds :userId is subscribed to
-
-    // :returns dict: a dictionary with the feeds we're pushing to
-    // '''
     const feeds_dict = {}
     for (const [k, Feed] of Object.entries(this.FeedClasses)) {
       feeds_dict[k] = new Feed(userId)
@@ -229,20 +224,19 @@ export class Manager {
     // return dict([(k, feed(userId)) for k, feed in this.FeedClasses.items()])
   }
 
+  // '''
+  // feed where activity from :userId is saved
+  // :param userId: the id of the user
+  // '''
   getUserFeed(userId) {
-    // '''
-    // feed where activity from :userId is saved
-
-    // :param userId: the id of the user
-    // '''
     return new this.UserFeedClass(userId)
   }
 
+  // '''
+  // Update the user activities
+  // :param activities: the activities to update
+  // '''
   update_user_activities(activities) {
-    // '''
-    // Update the user activities
-    // :param activities: the activities to update
-    // '''
     for (const activity of activities)
       this.addUserActivity(activity.actorId, activity)
   }
@@ -251,14 +245,14 @@ export class Manager {
     this.update_user_activities([activity])
   }
 
-  async follow_feed(feed: BaseFeed, source_feed: BaseFeed) {
-    // '''
-    // copies source_feed entries into feed
-    // it will only copy follow_activity_limit activities
+  // '''
+  // copies source_feed entries into feed
+  // it will only copy follow_activity_limit activities
 
-    // :param feed: the feed to copy to
-    // :param source_feed: the feed with a list of activities to add
-    // '''
+  // :param feed: the feed to copy to
+  // :param source_feed: the feed with a list of activities to add
+  // '''
+  async follow_feed(feed: BaseFeed, source_feed: BaseFeed) {
     const activities = source_feed.getItem(0, this.follow_activity_limit)
     if (activities)
       return await feed.addMany(activities)
@@ -271,8 +265,7 @@ export class Manager {
   // :param source_feed: the feed with a list of activities to remove
   // '''
   unfollowFeed(feed, source_feed: BaseFeed) {
-    // const activities = source_feed.getItem[:]  // # need to slice
-    const activities = source_feed.getItem(0) // [:]  // # need to slice
+    const activities = source_feed.getItem(0) // need to slice
     if (activities)
       return feed.removeMany(activities)
   }
@@ -374,7 +367,7 @@ export class Manager {
     const chunk_size = this.fanout_chunk_size
     // const user_ids_chunks = list(chunks(follower_ids, chunk_size))
     const user_ids_chunks = chunk(follower_ids, chunk_size)
-    const msg_format = 'spawning %s subtasks for %s user ids in chunks of %s users'
+    const msg_format = 'spawning ${} subtasks for ${} user ids in chunks of ${} users'
     // logger.info(
     //     msg_format, len(user_ids_chunks), len(follower_ids), chunk_size)
     var tasks = []
@@ -414,23 +407,23 @@ export class Manager {
     // this.metrics.fanout_timer(FeedClass)
 
     const separator = '==='.repeat(10)
-    // logger.info('%s starting fanout %s', separator, separator)
+    // logger.info('${} starting fanout ${}', separator, separator)
     const batch_context_manager = FeedClass.getTimelineBatchInterface()
-    const msg_format = 'starting batch interface for feed %s, fanning out to %s users'
+    const msg_format = 'starting batch interface for feed ${}, fanning out to ${} users'
     const batchInterface = batch_context_manager
     // logger.info(msg_format, FeedClass, len(user_ids))
     operation_kwargs['batchInterface'] = batchInterface
     for (const userId of user_ids) {
-      // logger.debug('now handling fanout to user %s', userId)
+      // logger.debug('now handling fanout to user ${}', userId)
       const feed = new FeedClass(userId)
       // operation(feed, ...operation_kwargs)
- 
+
 
       // 🔥 do we wait for fanout??
       await operation(feed, operation_kwargs)
     }
 
-    // logger.info('finished fanout for feed %s', FeedClass)}
+    // logger.info('finished fanout for feed ${}', FeedClass)}
     const fanout_count = operation_kwargs['activities'].length * (user_ids).length
     // this.metrics.on_fanout(FeedClass, operation, fanout_count)
 
@@ -439,24 +432,20 @@ export class Manager {
   // '''
   // Batch import all of the users activities and distributes
   // them to the users followers
-
   // **Example**::
-
   //     activities = [long list of activities]
   //     stream_framework.batch_import(13, activities, 500)
-
   // :param userId: the user who created the activities
   // :param activities: a list of activities from this user
   // :param fanout: if we should run the fanout or not
   // :param chunk_size: per how many activities to run the batch operations
-
   // '''
   batch_import(userId, activities, fanout = true, chunk_size = 500) {
     // activities = list(activities)
     // # skip empty lists
     if (!activities)
       return
-    // logger.info('running batch import for user %s', userId)
+    // logger.info('running batch import for user ${}', userId)
 
     const userFeed = this.getUserFeed(userId)
     if (activities[0].actorId != userId)
@@ -465,7 +454,7 @@ export class Manager {
     // const activityChunks = list(chunks(activities, chunk_size))
     const activityChunks = chunk(activities, chunk_size)
 
-    // logger.info('processing %s items in %s chunks of %s',
+    // logger.info('processing ${} items in ${} chunks of ${}',
     //             len(activities), len(activityChunks), chunk_size)
 
     // for (index, activityChunk in enumerate(activityChunks)) {
@@ -473,13 +462,13 @@ export class Manager {
       // # first insert into the global activity storage
       this.UserFeedClass.insertActivities(activityChunk)
       // logger.info(
-      //     'inserted chunk %s (length %s) into the global activity store', index, len(activityChunk))
+      //     'inserted chunk ${} (length ${}) into the global activity store', index, len(activityChunk))
       // # next add the activities to the users personal timeline
       userFeed.addMany(activityChunk, { trim: false })
-      // logger.info( 'inserted chunk %s (length %s) into the user feed', index, len(activityChunk))
+      // logger.info( 'inserted chunk ${} (length ${}) into the user feed', index, len(activityChunk))
       // # now start a big fanout task
       if (fanout) {
-        // logger.info('starting task fanout for chunk %s', index)
+        // logger.info('starting task fanout for chunk ${}', index)
         const follower_ids_by_prio = this.getUserFollowerIds(userId = userId)
         // # create the fanout tasks
         const operation_kwargs = {

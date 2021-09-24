@@ -1,11 +1,15 @@
 import * as cassandra from 'cassandra-driver';
 import express from 'express';
-import { getRedisConnection } from "./storage/redis/connection";
-import { RedisFeed } from "./feeds/RedisFeed";
-import routes from "./routes";
-import { SimpleTimelineSerializer } from "./serializers/SimpleTimelineSerializer";
-import { CassandraTimelineStorage } from "./storage/cassandra/CassandraTimelineStorage";
-import { getClient } from "./storage/cassandra/connection";
+import { getRedisConnection } from "../src/storage/redis/connection";
+import { RedisFeed } from "../src/feeds/RedisFeed";
+import routes from "../src/routes";
+import { SimpleTimelineSerializer } from "../src/serializers/SimpleTimelineSerializer";
+import { CassandraTimelineStorage } from "../src/storage/cassandra/CassandraTimelineStorage";
+import { getClient } from "../src/storage/cassandra/connection";
+
+import createDebug from 'debug'
+
+const debug = createDebug('server')
 
 const app = express()
 // parse json request body
@@ -62,6 +66,8 @@ class User2Feed extends RedisFeed {
 }
 
 pool.on('ready', () => {
+
+  debug('redis client is ready')
   console.log('redis client is ready');
   // const userFeed = new User2Feed(userId: 123 )// change to string later
 

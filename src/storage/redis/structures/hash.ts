@@ -7,7 +7,9 @@ import merge from 'lodash/merge'
 import toPairs from 'lodash/toPairs'
 import * as crypto from 'crypto'
 import { RedisClientType } from "redis/dist/lib/client"
+import createDebug from 'debug'
 
+const debug = createDebug('ns:debug')
 
 const md5sum = crypto.createHash('md5');
 
@@ -22,23 +24,17 @@ export class RedisHashCache extends BaseRedisHashCache {
     return this.key
   }
 
+  // Returns the number of elements in the sorted set
   async count() {
-
-    // Returns the number of elements in the sorted set
-
     const key = this.getKey()
-    // const redis_result = await promisify(this.redis.hlen)(key)
     const redis_result = await this.redis.hLen(key)
     const redis_count = Number(redis_result)
     return redis_count
   }
 
+  // Uses hexists to see if the given field is present
   async contains(field) {
-
-    // Uses hexists to see if the given field is present
-
     const key = this.getKey()
-    // const result = await promisify(this.redis.hexists)(key, field)
     const result = await this.redis.hExists(key, field)
     const activity_found = !!(result)
     return activity_found
@@ -53,7 +49,6 @@ export class RedisHashCache extends BaseRedisHashCache {
 
   async keys() {
     const key = this.getKey()
-    // const keys = await promisify(this.redis.hkeys)(key)
     const keys = await this.redis.hKeys(key)
     return keys
   }
@@ -64,7 +59,7 @@ export class RedisHashCache extends BaseRedisHashCache {
     async function _delete_many(redis, fields) {
       for (const field of fields) {
         const key = this.getKey(field)
-        // logger.debug('removing field %s from %s', field, key)
+        debug(`removing field ${field} from ${key}`)
         const result = await promisify(redis.hdel)(key, field)
         results[field] = result
       }
@@ -79,11 +74,10 @@ export class RedisHashCache extends BaseRedisHashCache {
   async getMany(fields) {
     const key = this.getKey()
     const results = {}
-    // const values = await promisify(this.redis.hmget as any)(key, fields)
     const values = await this.redis.hmGet(key, fields)
     for (const zipped of zip(fields, values)) {
       const [field, result] = zipped
-      // logger.debug('getting field %s from %s', field, key)
+      debug(`getting field ${field} from ${key}`)
       results[field as any] = result
     }
     return results
@@ -103,10 +97,7 @@ export class RedisHashCache extends BaseRedisHashCache {
       for (const a of key_value_pairs) {
         const [field, value] = a
         const key = this.getKey(field)
-
-        // logger.debug(
-        // 'writing hash(%s) field %s to %s', key, field, value)
-        // const result = await (promisify(redis.hmset).bind(redis))(key, { [field]: value })
+        debug(`writing hash(${key}) field ${field} to ${value}`)
         const result = await redis.hSet(key, { [field]: value })
         results.push(result)
       }
@@ -131,7 +122,7 @@ export class FallbackHashCache extends RedisHashCache {
       for (const field of fields) {
         // # allow for easy sharding
         const key = this.getKey(field)
-        // logger.debug('getting field %s from %s', field, key)
+        debug(`getting field ${field} from ${key}`)
         const result = await promisify(redis.hget)(key, field)
         results[field] = result
       }
@@ -143,11 +134,7 @@ export class FallbackHashCache extends RedisHashCache {
 
     // # query missing results from the database && store them
     if (database_fallback) {
-      var missing_keys = []
-      for (const f of fields) {
-        missing_keys.push(f || results[f])
-      }
-      // const missing_keys = [f for f of fields if not results[f]]
+      const missing_keys = fields.filter((f) => (!results[f]))
       const database_results = this.get_many_from_fallback(missing_keys)
       // # update our results with the data from the db && send them to
       // # redis
@@ -157,10 +144,9 @@ export class FallbackHashCache extends RedisHashCache {
     }
     return results
   }
+
+  // Return a dictionary with the serialized values for the missing keys
   async get_many_from_fallback(missing_keys) {
-
-    // Return a dictionary with the serialized values for the missing keys
-
     throw new NotImplementedError('Please implement this')
   }
 }
@@ -172,9 +158,8 @@ export class ShardedHashCache extends RedisHashCache {
   // Use multiple keys instead of one so its easier to shard across redis machines
   number_of_keys = 10
 
+  // Returns all possible keys
   getKeys() {
-
-    // Returns all possible keys
     const keys = []
     for (const x of range(this.number_of_keys)) {
       const key = `${this.key}:${x}`
@@ -206,9 +191,7 @@ export class ShardedHashCache extends RedisHashCache {
       for await (const field of fields) {
         // # allow for easy sharding
         const key = this.getKey(field)
-        // logger.debug('getting field %s from %s', field, key)
-        // const result = await (promisify(redis.hget).bind(redis))(key, field)
-        console.log(key, field);
+        debug(`getting field ${field} from ${key}`)
         const result = await redis.hGet(key, field)
         results[field] = result
       }
@@ -221,7 +204,7 @@ export class ShardedHashCache extends RedisHashCache {
 
     return results
   }
- 
+
 
   async delete_many(fields) {
     var results = {}
@@ -230,8 +213,7 @@ export class ShardedHashCache extends RedisHashCache {
       for (const field of fields) {
         // # allow for easy sharding
         const key = this.getKey(field)
-        // logger.debug('getting field %s from %s', field, key)
-        // const result = await promisify(redis.hdel as any)(key, field)
+        debug(`getting field ${field} from ${key}`)
         const result = await redis.hDel(key, field)
         results[field] = result
       }
@@ -247,13 +229,11 @@ export class ShardedHashCache extends RedisHashCache {
   }
 
   async count() {
-
     // Returns the number of elements in the sorted set
-    // logger.warn('counting all keys is slow && should be used sparsely')
+    console.warn('counting all keys is slow && should be used sparsely');
     const keys = this.getKeys()
     var total = 0
     for (const key of keys) {
-      // const redis_result = await promisify(this.redis.hlen)(key)
       const redis_result = await this.redis.hLen(key)
       const redis_count = Number(redis_result)
       total += redis_count
@@ -267,38 +247,31 @@ export class ShardedHashCache extends RedisHashCache {
   }
 
   async delete() {
-
-    // Delete all the base variations of the key
-    // logger.warn('deleting all keys is slow && should be used sparsely')
+    // Delete all the base variations of the key 
+    console.warn('deleting all keys is slow && should be used sparsely');
     const keys = this.getKeys()
 
     for await (const key of keys) {
       // # TODO, batch this, but since we barely do this
-      // # not too important 
-
-      // await promisify(this.redis.del as any)(key)
-
+      // # not too important  
       await this.redis.del(key)
     }
   }
 
   async keys() {
-
     // list all the keys, very slow, don't use too often
-    // logger.warn('listing all keys is slow && should be used sparsely')
+    console.warn('listing all keys is slow && should be used sparsely')
     const keys = this.getKeys()
     var fields = []
     for (const key of keys) {
-      // const more_fields = await promisify(this.redis.hkeys)(key)
       const more_fields = await this.redis.hKeys(key)
-      // fields += more_fields
       fields.push(more_fields)
     }
     return fields
   }
 }
 
-// export class ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache {}
+// export class ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache { }
 
 // interface ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache { }
 // // Apply the mixins into the base class via

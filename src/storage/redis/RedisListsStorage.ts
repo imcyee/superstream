@@ -25,7 +25,7 @@ export class RedisListsStorage extends BaseListsStorage {
 
   // delAsync
   // getAsync
-  get_redis() {
+  getRedis() {
     // Only load the redis connection if we use it
     if (!this._redis) {
       // @ts-ignore
@@ -43,7 +43,7 @@ export class RedisListsStorage extends BaseListsStorage {
     // Lazy load the redis connection
     // '''
     try {
-      return this.get_redis()
+      return this.getRedis()
     }
     catch (err) {
       // except AttributeError:

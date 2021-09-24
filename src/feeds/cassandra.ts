@@ -3,6 +3,8 @@ import { CassandraActivityStorage } from "../storage/cassandra/CassandraActivity
 import { models } from "../storage/cassandra/models"
 import { CassandraTimelineStorage } from "../storage/cassandra/CassandraTimelineStorage"
 import { BaseFeed } from "./base/base"
+import createDebug from 'debug'
+
 
 // Apache Cassandra feed implementation
 // This implementation does not store activities in a

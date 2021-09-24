@@ -1,8 +1,7 @@
-import { ActivityNotFound, DuplicateActivityException, ValueError } from "../errors"
-import { datetimeToEpoch, hashCode, hashCodePositive, make_list_unique } from "../utils"
+import { ValueError } from "../errors"
+import { datetimeToEpoch, hashCode, hashCodePositive } from "../utils"
 import { BaseActivity } from "./BaseActivity"
 import { DehydratedActivity } from "./DehydratedActivity"
-
 
 /**
  * Wrapper class for storing activities
@@ -92,43 +91,6 @@ export class Activity extends BaseActivity {
     return hashCode(this.serializationId)
   }
 
-
-  // // @property
-  // /**
-  //  * beware of js handling large number it will generate scientific notation eg: 1.45e+25
-  //  * represent the id as string
-  //  */
-  // get serializationId() {
-  //   // serializationId is used to keep items locally sorted and unique
-  //   // (eg. used redis sorted sets' score or cassandra column names)
-  //   // serializationId is also used to select random activities from the feed
-  //   // (eg. remove activities from feeds must be fast operation)
-  //   // for this reason the serializationId should be unique and not change over time
-  //   // eg:
-  //   // activity.serializationId = 1373266755000000000042008
-  //   // 1373266755000 activity creation time as epoch with millisecond resolution
-  //   // 0000000000042 activity left padded objectId (10 digits)
-  //   // 008 left padded activity verb id (3 digits)
-  //   // :returns: int --the serialization id
-
-  //   // remove objectId to only 
-  //   if (this.objectId >= 10 ** 10 || this.verb.id >= 10 ** 3) {
-  //     throw new TypeError('Fatal: objectId / verb have too many digits !')
-  //   }
-
-  //   if (!this.time) {
-  //     throw new TypeError('Cant serialize activities without a time')
-  //   }
-
-  //   const milliseconds = (Number(datetimeToEpoch(this.time) * 1000))
-  //   const objectIdPad = this.objectId.toString().padStart(10, '0')
-  //   const verdIdPad = this.verb.id.toString().padStart(3, '0')
-  //   const serialization_id_str = `${milliseconds}${objectIdPad}${verdIdPad}` // % (milliseconds, this.objectId, this.verb.id)
-  //   const serializationId = serialization_id_str
-  //   return serializationId
-  // }
-
-
   /**
    * beware of js handling large number it will generate scientific notation eg: 1.45e+25
    * represent the id as string
@@ -195,10 +157,7 @@ export class Activity extends BaseActivity {
    * set id to `field`_id  
    */
   private _setObjectOrId(field, objectOrId) {
-
-    // const idField = `${field}_id` // '%s_id' % field
-    const idField = `${field}Id` // '%s_id' % field 
-
+    const idField = `${field}Id`
     if (Number.isInteger(objectOrId) || typeof objectOrId === 'string') {
       this[idField] = objectOrId
     } else if (!objectOrId) {

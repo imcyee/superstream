@@ -1,6 +1,5 @@
 import { AggregatedActivity } from "./AggregatedActivity"
 
-
 export class NotificationActivity extends AggregatedActivity {
   is_seen
   is_read

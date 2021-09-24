@@ -16,37 +16,31 @@ export class RedisCache {
     redis = null,
     redis_server = 'default'
   ) {
-    // # write the key
+    // write the key
     this.key = key
-    // # handy when using fallback to other data sources
+    // handy when using fallback to other data sources
     this.source = 'redis'
-    // # the redis connection, this.redis is lazy loading the connection
+    // the redis connection, this.redis is lazy loading the connection
     this._redis = redis
-    // # the redis server (see getRedisConnection)
+    // the redis server (see getRedisConnection)
     this.redis_server = redis_server
   }
 
-  // delAsync
-  // getAsync
-  get_redis() {
+  getRedis() {
     // Only load the redis connection if we use it
     if (!this._redis) {
-      // @ts-ignore
       this._redis = getRedisConnection(this.redis_server)
-      // this.getAsync = promisify(this._redis.get).bind(this._redis);
-      // this.delAsync = promisify(this._redis.del).bind(this._redis);
     }
     return this._redis
   }
 
+  // Sets the redis connection
   set_redis(value) {
-    // Sets the redis connection
     this._redis = value
   }
 
-  // redis = property(get_redis, set_redis)
   get redis(): RedisClientType {
-    const redis = this.get_redis()
+    const redis = this.getRedis()
     return redis
   }
   set redis(value) { this.set_redis(value) }
@@ -59,14 +53,6 @@ export class RedisCache {
     const key = this.getKey()
     await this.redis.del(key)
     return
-
-    // return await new Promise((resolve, reject) => {
-    //   this.redis.del(key, (err, reply) => {
-    //     if (err)
-    //       reject(err)
-    //     return resolve(reply)
-    //   })
-    // })
   }
 
   // If the redis connection is already in distributed state use it
@@ -78,10 +64,10 @@ export class RedisCache {
     //   const pipe = this.redis.pipeline(transaction = false)
     //   operation(pipe, kwargs)
     //   results = pipe.execute()
-    // } else {
-
+    // } else { 
     results = await operation(this.redis, kwargs)
     // }
     return results
   }
 }
+ 

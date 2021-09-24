@@ -1,23 +1,25 @@
+import chunk from 'lodash/chunk'
+import { RedisClientType } from "redis/dist/lib/client"
+import { promisify } from 'util'
 import { ValueError } from "../../../errors"
 import { zip } from "../../../utils"
-import { BaseRedisListCache } from "./list"
-import { promisify } from 'util'
-import { BaseRedisHashCache } from "./hash"
-import chunk from 'lodash/chunk'
 import { RedisCache } from "./base"
-import { ClientCommandOptions, RedisClientType } from "redis/dist/lib/client"
-import { CommandOptions } from "redis/dist/lib/command-options"
+import { BaseRedisHashCache } from "./hash"
+import { BaseRedisListCache } from "./list"
+import createDebug from 'debug'
+import { Mixin } from 'ts-mixer';
+
+const debug = createDebug('ns:debug:sorted_set')
 
 
-// export class RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache {
-export class RedisSortedSetCache extends RedisCache {
+export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHashCache) {
+  // export class RedisSortedSetCache extends RedisCache {
 
   sort_asc = false
 
   // Returns the number of elements in the sorted set
   async count() {
     const key = this.getKey()
-    // const redis_result = await (promisify(this.redis.zcard).bind(this.redis))(key)
     const redis_result = await this.redis.zCard(key)
     // #lazily convert this to an int, this keeps it compatible with
     // #distributed connections
@@ -31,9 +33,6 @@ export class RedisSortedSetCache extends RedisCache {
 
   // Returns the index of the given value
   async indexOf(value) {
-    // var redis_rank_fn = this.sort_asc
-    //   ? this.redis.zrank
-    //   : this.redis.zrevrank
     var redis_rank_fn = this.sort_asc
       ? this.redis.zRank
       : this.redis.zRevRank
@@ -78,74 +77,6 @@ export class RedisSortedSetCache extends RedisCache {
     // }
     var results = []
 
-    //   async function _addMany(
-    //     redis: RedisClientType,
-    //     scoreValuePairs
-    //   ) {
-    //     /**
-    //      * main purpose for this is:
-    //      * convert from 
-    //      * [['bac', 3], ['abc', 4]]
-    //      * to this in chunk
-    //      * [bac, 3, abc, 4]
-    //      */
-    //     // sum(map(list, scoreValuePairs), [])
-    //     console.log('scoreValuePairs', scoreValuePairs);
-
-    //     // const score_value_list = scoreValuePairs.reduce((acc, curr) => acc + curr)
-    //     const score_value_list = scoreValuePairs.reduce((acc, curr) => {
-    //       curr.forEach(element => {
-    //         acc.push(element)
-    //       });
-    //       // acc.push(curr[0])
-    //       // acc.push(curr[1])
-    //       return acc
-    //     }, [])
-    //     const score_value_chunks = chunk(score_value_list, 200) as string[][]
-
-    //     console.log('score_value_chunks', score_value_chunks);
-    //     console.log('key', key);
-    //     for await (const score_value_chunk of score_value_chunks) {
-    //       // const result = await (promisify(redis.zadd).bind(redis))(key, ...score_value_chunk)
-
-    //       // @ts-ignore
-
-    //       console.log('adding', score_value_chunk);
-    //       // change of zadd member 
-    //       // const members = score_value_chunk.map(s => {
-    //       //   return {
-    //       //     score: s[0],
-    //       //     value: s[1]
-    //       //   }
-    //       // })
-
-    //       const members = {
-    //         score: Number(score_value_chunk[0]),
-    //         value: score_value_chunk[1]
-    //       }
-
-
-    //       // const result = await redis.zAdd(key, ...score_value_chunk)
-    //       const result = await redis.zAdd(key, members)
-
-    //       // const result = await redis.zAdd(key, ...score_value_chunk)
-
-
-    //       // const result = await (promisify(redis.zadd).bind(redis))(key, activityId, JSON.stringify(activity))
-
-    //       // logger.debug('adding to ${} with score_value_chunk ${}', key, score_value_chunk)
-    //       results.push(result)
-    //     }
-    //     return results
-    //   }
-
-    //   // #start a new map redis or go with the given one
-    //   results = await this._pipeline_if_needed(_addMany, scoreValuePairs)
-
-    //   return results
-    // }
-
-
     async function _addMany(
       redis: RedisClientType,
       scoreValuePairs
@@ -158,7 +89,7 @@ export class RedisSortedSetCache extends RedisCache {
 
       for await (const members of membersChunk) {
         const result = await redis.zAdd(key, members)
-        // logger.debug('adding to ${} with score_value_chunk ${}', key, score_value_chunk)
+        debug(`adding to ${key} with members ${members}`)
         results.push(result)
       }
       return results
@@ -178,8 +109,7 @@ export class RedisSortedSetCache extends RedisCache {
 
     async function _remove_many(redis: RedisClientType, values) {
       for (const value of values) {
-        // logger.debug('removing value ${} from ${}', value, key)
-        // const result = await (promisify(redis.zrem).bind(redis))(key, value)
+        debug(`removing value ${value} from ${key}`)
         const result = await redis.zRem(key, value)
         results.push(result)
       }
@@ -187,7 +117,6 @@ export class RedisSortedSetCache extends RedisCache {
     }
     // #start a new map redis or go with the given one
     results = await this._pipeline_if_needed(_remove_many, values)
-
     return results
   }
 
@@ -197,8 +126,7 @@ export class RedisSortedSetCache extends RedisCache {
 
     async function _remove_many(redis: RedisClientType, scores) {
       for await (const score of scores) {
-        // logger.debug('removing score ${} from ${}', score, key)
-        // const result = redis.zremrangebyscore(key, score, score)
+        debug(`removing score ${score} from ${key}`)
         const result = await redis.zRemRangeByScore(key, score, score)
         results.push(result)
       }
@@ -211,10 +139,9 @@ export class RedisSortedSetCache extends RedisCache {
   }
 
   // Uses zscore to see if the given activity is present in our sorted set
-  contains(value) {
+  async contains(value) {
     const key = this.getKey()
-    // const result = this.redis.zscore(key, value)
-    const result = this.redis.zScore(key, value)
+    const result = await this.redis.zScore(key, value)
     const activity_found = !!(result)
     return activity_found
   }
@@ -251,14 +178,6 @@ export class RedisSortedSetCache extends RedisCache {
     min_score = null,
     max_score = null
   }) {
-
-    var redis_range_fn
-
-    // if (this.sort_asc)
-    //   redis_range_fn = promisify(this.redis.zrangebyscore).bind(this.redis)
-    // else
-    //   redis_range_fn = promisify(this.redis.zrevrangebyscore).bind(this.redis)
-
     // #-1 means infinity
     if (!stop) {
       stop = -1
@@ -293,17 +212,6 @@ export class RedisSortedSetCache extends RedisCache {
       max_score = this.sort_asc ? '+inf' : '-inf'
     }
 
-    // this.redis.zRemRangeByScore(
-    //   key as string,
-    //   min_score as number,
-    //   max_score as number,
-    // )
-
-    // if (this.sort_asc)
-    //   redis_range_fn = this.redis.zRangeWithScores
-    // else
-    //   redis_range_fn = this.redis.zRemRangeByScore
-
     const results = await this.redis.zRangeWithScores(
       key,
       min_score,
@@ -319,46 +227,32 @@ export class RedisSortedSetCache extends RedisCache {
       }
     )
 
-    console.log('zrangeResult', results);
-
     const a = []
-    const str = results.forEach(element => {
+    results.map(element => {
       a.push(element.value)
       a.push(element.score)
     })
-    console.log(a);
     return a
-
-    // // #handle the starting score support
-    // const results = await redis_range_fn(
-    //   key,
-    //   min_score,
-    //   max_score,
-    //   "WITHSCORES",
-    //   "LIMIT",
-    //   start,
-    //   limit,
-    // )
-    return results
   }
 }
 
-export interface RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache { }
 
-// Apply the mixins into the base class via
-// the JS at runtime
-applyMixins(RedisSortedSetCache, [BaseRedisListCache, BaseRedisHashCache]);
+// export interface RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache { }
 
-// This can live anywhere in your codebase:
-function applyMixins(derivedCtor: any, constructors: any[]) {
-  constructors.forEach((baseCtor) => {
-    Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-      Object.defineProperty(
-        derivedCtor.prototype,
-        name,
-        Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
-        Object.create(null)
-      );
-    });
-  });
-}
+// // Apply the mixins into the base class via
+// // the JS at runtime
+// applyMixins(RedisSortedSetCache, [BaseRedisListCache, BaseRedisHashCache]);
+
+// // This can live anywhere in your codebase:
+// function applyMixins(derivedCtor: any, constructors: any[]) {
+//   constructors.forEach((baseCtor) => {
+//     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
+//       Object.defineProperty(
+//         derivedCtor.prototype,
+//         name,
+//         Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
+//         Object.create(null)
+//       );
+//     });
+//   });
+// }

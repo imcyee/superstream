@@ -1,6 +1,6 @@
 {
-  "name": "stream-node",
-  "version": "1.0.0",
+  "name": "superstream",
+  "version": "0.0.1",
   "description": "stream for node",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -8,23 +8,26 @@
     "build": "tsc",
     "start:dev": "ts-node-dev ./src/index.ts",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "test:watch:debug": "DEBUG=test:* jest --watch"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cassandra-driver": "^4.6.3",
     "dayjs": "^1.10.7",
+    "debug": "^4.3.2",
     "express": "^4.17.1",
     "faker": "^5.5.3",
     "lodash": "^4.17.21",
     "redis": "^4.0.0-rc.2",
+    "supports-color": "^9.0.2",
     "testcontainers": "^7.20.4",
     "ts-jest": "^27.0.5",
+    "ts-mixer": "^6.0.0",
     "typescript": "^4.2.4"
   },
   "devDependencies": {
-    "@types/async-redis": "^1.1.2",
     "@types/faker": "^5.5.8",
     "@types/jest": "^27.0.1",
     "@types/lodash": "^4.14.170",

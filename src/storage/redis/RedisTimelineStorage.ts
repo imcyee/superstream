@@ -5,6 +5,9 @@ import { getRedisConnection } from "./connection"
 import { RedisSortedSetCache } from "./structures/sorted_set"
 import zip from 'lodash/zip'
 import chunk from 'lodash/chunk'
+import createDebug from 'debug'
+
+const debug = createDebug('test:RedisTimelineStorage')
 
 export class TimelineCache extends RedisSortedSetCache {
   sort_asc = false
@@ -43,6 +46,8 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     filterKwargs,
     orderingArgs
   }) {
+    debug('getSliceFromStorage', key, start, stop, filterKwargs, orderingArgs)
+
     const cache = this.getCache(key)
     // # parse the filter kwargs && translate them to min max
     // # as used by the get results function
@@ -98,7 +103,6 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     }
 
 
-    console.log('cache getting results');
     // # get the actual results
     // python is returning (value, key)
     // but in node it is in string form value, key, value, key 
@@ -113,7 +117,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
       return [key, value]
     })
 
-    console.log(score_key_pairs);
+    debug('score_key_pairs', score_key_pairs);
     return score_key_pairs
   }
 
@@ -142,10 +146,9 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     // # turn it into key value pairs
     const scores = Object.keys(activities)  // map(long_t, activities.keys())
     const scoreValuePairs = zip(scores, Object.values(activities))
-
-    console.log(scoreValuePairs);
+ 
     const result = await cache.addMany(scoreValuePairs)
-    
+
     for (const r of result) {
       // # errors in strings?
       // # anyhow throw new them here :)
