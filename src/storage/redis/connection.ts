@@ -1,10 +1,10 @@
 // import redis
 //   from stream_framework import settings
 import * as redis from 'redis'
-import asyncRedis, { AsyncRedis } from "async-redis"
+import { RedisClientType } from 'redis/dist/lib/client'
 
 var connection_pool = null
-var connection: redis.RedisClient
+var connection: RedisClientType
 
 export function getRedisConnection(serverName: string = 'default') {
   // 
@@ -41,11 +41,34 @@ export function setupConfig(_config: {
 
 export function setupRedis() {
   // Starts the connection pool for all configured redis servers
-  const pool = redis.createClient(
-    config['port'] || 6379,
-    config['host'] || 'redis'
-  )
+  // const pool = redis.createClient(
+  //   config['port'] || 6379,
+  //   config['host'] || 'redis'
+  // )
 
+  // const pool = redis.createClient({
+  //   socket: {
+  //     port: config['port'] || 6379,
+  //     host: config['host'] || 'redis'
+  //   }
+  // })
+
+
+  const port = config['port'] || 6379
+  const host = config['host'] || 'redis'
+  console.log('url', `redis://${host}:${port}`);
+  const pool = redis.createClient({
+    url: `redis://${host}:${port}`
+    // socket: {
+    //   port: config['port'] || 6379,
+    //   host: config['host'] || 'redis'
+    // }
+  })
+  pool.connect().then(() => {
+    console.log('connected');
+  }).catch(err => {
+    console.log('err', err);
+  })
   return pool
 }
 

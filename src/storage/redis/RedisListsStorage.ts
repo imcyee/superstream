@@ -1,7 +1,6 @@
 import { BaseListsStorage } from "../base_lists_storage"
 import { getRedisConnection } from "./connection"
-import { promisify } from 'util'
-import { RedisClient } from "redis"
+import { promisify } from 'util' 
 
 export class RedisListsStorage extends BaseListsStorage {
   private _redis
@@ -16,6 +15,12 @@ export class RedisListsStorage extends BaseListsStorage {
       }
     }
   }
+
+
+
+  
+
+
 
   // delAsync
   // getAsync

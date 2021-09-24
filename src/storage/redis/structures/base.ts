@@ -1,5 +1,5 @@
 import { getRedisConnection } from "../connection"
-import type { RedisClient } from 'redis'
+import { RedisClientType } from "redis/dist/lib/client"
 
 export class RedisCache {
 
@@ -7,7 +7,7 @@ export class RedisCache {
   keyFormat = (s) => `redis:cache:${s}`
   key
   source
-  _redis: RedisClient
+  _redis: RedisClientType
 
   redis_server: string
 
@@ -45,7 +45,7 @@ export class RedisCache {
   }
 
   // redis = property(get_redis, set_redis)
-  get redis(): RedisClient {
+  get redis(): RedisClientType {
     const redis = this.get_redis()
     return redis
   }
@@ -57,13 +57,16 @@ export class RedisCache {
 
   async delete() {
     const key = this.getKey()
-    return await new Promise((resolve, reject) => {
-      this.redis.del(key, (err, reply) => {
-        if (err)
-          reject(err)
-        return resolve(reply)
-      })
-    })
+    await this.redis.del(key)
+    return
+    
+    // return await new Promise((resolve, reject) => {
+    //   this.redis.del(key, (err, reply) => {
+    //     if (err)
+    //       reject(err)
+    //     return resolve(reply)
+    //   })
+    // })
   }
 
   // If the redis connection is already in distributed state use it

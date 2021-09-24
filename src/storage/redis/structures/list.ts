@@ -127,7 +127,8 @@ export class RedisListCache extends BaseRedisListCache {
       stop = -1
 
     const key = this.getKey()
-    const results = await (promisify(this.redis.lrange).bind(this.redis))(key, start, stop)
+    // const results = await (promisify(this.redis.lrange).bind(this.redis))(key, start, stop)
+    const results = await this.redis.lRange(key, start, stop)
     return results
   }
 
@@ -185,7 +186,8 @@ export class RedisListCache extends BaseRedisListCache {
     const key = this.getKey()
     // const count = await this.redis.llen(key)
 
-    const count = await (promisify(this.redis.llen).bind(this))(key)
+    // const count = await (promisify(this.redis.llen).bind(this))(key)
+    const count = await this.redis.lLen(key)
 
 
     return count
@@ -200,7 +202,8 @@ export class RedisListCache extends BaseRedisListCache {
     const key = this.getKey()
     // const removed = await this.redis.ltrim(key, 0, this.max_items - 1)
 
-    const removed = await (promisify(this.redis.ltrim).bind(this))(key, 0, this.max_items - 1)
+    // const removed = await (promisify(this.redis.ltrim).bind(this))(key, 0, this.max_items - 1)
+    const removed = await this.redis.lTrim(key, 0, this.max_items - 1)
     const msg_format = 'cleaning up the list %s to a max of %s items'
     // logger.info(msg_format, this.getKey(), this.max_items)
     return removed
