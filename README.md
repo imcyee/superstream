@@ -55,6 +55,9 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
   })
 ```
  
+# How it works  
+![How it works](./docs/res/how_it_works.png "How it works")
+
 # What is has changed from the source?
 Field ID:
 Stream Framework only support integer ID by default to redis and cassandra.
