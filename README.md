@@ -1,13 +1,10 @@
-# PLRESE READ THIS
-Currently, this library is in pre-alpha stage, which is still in the process of porting and developing. This public Github release is to seek help to improve the Port, hence be prepared for the bumby road.
-This projection is a direct port of Stream Framework for ts, the code currently are translate directly from a source [https://github.com/tschellenbach/Stream-Framework]
-
+# Notice
+Currently, this library is in the process of porting and developing. This public repository is to seek help to port from [Stream Framework](https://github.com/tschellenbach/Stream-Framework).
 
 
 # Features: 
-- Activity Feed: Example are facebook feeds
+- Activity Feed, eg: facebook feeds
 - Notification
-- ... any feature you can think of.
 
 
 # Help wanted
@@ -19,7 +16,8 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
   import faker from 'faker'
 
   class CustomManager extends Manager {
-      // copy activities to your user's follower
+      // get your User FollowerIds
+      // to copy activities to your user's follower
       async getUserFollowerIds(userId) {
           const followerIds = await this.myDatabase.getFollowers(userId)
           return {
@@ -59,34 +57,38 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
 ![How it works](./docs/res/how_it_works.png "How it works")
 
 # What is has changed from the source?
-Field ID:
-Stream Framework only support integer ID by default to redis and cassandra.
-This port does support ID with string, such as `User:123` instead of just `123` by default.
+- Field ID:
 
-serializationId generator: 
-Each activity is assigned an Unique ID, 
-Previously
-```
-  activity.serialization_id = 1373266755000000000042008
-  1373266755000 activity creation time as epoch with millisecond resolution
-  0000000000042 activity left padded object_id (10 digits)
-  008 left padded activity verb id (3 digits)
-```
-Currently
-The format is about the same but our id field are not string instead of Int we have to hash it.
-Hence, our collision fate is now base on the hashing function.
-What this does is objectId and verbId are both in string hence we have to hash it to generate an integer
-```
-  // remove all the unhashable key such as :;,
-  // convert any string to int any number and truncate the number to fixed size
-  // using object id and verb
-  // which can be generated repeatedly under any machine
-  const milliseconds = (Number(datetimeToEpoch(this.time) * 1000))
-  const objectIdPad = hashCodePositive(this.objectId + this.verbId)
-    .toString()
-    .padStart(10, '0')
-  const serializationId = `${milliseconds}${objectIdPad}` // % (milliseconds, this.objectId, this.verb.id)
-```
+    Stream Framework only support integer ID by default to redis and cassandra.
+
+    This port supports ID with string, such as `User:123` instead of just `123` by default.
+
+- serializationId generator: 
+
+    Each activity is assigned an Unique ID, 
+
+    Previously, from stream-framework:
+    ```
+      activity.serialization_id = 1373266755000000000042008
+      1373266755000 activity creation time as epoch with millisecond resolution
+      0000000000042 activity left padded object_id (10 digits)
+      008 left padded activity verb id (3 digits)
+    ```
+    Currently
+    The format is about the same but our id field are not string instead of Int we have to hash it.
+    Hence, our collision fate is now base on the hashing function.
+    What this does is objectId and verbId are both in string hence we have to hash it to generate an integer
+    ```
+      // remove all the unhashable key such as :;,
+      // convert any string to int any number and truncate the number to fixed size
+      // using object id and verb
+      // which can be generated repeatedly under any machine
+      const milliseconds = (Number(datetimeToEpoch(this.time) * 1000))
+      const objectIdPad = hashCodePositive(this.objectId + this.verbId)
+        .toString()
+        .padStart(10, '0')
+      const serializationId = `${milliseconds}${objectIdPad}` // % (milliseconds, this.objectId, this.verb.id)
+    ```
 
 
 # How can you help 
@@ -95,39 +97,49 @@ Please see this issue: https://github.com/imcyee/superstream/issues/1
 # Road map
 - [X] Support any type of id (now only support integer, and kinda problematic for string id)
 - [X] sorted set support of integer rank
-- [] Port aggregate
+- [ ] Port aggregate
   - [X] Direct translate
   - [] Test
   - [X] redis
-  - [] cassandra
-- [] Port manager
+  - [ ] cassandra
+- [ ] Port manager
 
 
 # Best practice
-Saving only IDs instead to serialize the whole object.
+Saving only IDs instead of the whole object.
  
-# Terms
-Activity - an entity that enclose every information, actors, context, objects, etc
+# Technical terms
+## Activity 
+an entity that enclose every information, actors, context, objects, etc
 Feed - a feed belongs to someway with collection of activities
 
-# Cassandra - Not fully supported yet
-Run migration first
- 
-# Serializer
+
+## Serializer
 Preparing data to be persisted.
 Persistence dependent
 
 
-# Storage
+## Storage
 Currently supported storages are 
 - redis
 - cassandra (Partially)
 
 
-# Feed
+## Feed
 Each user can have a few feeds, such as notification feed that store all the notification feed. 
 
+## Serializer 
+What is getting translate between api layer and persistence layer
+ 
+# here is a topic of which persistence to use
+Redis: https://redis.io/topics/persistence
 
+(Not fully supported yet)
+Cassandra: https://stackoverflow.com/questions/18462530/why-dont-you-start-off-with-a-single-small-cassandra-server-as-you-usually
+
+# Cassandra
+Run migration first
+ 
 # What To Store
  
 Stream allows you to store custom data in your activities. How much data you store in the activities is up to you. Here are a few recommendations:
@@ -148,14 +160,6 @@ Activities have a max size. Storing a large amount of text is ok, storing images
 # Why timeline are saving to activity and timeline
 Each activity can be save in different feed, your custom feed, timeline feed, notification feed and etc. Saving a seperate activity can share among all feeds. Think of it as RMDBS normalization, like how we use join, instead of populating every row, which is fast but also waste spaces.
 
-
-# Serializer 
-What is getting translate between api layer and persistence layer
- 
-# here is a topic of which persistence to use
-Redis: https://redis.io/topics/persistence
-
-Cassandra: https://stackoverflow.com/questions/18462530/why-dont-you-start-off-with-a-single-small-cassandra-server-as-you-usually
 
 
 # Running test 
