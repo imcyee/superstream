@@ -1,9 +1,14 @@
 {
-  "name": "superstream",
-  "version": "0.0.1",
+  "name": "@imcyee/superstream",
+  "version": "0.0.3",
   "description": "stream for node",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
+  "homepage": "https://github.com/imcyee/superstream#README",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/imcyee/superstream.git"
+  },
   "scripts": {
     "build": "tsc",
     "prepare" : "npm run build",

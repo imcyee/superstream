@@ -105,40 +105,36 @@ Please see this issue: https://github.com/imcyee/superstream/issues/1
 - [ ] Port manager
 
 
-# Best practice
-Saving only IDs instead of the whole object.
- 
+
 # Technical terms
 ## Activity 
-an entity that enclose every information, actors, context, objects, etc
-Feed - a feed belongs to someway with collection of activities
+an entity that enclose information, actors, context, objects, etc
+Best practice - Saves only IDs instead of the whole object to activity and then `re-hydrate` it with your own data. So, if you edit your object, you don't have to edit it in feed.
+
+## Feed
+A feed stores a collection of activities. 
+Each user can have a few feeds, such as notification feed that store all the notification feed. 
 
 
 ## Serializer
-Preparing data to be persisted.
-Persistence dependent
-
+Preparing data to be persisted/loaded, Each type of persistence will require a different serializer.
+It jobs determine how data is getting translate between api layer and persistence layer.
+ 
 
 ## Storage
 Currently supported storages are 
 - redis
 - cassandra (Partially)
-
-
-## Feed
-Each user can have a few feeds, such as notification feed that store all the notification feed. 
-
-## Serializer 
-What is getting translate between api layer and persistence layer
  
-# here is a topic of which persistence to use
+### Which persistence storage to use
 Redis: https://redis.io/topics/persistence
 
 (Not fully supported yet)
 Cassandra: https://stackoverflow.com/questions/18462530/why-dont-you-start-off-with-a-single-small-cassandra-server-as-you-usually
 
-# Cassandra
-Run migration first
+### Get started - storage
+#### Redis - setup redis config
+#### Cassandra - Run migration first
  
 # What To Store
  
