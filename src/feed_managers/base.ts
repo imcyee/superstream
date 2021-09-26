@@ -6,21 +6,22 @@ import { chunk } from 'lodash'
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import createDebug from 'debug'
 import SDC from 'statsd-client'
+import { getMetricsInstance } from "../metrics/node_statsd"
 
 const sdc = new SDC({ host: 'localhost', });
 
 const debug = createDebug('ns:debug:base')
- 
 
+
+// '''
+// Add the activities to the feed
+// functions used in tasks need to be at the main level of the module
+// '''
 async function add_operation(feed, {
   activities,
   trim = true,
   batchInterface = null
 }) {
-  // '''
-  // Add the activities to the feed
-  // functions used in tasks need to be at the main level of the module
-  // '''
   const time = new Date().getTime()
   const msg_format = (a, b, c, d) => `running ${a}.addMany operation for ${b} activities batch interface ${c} and trim ${d}`
   debug(msg_format(feed, activities.length, batchInterface, trim))
@@ -122,7 +123,7 @@ export class Manager {
     [FanoutPriority.LOW]: fanoutOperationLowPriority
   }
 
-  // metrics = get_metrics_instance()
+  metrics = getMetricsInstance()
 
 
   // '''
@@ -173,7 +174,7 @@ export class Manager {
         )
       }
     }
-    // this.metrics.on_activity_published()
+    this.metrics.on_activity_published()
   }
 
   // '''
@@ -205,7 +206,7 @@ export class Manager {
         )
       }
     }
-    // this.metrics.on_activity_removed()
+    this.metrics.on_activity_removed()
   }
 
   // '''
@@ -406,28 +407,34 @@ export class Manager {
 
   // '''
   async fanout(user_ids, FeedClass, operation, operation_kwargs) {
-    // this.metrics.fanout_timer(FeedClass)
+    const timer = this.metrics.fanoutTimer(FeedClass)
+    timer.start()
+    try {
+      const separator = '==='.repeat(10)
+      // logger.info('${} starting fanout ${}', separator, separator)
+      const batch_context_manager = FeedClass.getTimelineBatchInterface()
+      const msg_format = 'starting batch interface for feed ${}, fanning out to ${} users'
+      const batchInterface = batch_context_manager
+      // logger.info(msg_format, FeedClass, len(user_ids))
+      operation_kwargs['batchInterface'] = batchInterface
+      for (const userId of user_ids) {
+        debug(`now handling fanout to user ${userId}`)
+        const feed = new FeedClass(userId)
+        // operation(feed, ...operation_kwargs)
 
-    const separator = '==='.repeat(10)
-    // logger.info('${} starting fanout ${}', separator, separator)
-    const batch_context_manager = FeedClass.getTimelineBatchInterface()
-    const msg_format = 'starting batch interface for feed ${}, fanning out to ${} users'
-    const batchInterface = batch_context_manager
-    // logger.info(msg_format, FeedClass, len(user_ids))
-    operation_kwargs['batchInterface'] = batchInterface
-    for (const userId of user_ids) {
-      debug(`now handling fanout to user ${userId}`)
-      const feed = new FeedClass(userId)
-      // operation(feed, ...operation_kwargs)
 
-
-      // 🔥 do we wait for fanout??
-      await operation(feed, operation_kwargs)
+        // 🔥 do we wait for fanout??
+        await operation(feed, operation_kwargs)
+      }
+    } finally {
+      timer.stop()
     }
+
+
 
     // logger.info('finished fanout for feed ${}', FeedClass)}
     const fanout_count = operation_kwargs['activities'].length * (user_ids).length
-    // this.metrics.on_fanout(FeedClass, operation, fanout_count)
+    this.metrics.on_fanout(FeedClass, operation, fanout_count)
 
   }
 
