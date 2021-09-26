@@ -1,13 +1,16 @@
 import { NotImplementedError, ValueError } from "../errors"
 import { BaseFeed } from "../feeds/base/base"
 import { RedisFeed } from "../feeds/RedisFeed"
-import { fanout_operation, fanout_operation_hi_priority, fanout_operation_low_priority, follow_many, unfollow_many } from "../task"
+import { fanout_operation, fanoutOperationHiPriority, fanoutOperationLowPriority, follow_many, unfollow_many } from "../task"
 import { chunk } from 'lodash'
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import createDebug from 'debug'
+import SDC from 'statsd-client'
+
+const sdc = new SDC({ host: 'localhost', });
 
 const debug = createDebug('ns:debug:base')
-
+ 
 
 async function add_operation(feed, {
   activities,
@@ -32,7 +35,7 @@ async function add_operation(feed, {
 // Remove the activities from the feed
 // functions used in tasks need to be at the main level of the module
 // '''
-async function remove_operation(feed, {
+async function removeOperation(feed, {
   activities,
   trim = true,
   batchInterface = null
@@ -93,7 +96,7 @@ class FanoutPriority {
  *         remove_pin(pin):
  *             activity = pin.create_activity()
  *             # removes the pin from the user's followers feeds
- *             this.remove_user_activity(pin.userId, activity)
+ *             this.removeUserActivity(pin.userId, activity)
 */
 export class Manager {
 
@@ -115,8 +118,8 @@ export class Manager {
 
   // # maps between priority and fanout tasks
   priority_fanout_task = {
-    [FanoutPriority.HIGH]: fanout_operation_hi_priority,
-    [FanoutPriority.LOW]: fanout_operation_low_priority
+    [FanoutPriority.HIGH]: fanoutOperationHiPriority,
+    [FanoutPriority.LOW]: fanoutOperationLowPriority
   }
 
   // metrics = get_metrics_instance()
@@ -161,7 +164,7 @@ export class Manager {
     for await (const [priority_group, follower_ids] of Object.entries(userFollowerIds)) {
       // # create the fanout tasks
       for await (const FeedClass of Object.values(this.FeedClasses)) {
-        await this.create_fanout_tasks(
+        await this.createFanoutTasks(
           follower_ids,
           FeedClass,
           add_operation,
@@ -173,13 +176,12 @@ export class Manager {
     // this.metrics.on_activity_published()
   }
 
-  async remove_user_activity(userId, activity) {
-    // '''
-    // Remove the activity and then fanout to user followers
-
-    // :param userId: the id of the user
-    // :param activity: the activity which to remove
-    // '''
+  // '''
+  // Remove the activity and then fanout to user followers
+  // :param userId: the id of the user
+  // :param activity: the activity which to remove
+  // '''
+  async removeUserActivity(userId, activity) {
     // # we don't remove from the global feed due to race conditions
     // # but we do remove from the personal feed
     const userFeed = this.getUserFeed(userId)
@@ -194,10 +196,10 @@ export class Manager {
     const userFollowerIds = await this.getUserFollowerIds(userId)
     for (const [priority_group, follower_ids] of Object.entries(userFollowerIds)) {
       for (const FeedClass of Object.values(this.FeedClasses)) {
-        this.create_fanout_tasks(
+        this.createFanoutTasks(
           follower_ids,
           FeedClass,
-          remove_operation,
+          removeOperation,
           operation_kwargs,
           priority_group
         )
@@ -236,13 +238,13 @@ export class Manager {
   // Update the user activities
   // :param activities: the activities to update
   // '''
-  update_user_activities(activities) {
+  updateUserActivities(activities) {
     for (const activity of activities)
       this.addUserActivity(activity.actorId, activity)
   }
 
-  update_user_activity(activity) {
-    this.update_user_activities([activity])
+  updateUserActivity(activity) {
+    this.updateUserActivities([activity])
   }
 
   // '''
@@ -252,7 +254,7 @@ export class Manager {
   // :param feed: the feed to copy to
   // :param source_feed: the feed with a list of activities to add
   // '''
-  async follow_feed(feed: BaseFeed, source_feed: BaseFeed) {
+  async followFeed(feed: BaseFeed, source_feed: BaseFeed) {
     const activities = source_feed.getItem(0, this.follow_activity_limit)
     if (activities)
       return await feed.addMany(activities)
@@ -341,7 +343,7 @@ export class Manager {
   // :param priority: the priority of the task
   // :param FeedClass: the FeedClass the task will write to
   // '''
-  get_fanout_task(priority = null, FeedClass = null) {
+  getFanoutTask(priority = null, FeedClass = null) {
     const prioriyFanoutTask = this.priority_fanout_task[priority] || fanout_operation
     return prioriyFanoutTask
     // return this.priority_fanout_task.get(priority, fanout_operation)
@@ -360,9 +362,9 @@ export class Manager {
   // :param operation_kwargs: kwargs passed to the operation
   // :param fanout_priority: the priority set to this fanout
   // '''
-  async create_fanout_tasks(follower_ids, FeedClass, operation, operation_kwargs = null, fanout_priority = null) {
-    const fanout_task = this.get_fanout_task(fanout_priority, FeedClass)
-    if (!fanout_task)
+  async createFanoutTasks(follower_ids, FeedClass, operation, operation_kwargs = null, fanout_priority = null) {
+    const fanoutTask = this.getFanoutTask(fanout_priority, FeedClass)
+    if (!fanoutTask)
       return []
     const chunk_size = this.fanout_chunk_size
     // const user_ids_chunks = list(chunks(follower_ids, chunk_size))
@@ -374,14 +376,14 @@ export class Manager {
     // # now actually create the tasks
     for await (const ids_chunk of user_ids_chunks) {
 
-      const task = await fanout_task(
+      const task = await fanoutTask(
         this,
         FeedClass,
         ids_chunk,
         operation,
         operation_kwargs
       )
-      // const task = fanout_task.delay(
+      // const task = fanoutTask.delay(
       //   feed_manager = this,
       //   FeedClass = FeedClass,
       //   user_ids = ids_chunk,
@@ -414,7 +416,7 @@ export class Manager {
     // logger.info(msg_format, FeedClass, len(user_ids))
     operation_kwargs['batchInterface'] = batchInterface
     for (const userId of user_ids) {
-      // logger.debug('now handling fanout to user ${}', userId)
+      debug(`now handling fanout to user ${userId}`)
       const feed = new FeedClass(userId)
       // operation(feed, ...operation_kwargs)
 
@@ -434,13 +436,13 @@ export class Manager {
   // them to the users followers
   // **Example**::
   //     activities = [long list of activities]
-  //     stream_framework.batch_import(13, activities, 500)
+  //     stream_framework.batchImport(13, activities, 500)
   // :param userId: the user who created the activities
   // :param activities: a list of activities from this user
   // :param fanout: if we should run the fanout or not
   // :param chunk_size: per how many activities to run the batch operations
   // '''
-  batch_import(userId, activities, fanout = true, chunk_size = 500) {
+  batchImport(userId, activities, fanout = true, chunk_size = 500) {
     // activities = list(activities)
     // # skip empty lists
     if (!activities)
@@ -477,7 +479,7 @@ export class Manager {
         }
         for (const FeedClass of Object.values(this.FeedClasses)) {
           for (const [priority_group, fids] of Object.entries(follower_ids_by_prio)) {
-            this.create_fanout_tasks(
+            this.createFanoutTasks(
               fids,
               FeedClass,
               add_operation,

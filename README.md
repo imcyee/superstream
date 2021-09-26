@@ -10,12 +10,13 @@ Currently, this library is in the process of porting and developing. This public
 # Help wanted
 Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is most welcome.
 
-# Get started
+# Usage
 ```
   import { Manager, setupRedisConfig } from 'superstream'
   import faker from 'faker'
 
   class CustomManager extends Manager {
+
       // get your User FollowerIds
       // to copy activities to your user's follower
       async getUserFollowerIds(userId) {
@@ -31,6 +32,7 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
         host: 'localhost',
         port: 6379
       })
+
       const customManager = new CustomManager()
 
       // user creates an activity
@@ -106,7 +108,7 @@ Please see this issue: https://github.com/imcyee/superstream/issues/1
 
 
 
-# Technical terms
+# Key concept
 ## Activity 
 an entity that enclose information, actors, context, objects, etc
 Best practice - Saves only IDs instead of the whole object to activity and then `re-hydrate` it with your own data. So, if you edit your object, you don't have to edit it in feed.
@@ -157,7 +159,6 @@ Activities have a max size. Storing a large amount of text is ok, storing images
 Each activity can be save in different feed, your custom feed, timeline feed, notification feed and etc. Saving a seperate activity can share among all feeds. Think of it as RMDBS normalization, like how we use join, instead of populating every row, which is fast but also waste spaces.
 
 
-
 # Running test 
 We are using testContainer which run with docker.
 If test failed: 
@@ -165,4 +166,4 @@ You may have to:
 - Pull neccessary image to run test. Run `npm run test:watch`
 
 # Credit
-Stream-Framework [https://github.com/tschellenbach/Stream-Framework]
+Stream-Framework [https://github.com/tschellenbach/Stream-Framework] 

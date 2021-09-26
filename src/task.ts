@@ -23,12 +23,12 @@ export function fanout_operation(feed_manager: Manager, FeedClass, user_ids, ope
 }
 
 // @shared_task
-export function fanout_operation_hi_priority(feed_manager, FeedClass, user_ids, operation, operation_kwargs) {
+export function fanoutOperationHiPriority(feed_manager, FeedClass, user_ids, operation, operation_kwargs) {
   return fanout_operation(feed_manager, FeedClass, user_ids, operation, operation_kwargs)
 }
 
 // @shared_task
-export function fanout_operation_low_priority(feed_manager: Manager, FeedClass, user_ids, operation, operation_kwargs) {
+export function fanoutOperationLowPriority(feed_manager: Manager, FeedClass, user_ids, operation, operation_kwargs) {
   return fanout_operation(feed_manager, FeedClass, user_ids, operation, operation_kwargs)
 }
 

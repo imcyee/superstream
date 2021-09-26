@@ -75,8 +75,9 @@ describe("GenericContainer", () => {
     expect(activities.length).toBe(1)
 
     // follower user feed
-    const followerFeed = feed.getUserFeed(followers)
-    const followerFeedItem = await userFeed.getItem(0, 5)
+    const followerFeed = feed.getUserFeed(followers[0])
+    const followerFeedItem = await followerFeed.getItem(0, 5)
+    console.log(followerFeedItem);
     expect(followerFeedItem.length).toBe(1)
 
     // add another entry
@@ -84,8 +85,41 @@ describe("GenericContainer", () => {
     await feed.addUserActivity(userId, activity2)
 
     // follower user feed
-    const followerFeedItem2 = await userFeed.getItem(0, 5)
+    const followerFeedItem2 = await followerFeed.getItem(0, 5)
     expect(followerFeedItem2.length).toBe(2)
   });
+
+  it("Able to remove and remove fan out activities to follower", async () => {
+    const userId = faker.datatype.uuid()
+    const feed = new TestManager()
+
+    const followers = [
+      faker.datatype.uuid(),
+      faker.datatype.uuid()
+    ]
+    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+      'HIGH': followers
+    }));
+
+    const activity1 = generateActivity()
+    await feed.addUserActivity(userId, activity1)
+
+    // current user feed
+    const userFeed = feed.getUserFeed(userId)
+    const followerFeed = feed.getUserFeed(followers[0])
+
+    const activities = await userFeed.getItem(0, 5)
+    const followerFeedItem = await followerFeed.getItem(0, 5) 
+    expect(activities.length).toBe(1)
+    expect(followerFeedItem.length).toBe(1)
+
+    await feed.removeUserActivity(userId, activity1)
+
+    const activities2 = await userFeed.getItem(0, 5)
+    const followerFeedItem2 = await followerFeed.getItem(0, 5) 
+    expect(activities2.length).toBe(0)
+    expect(followerFeedItem2.length).toBe(0)
+  });
+
 
 });

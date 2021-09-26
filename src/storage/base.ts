@@ -92,8 +92,7 @@ abstract class BaseStorage {
 
   // Serialize the activity && returns the serialized activity
   // :returns str: the serialized activity
-  serializeActivity(activity) {
-    console.log('this.serializer', this.serializer.constructor);
+  serializeActivity(activity) { 
     const serializedActivity = this.serializer.dumps(activity)
     return serializedActivity
   }
@@ -101,16 +100,12 @@ abstract class BaseStorage {
   // Serializes the list of activities
   // :param activities: the list of activities 
   serializeActivities(activities) {
-    const serializedActivities = {}
-
-    // console.log('before serialized here', activities);
-    console.log('before serialized here');
+    const serializedActivities = {} 
 
     for (const activity of activities) {
       const serializedActivity = this.serializeActivity(activity)
 
-      const serializationId = this.activity_to_id(activity)
-      // console.log('serializationId', serializationId);
+      const serializationId = this.activity_to_id(activity) 
 
       // there will be collision if serializationId is generated at the same time
       serializedActivities[serializationId] = serializedActivity
@@ -196,7 +191,7 @@ export abstract class BaseActivityStorage extends BaseStorage {
   // this.metrics.on_feed_write(this.__class__, activities?.length)
   addMany(activities, opts) {
     const serializedActivities = this.serializeActivities(activities)
- 
+
     return this.addToStorage(serializedActivities, opts)
   }
 
@@ -249,10 +244,8 @@ export abstract class BaseTimelineStorage extends BaseStorage {
     activities,
     opts
   ) {
-    // this.metrics.on_feed_write(this.__class__, activities?.length) 
-    console.log('@addMany serialize', activities);
+    // this.metrics.on_feed_write(this.__class__, activities?.length)  
     const serializedActivities = this.serializeActivities(activities)
-    console.log('@addMany serializedActivities', serializedActivities);
     return this.addToStorage(
       key,
       serializedActivities,
