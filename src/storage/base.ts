@@ -1,5 +1,6 @@
 import { Activity } from "../activity/Activity"
 import { AggregatedActivity } from "../activity/AggregatedActivity"
+import { getMetricsInstance } from "../metrics/node_statsd"
 import { DummySerializer } from "../serializers/dummy"
 import { SimpleTimelineSerializer } from "../serializers/SimpleTimelineSerializer"
 import { zip } from "../utils"
@@ -31,7 +32,7 @@ abstract class BaseStorage {
   // The default serializer class to use
   default_serializer_class = DummySerializer
 
-  // metrics = get_metrics_instance()
+  metrics = getMetricsInstance()
 
   ActivityClass = Activity
 
@@ -61,14 +62,14 @@ abstract class BaseStorage {
   abstract flush() // { }
 
   // Utility function for lower levels to chose either serialize 
-  activities_to_ids(activities_or_ids) {
+  activitiesToIds(activities_or_ids) {
     const ids = []
     for (const activity_or_id of activities_or_ids)
-      ids.push(this.activity_to_id(activity_or_id))
+      ids.push(this.activityToId(activity_or_id))
     return ids
   }
 
-  activity_to_id(activity) {
+  activityToId(activity) {
     return activity?.serializationId
   }
 
@@ -92,7 +93,7 @@ abstract class BaseStorage {
 
   // Serialize the activity && returns the serialized activity
   // :returns str: the serialized activity
-  serializeActivity(activity) { 
+  serializeActivity(activity) {
     const serializedActivity = this.serializer.dumps(activity)
     return serializedActivity
   }
@@ -100,12 +101,12 @@ abstract class BaseStorage {
   // Serializes the list of activities
   // :param activities: the list of activities 
   serializeActivities(activities) {
-    const serializedActivities = {} 
+    const serializedActivities = {}
 
     for (const activity of activities) {
       const serializedActivity = this.serializeActivity(activity)
 
-      const serializationId = this.activity_to_id(activity) 
+      const serializationId = this.activityToId(activity)
 
       // there will be collision if serializationId is generated at the same time
       serializedActivities[serializationId] = serializedActivity
@@ -167,8 +168,8 @@ export abstract class BaseActivityStorage extends BaseStorage {
 
   // Gets many activities && deserializes them
   // :param activityIds: the list of activity ids
-  // this.metrics.on_feed_read(this.__class__, activityIds?.length) 
   async getMany(activityIds, opts?) {
+    this.metrics.onFeedRead(this.constructor.name, activityIds?.length)
     const activitiesData = await this.getFromStorage(activityIds, opts)
 
     return this.deserializeActivities(activitiesData)
@@ -188,8 +189,8 @@ export abstract class BaseActivityStorage extends BaseStorage {
   // Adds many activities && serializes them before forwarding
   // this to addToStorage 
   // :param activities: the list of activities
-  // this.metrics.on_feed_write(this.__class__, activities?.length)
   addMany(activities, opts) {
+    this.metrics.onFeedWrite(this.constructor.name, activities?.length)
     const serializedActivities = this.serializeActivities(activities)
 
     return this.addToStorage(serializedActivities, opts)
@@ -202,8 +203,8 @@ export abstract class BaseActivityStorage extends BaseStorage {
   // Figures out the ids of the given activities && forwards
   // The removal to the removeFromStorage function 
   // :param activities: the list of activities 
-  // this.metrics.on_feed_remove(this.__class__, (activities).length)
   removeMany(activities, opts) {
+    this.metrics.onFeedRemove(this.constructor.name, (activities).length)
     var activityIds
     // if (activities && isinstance(activities[0], (six.string_types, six.integer_types, uuid.UUID))) {
     if (activities && (typeof activities[0] === 'string' || typeof activities[0] === 'number')) {
@@ -244,7 +245,7 @@ export abstract class BaseTimelineStorage extends BaseStorage {
     activities,
     opts
   ) {
-    // this.metrics.on_feed_write(this.__class__, activities?.length)  
+    this.metrics.onFeedWrite(this.constructor.name, activities?.length)
     const serializedActivities = this.serializeActivities(activities)
     return this.addToStorage(
       key,
@@ -268,7 +269,7 @@ export abstract class BaseTimelineStorage extends BaseStorage {
   // :param key: the key at which the feed is stored
   // :param activities: the activities which to remove
   removeMany(key, activities, opts) {
-    // this.metrics.on_feed_remove(this.__class__, activities.length)
+    this.metrics.onFeedRemove(this.constructor.name, activities.length)
 
     var serializedActivities = {}
     if (activities
@@ -293,7 +294,7 @@ export abstract class BaseTimelineStorage extends BaseStorage {
   // :param key: the key at which the feed is stored
   // :param activityId: the activity's id to search
   indexOf(key, activity_or_id) {
-    const activityId = this.activities_to_ids([activity_or_id])[0]
+    const activityId = this.activitiesToIds([activity_or_id])[0]
     return this.getIndexOf(key, activityId)
   }
 
@@ -334,7 +335,7 @@ export abstract class BaseTimelineStorage extends BaseStorage {
     }
 
 
-    // this.metrics.on_feed_read(this.__class__, activities?.length)
+    this.metrics.onFeedRead(this.constructor.name, activities?.length)
     return activities
   }
 

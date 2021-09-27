@@ -61,6 +61,7 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
   // StrictRedis so it expects score1, name1
   async addMany(scoreValuePairs) {
     const key = this.getKey()
+    console.log('scoreValuePairs', scoreValuePairs);
     const scores = (zip(...scoreValuePairs))[0] as string[]
     scores.forEach(element => {
       if (isNaN(Number(element)))

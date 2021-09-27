@@ -230,25 +230,25 @@ class Manager(object):
         if activities:
             return feed.remove_many(activities)
 
-    def follow_user(self, user_id, target_user_id, async_=True):
+    def follow_user(self, user_id, targetUserId, async_=True):
         '''
-        user_id starts following target_user_id
+        user_id starts following targetUserId
 
         :param user_id: the user which is doing the following
-        :param target_user_id: the user which is being followed
+        :param targetUserId: the user which is being followed
         :param async_: controls if the operation should be done via celery
         '''
-        self.follow_many_users(user_id, [target_user_id], async_)
+        self.follow_many_users(user_id, [targetUserId], async_)
 
-    def unfollow_user(self, user_id, target_user_id, async_=True):
+    def unfollow_user(self, user_id, targetUserId, async_=True):
         '''
-        user_id stops following target_user_id
+        user_id stops following targetUserId
 
         :param user_id: the user which is doing the unfollowing
-        :param target_user_id: the user which is being unfollowed
+        :param targetUserId: the user which is being unfollowed
         :param async_: controls if the operation should be done via celery
         '''
-        self.unfollow_many_users(user_id, [target_user_id], async_)
+        self.unfollow_many_users(user_id, [targetUserId], async_)
 
     def follow_many_users(self, user_id, target_ids, async_=True):
         '''

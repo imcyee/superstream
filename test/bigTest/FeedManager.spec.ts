@@ -126,6 +126,67 @@ describe("GenericContainer", () => {
     const followerFeedItem2 = await followerFeed.getItem(0, 5)
     expect(activities2.length).toBe(0)
     expect(followerFeedItem2.length).toBe(0)
+  });
+
+  it("follow user and copy content", async () => {
+    const userId = faker.datatype.uuid()
+    const feed = new TestManager()
+
+    const followers = []
+    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+      'HIGH': followers
+    }));
+
+    const activity1 = generateActivity()
+    await feed.addUserActivity(userId, activity1)
+
+    // current user feed
+    const userFeed = feed.getUserFeed(userId)
+
+    const activities = await userFeed.getItem(0, 5)
+    expect(activities.length).toBe(1)
+
+    const newUserId = faker.datatype.uuid()
+
+    await feed.followUser(newUserId, userId)
+
+    const newUserFeed = feed.getUserFeed(newUserId)
+
+    const activities1 = await newUserFeed.getItem(0, 5)
+    expect(activities1.length).toBe(1)
+
+  });
+
+  it("unfollow user and remove copied content", async () => {
+    const userId = faker.datatype.uuid()
+    const feed = new TestManager()
+
+    const followers = []
+    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+      'HIGH': followers
+    }));
+
+    const activity1 = generateActivity()
+    await feed.addUserActivity(userId, activity1)
+
+    // current user feed
+    const userFeed = feed.getUserFeed(userId)
+
+    const activities = await userFeed.getItem(0, 5)
+    expect(activities.length).toBe(1)
+
+    const newUserId = faker.datatype.uuid()
+
+    await feed.followUser(newUserId, userId)
+    const newUserFeed = feed.getUserFeed(newUserId)
+
+    var newUserActivities = await newUserFeed.getItem(0, 5)
+    expect(newUserActivities.length).toBe(1)
+
+
+    await feed.unfollowUser(newUserId, userId)
+    newUserActivities = await newUserFeed.getItem(0, 5)
+    expect(newUserActivities.length).toBe(0)
 
 
   });

@@ -235,11 +235,13 @@ export abstract class BaseFeed {
     return this.removeMany([activityId], kwargs)
   }
 
-  removeMany(activityIds, {
-    batchInterface = null,
-    trim = true,
-    ...kwargs
-  }) {
+  removeMany(
+    activityIds: string[],
+    {
+      batchInterface = null,
+      trim = true,
+      ...kwargs
+    }) {
 
     // Remove many activities
     // @param activityIds: a list of activities or activity ids

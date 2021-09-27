@@ -1,17 +1,13 @@
 import { NotImplementedError, ValueError } from "../errors"
 import { BaseFeed } from "../feeds/base/base"
 import { RedisFeed } from "../feeds/RedisFeed"
-import { fanout_operation, fanoutOperationHiPriority, fanoutOperationLowPriority, follow_many, unfollow_many } from "../task"
+import { fanout_operation, fanoutOperationHiPriority, fanoutOperationLowPriority, followMany, unfollowMany } from "../task"
 import { chunk } from 'lodash'
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import createDebug from 'debug'
-import SDC from 'statsd-client'
 import { getMetricsInstance } from "../metrics/node_statsd"
 
-const sdc = new SDC({ host: 'localhost', });
-
 const debug = createDebug('ns:debug:base')
-
 
 // '''
 // Add the activities to the feed
@@ -239,13 +235,13 @@ export class Manager {
   // Update the user activities
   // :param activities: the activities to update
   // '''
-  updateUserActivities(activities) {
-    for (const activity of activities)
-      this.addUserActivity(activity.actorId, activity)
+  async updateUserActivities(activities) {
+    for await (const activity of activities)
+      await this.addUserActivity(activity.actorId, activity)
   }
 
-  updateUserActivity(activity) {
-    this.updateUserActivities([activity])
+  async updateUserActivity(activity) {
+    await this.updateUserActivities([activity])
   }
 
   // '''
@@ -256,8 +252,8 @@ export class Manager {
   // :param source_feed: the feed with a list of activities to add
   // '''
   async followFeed(feed: BaseFeed, source_feed: BaseFeed) {
-    const activities = source_feed.getItem(0, this.follow_activity_limit)
-    if (activities)
+    const activities = await source_feed.getItem(0, this.follow_activity_limit)
+    if (activities.length)
       return await feed.addMany(activities)
   }
 
@@ -267,32 +263,34 @@ export class Manager {
   // :param feed: the feed to copy to
   // :param source_feed: the feed with a list of activities to remove
   // '''
-  unfollowFeed(feed, source_feed: BaseFeed) {
-    const activities = source_feed.getItem(0) // need to slice
-    if (activities)
-      return feed.removeMany(activities)
+  async unfollowFeed(feed: BaseFeed, source_feed: BaseFeed) {
+    const activities = await source_feed.getItem(0) // from 0 to end of activities need to slice
+    if (activities.length) {
+      const activityIds = activities.map(a => a.serializationId)
+      return await feed.removeMany(activityIds, {})
+    }
   }
 
   // '''
-  // userId starts following target_user_id
+  // userId starts following targetUserId
 
   // :param userId: the user which is doing the following
-  // :param target_user_id: the user which is being followed
+  // :param targetUserId: the user which is being followed
   // :param async_: controls if the operation should be done via celery
   // '''
-  followUser(userId, target_user_id, async_ = true) {
-    this.followManyUsers(userId, [target_user_id], async_)
+  async followUser(userId, targetUserId, async_ = true) {
+    await this.followManyUsers(userId, [targetUserId], async_)
   }
 
   // '''
-  // userId stops following target_user_id
+  // userId stops following targetUserId
 
   // :param userId: the user which is doing the unfollowing
-  // :param target_user_id: the user which is being unfollowed
+  // :param targetUserId: the user which is being unfollowed
   // :param async_: controls if the operation should be done via celery
   // '''
-  unfollowUser(userId, target_user_id, async_ = true) {
-    this.unfollowManyUsers(userId, [target_user_id], async_)
+  async unfollowUser(userId, targetUserId, async_ = true) {
+    await this.unfollowManyUsers(userId, [targetUserId], async_)
   }
 
   // '''
@@ -303,16 +301,19 @@ export class Manager {
   // :param target_ids: the users to follow
   // :param async_: controls if the operation should be done via celery
   // '''
-  followManyUsers(userId, target_ids, async_ = true) {
-    var follow_many_fn
+  async followManyUsers(userId, target_ids, async_ = true) {
+
+    var follow_many_fn = followMany
+    // var follow_many_fn =
     // if (async_)
-    //   follow_many_fn = follow_many.delay // delay is celery shared_task
+    //   follow_many_fn = followMany.delay // delay is celery shared_task
     // else
-    //   follow_many_fn = follow_many
+    //   follow_many_fn = followMany
 
-    follow_many_fn = follow_many
+    // follow_many_fn = followMany
 
-    follow_many_fn(
+    await follow_many_fn(
+      this,
       userId,
       target_ids,
       this.follow_activity_limit
@@ -327,15 +328,18 @@ export class Manager {
   // :param target_ids: the users to unfollow
   // :param async_: controls if the operation should be done via celery
   // '''
-  unfollowManyUsers(userId, target_ids, async_ = true) {
-    var unfollow_many_fn
-    // if (async_)
-    //   unfollow_many_fn = unfollow_many.delay // delay is celery shared_task
-    // else
-    //   unfollow_many_fn = unfollow_many
+  async unfollowManyUsers(userId, target_ids, async_ = true) {
+    var unfollow_many_fn = unfollowMany
 
-    unfollow_many_fn = unfollow_many
-    unfollow_many_fn(userId, target_ids)
+    // var unfollow_many_fn
+    // if (async_)
+    //   unfollow_many_fn = unfollowMany.delay // delay is celery shared_task
+    // else
+    //   unfollow_many_fn = unfollowMany
+
+    // unfollow_many_fn = unfollowMany
+
+    await unfollow_many_fn(this, userId, target_ids)
   }
 
   // '''
@@ -385,7 +389,7 @@ export class Manager {
         operation_kwargs
       )
       // const task = fanoutTask.delay(
-      //   feed_manager = this,
+      //   feedManager = this,
       //   FeedClass = FeedClass,
       //   user_ids = ids_chunk,
       //   operation = operation,

@@ -68,7 +68,7 @@ export class StatsdMetrics extends Metrics {
     return new Timer(toName(this.prefix, feedClass.name))
   }
 
-  on_feed_read(feedClass, activities_count) {
+  onFeedRead(feedClass, activities_count) {
     const toName = (prefix, feedClass_name) => `${prefix}.${feedClass_name}.reads`
     statsd.increment(
       toName(this.prefix, feedClass.name),
@@ -76,7 +76,7 @@ export class StatsdMetrics extends Metrics {
     )
   }
 
-  on_feed_write(feedClass, activities_count) {
+  onFeedWrite(feedClass, activities_count) {
     const toName = (prefix, feedClass_name) => `${prefix}.${feedClass_name}.writes`
     statsd.increment(
       toName(this.prefix, feedClass.name),
@@ -84,7 +84,7 @@ export class StatsdMetrics extends Metrics {
     )
   }
 
-  on_feed_remove(feedClass, activities_count) {
+  onFeedRemove(feedClass, activities_count) {
     const toName = (prefix, feedClass_name) => `${prefix}.${feedClass_name}.deletes`
     statsd.increment(
       toName(this.prefix, feedClass.name),
