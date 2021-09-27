@@ -167,3 +167,22 @@ You may have to:
 
 # Credit
 Stream-Framework [https://github.com/tschellenbach/Stream-Framework] 
+
+
+# Follow user/unfollow user
+We will copy every activity that has actorId or targetId of the user being followed.
+Same goes for unfollow, all activities with actorId or targetId will be removed from current user feed. 
+Please note that: you have to specify `separator` for config.
+Because when we are copying data, it will compare userId with the actorId you supplied.
+Eg: 'user:123', 'user:customer:123' or '123'
+Hence you have to specify the separator for superstream to know how the get the id
+Below is example for `user:123`
+
+```
+import {setConfig} from 'superstream'
+
+setConfig({
+  separator: ":"
+})
+
+```
