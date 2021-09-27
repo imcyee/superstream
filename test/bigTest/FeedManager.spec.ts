@@ -137,7 +137,9 @@ describe("GenericContainer", () => {
       'HIGH': followers
     }));
 
-    const activity1 = generateActivity()
+    const activity1 = generateActivity({
+      actor: userId
+    })
     await feed.addUserActivity(userId, activity1)
 
     // current user feed
@@ -166,7 +168,9 @@ describe("GenericContainer", () => {
       'HIGH': followers
     }));
 
-    const activity1 = generateActivity()
+    const activity1 = generateActivity({
+      actor: userId
+    })
     await feed.addUserActivity(userId, activity1)
 
     // current user feed
