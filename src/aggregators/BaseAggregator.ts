@@ -10,7 +10,7 @@ import { DuplicateActivityException, ValueError } from "../errors"
  * Aggregate takes a list of activities and turns it into a list of aggregated activities
  * Merge takes two lists of aggregated activities and returns a list of new and changed aggregated activities
  */
-export class BaseAggregator {
+export abstract class BaseAggregator {
 
   AggregatedActivityClass = AggregatedActivity
   ActivityClass = Activity
@@ -110,7 +110,7 @@ export class BaseAggregator {
     // # make sure that if we aggregated multiple activities
     // # they end up in serializationId desc in the aggregated activity
     // activities = list(activities) 
-    
+
     activities = activities.sort((activityA, activityB) => {
       return (activityA.serializationId > activityB.serializationId) ? 1 : -1
     })
@@ -130,13 +130,15 @@ export class BaseAggregator {
   //   throw new ValueError('not implemented')
   // }
   // Returns a group to stick this activity in 
-  getGroup(activity): string {
-    throw new ValueError('not implemented')
-  }
+  abstract getGroup(activity): string
+  // {
+  //   throw new ValueError('not implemented')
+  // }
 
   // The ranking logic, for sorting aggregated activities 
-  rank(aggregatedActivities): AggregatedActivity[] {
-    throw new ValueError('not implemented')
-  }
+  abstract rank(aggregatedActivities): AggregatedActivity[]
+  // {
+  //   throw new ValueError('not implemented')
+  // }
 }
 

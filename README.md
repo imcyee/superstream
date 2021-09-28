@@ -186,3 +186,8 @@ setConfig({
 })
 
 ```
+
+
+# Refillment Guide
+All activities queried are id only, hence it is required to rehydrate your activity before sending to client.
+Guide can be founded [here](./doc/refillment).
