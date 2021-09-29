@@ -36,9 +36,104 @@ then query database with above array, you will need fewer database access to ref
 
 then, replace your activity reference with queried data.
 
-[dateloader](https://github.com/graphql/dataloader) of facebook 
 
-or this snippet: 
+Your max query will be number of entity in your activity,
+
+
+[dateloader](https://github.com/graphql/dataloader) of facebook 
+```
+import DataLoader from 'dataloader'
+import faker from 'faker'
+ 
+// dataloader stub
+const myBatchGenericGet = async (keys) => {
+  return keys.map(key => ({ id: key }))
+}
+const genericLoader = new DataLoader(keys => myBatchGenericGet(keys))
+
+// fake data
+const getUserWithPrefix = () => {
+  return `${faker.random.arrayElement(userPrefix)}:${faker.datatype.uuid()}`
+}
+// fake data
+const getObjectWithPrefix = () => {
+  return `${faker.random.arrayElement(objectPrefix)}:${faker.datatype.uuid()}`
+}
+// fake data
+const getVerbWithPrefix = () => {
+  return `${faker.random.arrayElement(verbPrefix)}:${faker.datatype.number()}`
+}
+// fake activity data
+const createActivityStub = (props?) => {
+  // could have prefix
+  return {
+    actorId: getUserWithPrefix(),
+    verbId: getVerbWithPrefix(),
+    targetId: getUserWithPrefix(),
+    objectId: getObjectWithPrefix(),
+    ...props
+  }
+}
+
+// resolve array of object promise
+// credit: https://stackoverflow.com/questions/45022279/dealing-with-an-array-of-objects-with-promises
+function promiseAllProps(arrayOfObjects) {
+  let datum = [];
+  let promises = [];
+
+  arrayOfObjects.forEach(function (obj, index) {
+    Object.keys(obj).forEach(function (prop) {
+      let val = obj[prop];
+      // if it smells like a promise, lets track it
+      if (val && val.then) {
+        promises.push(val);
+        // and keep track of where it came from
+        datum.push({ obj: obj, prop: prop });
+      }
+    });
+  });
+
+  return Promise.all(promises).then(function (results) {
+    // now put all the results back in original arrayOfObjects in place of the promises
+    // so now instead of promises, the actaul values are there
+    results.forEach(function (val, index) {
+      // get the info for this index
+      let info = datum[index];
+      // use that info to know which object and which property this value belongs to
+      info.obj[info.prop] = val;
+    });
+    // make resolved value be our original (now modified) array of objects
+    return arrayOfObjects;
+  });
+}
+
+
+const numArray = 5
+const activities = Array(numArray).fill(1).map(() => {
+  return createActivityStub()
+})
+
+const promises = []
+const filledActivity = activities.map((a) => {
+  const filled = {} as any
+  for (const [key, value] of Object.entries<string>(a)) {
+    const splitted = value.split(':') 
+    const id = splitted[splitted.length - 1]
+    const promise = genericLoader.load(id)
+    filled[key] = promise 
+    // promises.push(promise)
+  }
+  return filled
+})
+ 
+// await Promise.all(promises)
+
+const resolvedActivities = await promiseAllProps(filledActivity)
+console.log('resolvedActivities', resolvedActivities);
+```
+
+
+or without dataloader: 
 ```
 const activities = await userFeed.getItem(0,10)
 
