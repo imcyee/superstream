@@ -13,6 +13,7 @@
     "build": "tsc",
     "prepare": "npm run build",
     "start:dev": "ts-node-dev ./src/index.ts",
+    "start:server": "ts-node ./server/index.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:watch:debug": "DEBUG=test:* jest --watch"
@@ -27,6 +28,7 @@
     "express": "^4.17.1",
     "faker": "^5.5.3",
     "lodash": "^4.17.21",
+    "morgan": "^1.10.0",
     "redis": "^4.0.0-rc.2",
     "statsd-client": "^0.4.7",
     "supports-color": "^9.0.2",

@@ -1,6 +1,9 @@
 import faker from 'faker';
 import { GenericContainer } from "testcontainers";
-import { Manager } from '../../src/feed_managers/base';
+import { CassandraFeed } from '../../src/feeds/cassandra';
+import { CassandraManager } from '../../src/feed_managers/CassandraManager';
+import { runCassandraMigration } from '../../src/storage/cassandra/cassandra.migration';
+import { setupCassandraConnection } from '../../src/storage/cassandra/connection';
 import { setupRedisConfig } from "../../src/storage/redis/connection";
 import { generateActivity } from '../utils/generateActivity';
 
@@ -8,7 +11,8 @@ import { generateActivity } from '../utils/generateActivity';
 /**
  * Test class for manager
  */
-export class TestManager extends Manager {
+export class TestManager extends CassandraManager {
+
   async getUserFollowerIds() {
     return {
       HIGH: [
@@ -24,17 +28,30 @@ export class TestManager extends Manager {
 describe("GenericContainer", () => {
   let container;
 
+  // beforeAll(async () => {
+  //   // pull the image first
+  //   container = await new GenericContainer("redis:6.2.5")
+  //     .withExposedPorts(6379)
+  //     .start();
+
+  //   setupRedisConfig({
+  //     host: container.getHost(),
+  //     port: container.getMappedPort(6379),
+  //   })
+  // });
+
   beforeAll(async () => {
-    // pull the image first
-    container = await new GenericContainer("redis:6.2.5")
-      .withExposedPorts(6379)
+    container = await new GenericContainer("cassandra:3.11.0")
+      .withExposedPorts(9042) // 7000 for node, 9042 for client
       .start();
 
-    setupRedisConfig({
-      host: container.getHost(),
-      port: container.getMappedPort(6379),
+    setupCassandraConnection({
+      host: '192.168.0.146',// container.getHost(),
+      port: container.getMappedPort(9042),
     })
-  });
+
+    await runCassandraMigration()
+  }, 50000);
 
   afterAll(async () => {
 

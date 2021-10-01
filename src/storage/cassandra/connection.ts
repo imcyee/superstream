@@ -1,7 +1,7 @@
 // from cassandra.cqlengine import connection
 // from stream_framework import settings
 import cassandra from 'cassandra-driver'
-import { runCassandraMigration } from './cassandra_migration'
+import { runCassandraMigration } from './cassandra.migration'
 
 var client: cassandra.Client
 export function getClient() {
@@ -18,7 +18,7 @@ export function setupCassandraConnection(options: {
     if (options.host && options.port) {
       contactPoint = `${options.host}:${options.port}`
     }
-    
+
 
 
     client = new cassandra.Client({
@@ -27,10 +27,10 @@ export function setupCassandraConnection(options: {
       localDataCenter: 'datacenter1',
       // keyspace: 'ks1'
     });
-    // 
-    /**
-     * Creates a table and retrieves its information
-     */
+
+    // runCassandraMigration()
+
+    // Creates a table and retrieves its information
     client.connect()
   }
 

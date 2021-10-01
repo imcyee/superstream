@@ -7,7 +7,7 @@ export class BaseAggregatedSerializer extends BaseSerializer {
 
   // indicates if dumps returns dehydrated aggregated activities
   dehydrate = false
-  AggregatedActivityClass
+  AggregatedActivityClass: typeof AggregatedActivity
 
   constructor({
     AggregatedActivityClass: AggregatedActivityClass,
@@ -19,7 +19,7 @@ export class BaseAggregatedSerializer extends BaseSerializer {
       ActivityClass,
       ...kwargs
     })
-    
+
     this.AggregatedActivityClass = AggregatedActivityClass
   }
 

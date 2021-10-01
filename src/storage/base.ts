@@ -30,7 +30,7 @@ import { zip } from "../utils"
 abstract class BaseStorage {
 
   // The default serializer class to use
-  default_serializer_class = DummySerializer
+  DefaultSerializerClass = DummySerializer
 
   metrics = getMetricsInstance()
 
@@ -48,7 +48,7 @@ abstract class BaseStorage {
     ActivityClass = null,
     ...options
   }) {
-    this.SerializerClass = SerializerClass || this.default_serializer_class
+    this.SerializerClass = SerializerClass || this.DefaultSerializerClass
     this.options = options
     if (ActivityClass) {
       this.ActivityClass = ActivityClass
@@ -160,7 +160,7 @@ export abstract class BaseActivityStorage extends BaseStorage {
   // Retrieves the given activities from the storage layer
   // :param activityIds: the list of activity ids
   // :returns dict: a dictionary mapping activity ids to activities
-  abstract getFromStorage(activityIds, opts): Promise<{}>
+  abstract getFromStorage(activityIds, opts) // : Promise<{}>
 
   // Removes the specified activities
   // :param activityIds: the list of activity ids
@@ -230,7 +230,7 @@ export abstract class BaseActivityStorage extends BaseStorage {
  */
 export abstract class BaseTimelineStorage extends BaseStorage {
 
-  default_serializer_class = SimpleTimelineSerializer
+  DefaultSerializerClass = SimpleTimelineSerializer
 
   add(key, activity, opts) {
     return this.addMany(key, [activity], opts)

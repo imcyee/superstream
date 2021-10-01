@@ -101,9 +101,12 @@ export class Manager {
   // '''
   // # : a dictionary with the feeds to fanout to
   // # : for example FeedClasses = dict(normal=PinFeed, aggregated=AggregatedPinFeed)
-  FeedClasses = {
-    normal: RedisFeed
+  get FeedClasses(): { [type: string]: any } {
+    return {
+      normal: RedisFeed
+    }
   }
+
   // # : the user feed class (it stores the latest activity by one user)
   UserFeedClass = UserBaseFeed
 

@@ -8,7 +8,7 @@ class ActivityCache extends ShardedHashCache {
 }
 
 export class RedisActivityStorage extends BaseActivityStorage {
-  default_serializer_class = ActivitySerializer
+  DefaultSerializerClass = ActivitySerializer
 
   getKey() {
     return this.options['key'] || 'global'

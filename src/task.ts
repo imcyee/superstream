@@ -2,7 +2,7 @@
 // from stream_framework.activity import Activity, AggregatedActivity
 
 import { Activity } from "./activity/Activity"
-import { AggregatedActivity } from "./activity/AggregatedActivity"
+import { AggregatedActivity } from "./activity/AggregatedActivity" 
 import { BaseFeed } from "./feeds/base/base"
 import { getSeparator } from "./feeds/config"
 import { UserBaseFeed } from "./feeds/UserBaseFeed"

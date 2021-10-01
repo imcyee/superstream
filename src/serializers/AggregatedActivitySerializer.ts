@@ -20,7 +20,7 @@ export class AggregatedActivitySerializer extends BaseAggregatedSerializer {
 
   ActivitySerializerClass = ActivitySerializer
 
-  dumps(aggregated) {
+  dumps(aggregated): any {
     this.checkType(aggregated)
 
     const activitySerializer = new this.ActivitySerializerClass(this.ActivityClass)

@@ -130,9 +130,12 @@ Currently supported storages are
  
 ### Which persistence storage to use
 Redis: https://redis.io/topics/persistence
+Pros: easy to work with
+Cons: getting more expensive as data grows
 
 (Not fully supported yet)
 Cassandra: https://stackoverflow.com/questions/18462530/why-dont-you-start-off-with-a-single-small-cassandra-server-as-you-usually
+Pros: cheaper than memory based persistence
 
 ### Get started - storage
 #### Redis - setup redis config

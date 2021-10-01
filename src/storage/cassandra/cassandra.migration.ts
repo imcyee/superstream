@@ -5,6 +5,22 @@ import { getClient } from './connection';
 
 var client: cassandra.Client
 
+type CQLFeed = {
+  feed_id: string,
+  activity_id: number,
+  actor_id: string,
+  extra_context: any // blob,
+  object_id: string,
+  target_id: string,
+  time: Date,
+  verb_id: string,
+  activities: any // blob,
+  created_at: Date,
+  group: string,
+  updated_at: Date,
+  // PRIMARY KEY(feed_id, activity_id)
+}
+
 export async function runCassandraMigration() {
   const client = getClient()
 

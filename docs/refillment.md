@@ -117,6 +117,15 @@ const promises = []
 const filledActivity = activities.map((a) => {
   const filled = {} as any
   for (const [key, value] of Object.entries<string>(a)) {
+
+    // you may want to skip context since 
+    // we don't know anything about your context 
+    // below method might not work 
+    // as how you intented so we skip it
+    if(key === 'context')
+      filled[key] = value
+
+
     const splitted = value.split(':') 
     const id = splitted[splitted.length - 1]
     const promise = genericLoader.load(id)

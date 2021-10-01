@@ -2,7 +2,7 @@ import faker from 'faker';
 import { GenericContainer } from "testcontainers";
 import { Activity } from "../../src/activity/Activity";
 import { CassandraFeed } from '../../src/feeds/cassandra';
-import { runCassandraMigration } from '../../src/storage/cassandra/cassandra_migration';
+import { runCassandraMigration } from '../../src/storage/cassandra/cassandra.migration';
 import { setupCassandraConnection } from '../../src/storage/cassandra/connection';
 import { generateActivity } from '../utils/generateActivity';
 
