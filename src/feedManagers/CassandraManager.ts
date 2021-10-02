@@ -1,4 +1,4 @@
-// from stream_framework.feed_managers.base import { Mixin } from "ts-mixer"
+// from stream_framework.feedManagers.base import { Mixin } from "ts-mixer"
 // import Manager
 // from stream_framework.feeds.base import UserBaseFeed
 // from stream_framework.feeds.cassandra import CassandraFeed

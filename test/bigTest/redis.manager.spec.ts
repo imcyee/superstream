@@ -1,9 +1,9 @@
 import faker from 'faker';
 import { GenericContainer } from "testcontainers";
-import { Manager } from '../../src/feed_managers/base';
+import { Manager } from '../../src/feedManagers/base';
 import { setupRedisConfig } from "../../src/storage/redis/connection";
 import { generateActivity } from '../utils/generateActivity';
-import { RedisManager } from '../../src/feed_managers/RedisManager'
+import { RedisManager } from '../../src/feedManagers/RedisManager'
 
 /**
  * Test class for manager

@@ -231,21 +231,20 @@ export abstract class BaseFeed {
     return add_count
   }
 
-  remove(activityId, kwargs = {}) {
-    return this.removeMany([activityId], kwargs)
+  async remove(activityId, kwargs = {}) {
+    return await this.removeMany([activityId], kwargs)
   }
 
-  removeMany(
+  // Remove many activities
+  // @param activityIds: a list of activities or activity ids
+  async removeMany(
     activityIds: string[],
     {
       batchInterface = null,
       trim = true,
       ...kwargs
-    }) {
-
-    // Remove many activities
-    // @param activityIds: a list of activities or activity ids
-    const del_count = this.timelineStorage.removeMany(
+    }) { 
+    const del_count = await this.timelineStorage.removeMany(
       this.key,
       activityIds,
       {
@@ -269,21 +268,21 @@ export abstract class BaseFeed {
 
   // Trims the feed to the length specified
   // @param length: the length to which to trim the feed, defaults to this.maxLength
-  trim(length = null) {
-    length = length || this.maxLength
-    this.timelineStorage.trim(this.key, length)
+  async trim(length = null) {
+    length = length || this.maxLength 
+    await this.timelineStorage.trim(this.key, length) 
   }
 
   // Count the number of items in the feed
-  count() {
-    return this.timelineStorage.count(this.key)
+  async count() {
+    return await this.timelineStorage.count(this.key)
   }
 
   __len__ = this.count
 
   // Delete the entire feed
-  delete() {
-    return this.timelineStorage.delete(this.key)
+  async delete() {
+    return await this.timelineStorage.delete(this.key)
   }
 
 

@@ -3,7 +3,7 @@ import express from 'express';
 import { Activity } from "../../src/activity/Activity";
 import { Add } from "../../src/verbs/base";
 
-// import { Manager } from '../../src/feed_managers/base'
+// import { Manager } from '../../src/feedManagers/base'
 import { CustomManager } from "../manager/CustomManger";
 
 const router = express.Router();

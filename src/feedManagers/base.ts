@@ -68,7 +68,7 @@ class FanoutPriority {
  * 
  * @example
  * 
- *     from stream_framework.feed_managers.base import Manager
+ *     from stream_framework.feedManagers.base import Manager
  * 
  *     class PinManager(Manager):
  *         # customize the feed classes we write to

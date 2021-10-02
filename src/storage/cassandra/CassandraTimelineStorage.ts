@@ -41,6 +41,9 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
 
   model: cassandra.mapping.ModelMapper<any>
   baseModel
+  /**
+   * Column family name is like table name
+   */
   columnFamilyName
 
   mapper: cassandra.mapping.Mapper
@@ -100,8 +103,8 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
         feed_id: key,
         activity_id: activityId
       }))
-    }
-    await this.mapper.batch(changes)
+    } 
+    await this.mapper.batch(changes) 
   }
 
   // trim using Cassandra's tombstones black magic
@@ -113,7 +116,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
   // trim can trash up to (batch_size - 1) more activities than requested
   async trim(key, maxLength, batchInterface = null) {
     const variable = this.baseModel === models.Activity
-      ? 'verbId' // must make sure null is not allow to be empty
+      ? 'verb_id' // must make sure null is not allow to be empty
       : 'group'
 
     const query = `
@@ -129,12 +132,12 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
         ?;
     `
 
-    const parameters = [,
-      key,
-      maxLength + 1
-    ]
-
+    const parameters = [key, maxLength + 1]
+    console.log('execute trimming');
+    console.log('query', query);
+ 
     const results = await this.client.execute(query, parameters, { prepare: true })
+    console.log('trimming result', results);
 
     // # compatibility with both cassandra driver 2.7 and 3.0
     const results_length = results.rowLength
@@ -277,5 +280,11 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
 
   flush() { throw new NotImplementedError() }
   getIndexOf() { throw new NotImplementedError() }
-  getBatchInterface() { throw new NotImplementedError() }
+
+
+  // def get_batch_interface(self):
+  // return Batch(batch_size=self.insert_batch_size, atomic_inserts=False)
+  // getBatchInterface() { throw new NotImplementedError() }
+
+  getBatchInterface() { return {} }
 }

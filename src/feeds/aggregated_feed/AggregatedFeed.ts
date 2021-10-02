@@ -343,8 +343,7 @@ export class AggregatedFeed extends BaseFeed {
   // '''
   async addManyAggregated(aggregated, kwargs?) {
     // validate_list_of_strict(aggregated, [this.AggregatedActivityClass, FakeAggregatedActivity])
-
-    console.log(this.timelineStorage.constructor);
+ 
     await this.timelineStorage.addMany(this.key, aggregated, kwargs)
   }
 

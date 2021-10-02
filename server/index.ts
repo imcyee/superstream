@@ -39,7 +39,7 @@ app.listen(port, () => {
 
 //   const cassandra = new CassandraTimelineStorage({
 //     SerializerClass: SimpleTimelineSerializer,
-//     column_family_name: "feeds"
+//     columnFamilyName: "feeds"
 //   })
 
 //   // cassandra.trim('feed_uuuusrrrrr:123', 10)

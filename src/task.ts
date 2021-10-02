@@ -2,11 +2,11 @@
 // from stream_framework.activity import Activity, AggregatedActivity
 
 import { Activity } from "./activity/Activity"
-import { AggregatedActivity } from "./activity/AggregatedActivity" 
+import { AggregatedActivity } from "./activity/AggregatedActivity"
 import { BaseFeed } from "./feeds/base/base"
 import { getSeparator } from "./feeds/config"
 import { UserBaseFeed } from "./feeds/UserBaseFeed"
-import { Manager } from "./feed_managers/base"
+import { Manager } from "./feedManagers/base"
 
 /**
  * Previously, stream-framework is using celery shared_task
@@ -144,8 +144,11 @@ export async function unfollowMany(feedManager, user_id, source_ids) {
   const separator = getSeparator()
   for (const feed of feeds) {
     const activities = []
+    console.log('calling trim');
     await feed.trim()
+    console.log('calling trim after');
     const items = await feed.getItem(0, feed.maxLength)
+    console.log(items);
     for (const item of items) {
       const pureActorId = splitId(item.actorId, separator)
       const pureTargetId = splitId(item.targetId, separator)

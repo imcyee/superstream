@@ -54,15 +54,12 @@ export abstract class BaseNotificationFeed extends AggregatedFeed {
   feedMarkers: BaseListsStorage
 
   constructor(userId) {
-    // super(userId, kwargs)
     super(userId)
-    console.log(this.markersMaxLength);
-    console.log(this.MarkersStorageClass);
 
     if (!this.MarkersStorageClass) {
       if (this.track_unread || this.track_unseen)
         throw new ValueError('MarkersStorageClass must be set in case the unseen/unread activities are tracked')
-    } else { 
+    } else {
       if (!(this.MarkersStorageClass.prototype instanceof BaseListsStorage || this.MarkersStorageClass === BaseListsStorage)) {
         const error_format = (base, sub) => `MarkersStorageClass attribute must be subclass of ${base}, encountered class ${sub}`
         const message = error_format(BaseListsStorage, this.MarkersStorageClass)
@@ -70,7 +67,6 @@ export abstract class BaseNotificationFeed extends AggregatedFeed {
       }
       const markers_key = this.markersKeyFormat(userId)
 
-      console.log(this.MarkersStorageClass);
       // @ts-ignore
       this.feedMarkers = new this.MarkersStorageClass(
         markers_key,
@@ -145,8 +141,8 @@ export abstract class BaseNotificationFeed extends AggregatedFeed {
     if (activities && this.MarkersStorageClass) {
       let unseen_ids: string[]
       let unread_ids: string[]
- 
-      if (this.track_unseen && this.track_unread) { 
+
+      if (this.track_unseen && this.track_unread) {
         [unseen_ids, unread_ids] = await this.feedMarkers.get('unseen', 'unread')
       } else if (this.track_unseen)
         [unseen_ids] = await this.feedMarkers.get('unseen')
@@ -191,18 +187,18 @@ export abstract class BaseNotificationFeed extends AggregatedFeed {
   // '''
   // Marks the given aggregated activity as seen or read or both.
   // '''
-  mark_activity(activityId, seen = true, read = false) {
-    this.mark_activities([activityId], seen, read)
+  async mark_activity(activityId, seen = true, read = false) {
+    await this.mark_activities([activityId], seen, read)
   }
 
 
   // '''
   // Marks all of the given aggregated activities as seen or read or both.
   // '''
-  mark_activities(activityIds, seen = true, read = false) {
+  async mark_activities(activityIds, seen = true, read = false) {
     const unseen_ids = seen ? activityIds : []
     const unread_ids = read ? activityIds : []
-    this.update_markers(
+    await this.update_markers(
       unseen_ids,
       unread_ids,
       'remove'
@@ -213,20 +209,20 @@ export abstract class BaseNotificationFeed extends AggregatedFeed {
   // '''
   // Marks all of the feed's aggregated activities as seen or read or both.
   // '''
-  mark_all(seen = true, read = false) {
+  async mark_all(seen = true, read = false) {
     const args = []
     if (seen && this.track_unseen)
       args.push('unseen')
     if (read && this.track_unread)
       args.push('unread')
-    this.feedMarkers.flush(args)
+    await this.feedMarkers.flush(args)
   }
 
 
   // '''
   // Deletes the feed and its markers.
   // '''
-  delete() {
+  async delete() {
     super.delete()
 
     const args = []
@@ -234,7 +230,7 @@ export abstract class BaseNotificationFeed extends AggregatedFeed {
       args.push('unseen')
     if (this.track_unread)
       args.push('unread')
-    this.feedMarkers.flush(args)
+    await this.feedMarkers.flush(args)
   }
 
 }
