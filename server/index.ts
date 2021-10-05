@@ -68,7 +68,7 @@ const main = async () => {
   app.use(express.urlencoded({ extended: true }));// parse urlencoded request body
   app.use('/v1', routes)
 
-  const port = 8080
+  const port = 8282
   app.listen(port, () => {
     console.info(`Listening to port ${port}`);
   });
