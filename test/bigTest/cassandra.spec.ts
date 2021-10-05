@@ -15,7 +15,9 @@ describe("GenericContainer", () => {
       .start();
 
     setupCassandraConnection({
-      host: '192.168.0.146',// container.getHost(),
+      // host: '192.168.0.146',// container.getHost(),
+
+      host: container.getHost(),
       port: container.getMappedPort(9042),
     })
 

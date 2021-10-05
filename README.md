@@ -104,6 +104,7 @@ Please see this issue: https://github.com/imcyee/superstream/issues/1
   - [] Test
   - [X] redis
   - [ ] cassandra
+  - [ ] myrocks
 - [ ] Port manager
 
 
