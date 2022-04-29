@@ -1,5 +1,5 @@
-import { getRedisConnection } from "../connection"
-import { RedisClientType } from "redis/dist/lib/client"
+import { RedisClientType } from "redis"
+import { getRedisConnection } from "../connection" 
 
 export class RedisCache {
 

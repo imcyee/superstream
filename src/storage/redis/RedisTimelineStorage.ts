@@ -1,11 +1,12 @@
 import { NotImplementedError, ValueError } from "../../errors"
-// import { zip } from "../../utils"
-import { BaseTimelineStorage } from "../base/base"
 import { getRedisConnection } from "./connection"
 import { RedisSortedSetCache } from "./structures/sorted_set"
 import zip from 'lodash/zip'
 import chunk from 'lodash/chunk'
 import createDebug from 'debug'
+import { BaseTimelineStorage } from "../base/base_timeline_storage"
+import * as uuid from 'uuid'
+import { v1time } from "../../utils/v1time"
 
 const debug = createDebug('test:RedisTimelineStorage')
 
@@ -13,6 +14,11 @@ export class TimelineCache extends RedisSortedSetCache {
   sort_asc = false
 }
 
+/**
+ * Add sortable activityId to storage
+ * Redis has zadd which add in number to be sorted 
+ * then will be requery by activity storage to populate the activity payload
+ */
 export class RedisTimelineStorage extends BaseTimelineStorage {
 
   flush() { throw new NotImplementedError() }
@@ -132,21 +138,44 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     return index
   }
 
-  // key,
-  // serializedActivities,
-  // kwargs
   async addToStorage(
     key,
-    activities, // in the form of 123:123
+    activities: {
+      [activityId: string]: [time: number]
+    } | {
+      [aggregateTimestamp: string]: [aggregratedActivityInString: number],
+    }, // in the form of 123:123
     kwargs = {} as any
   ) {
-
     const { batchInterface } = kwargs
     const cache = this.getCache(key)
     // # turn it into key value pairs
-    const scores = Object.keys(activities)  // map(long_t, activities.keys())
-    const scoreValuePairs = zip(scores, Object.values(activities))
- 
+
+    // const scores = Object.keys(activities)  // map(long_t, activities.keys())
+
+    // same method will be used by aggregate and non aggregate activity
+    // for non-aggregate incoming is activity
+
+    // we have inverted here from the original
+
+    // check if activity key is uuid
+    const arrayToBeDetermine = Object.keys(activities)
+    const scores = arrayToBeDetermine.map((key) => {
+      const isUUID = uuid.validate(key)
+      if (!isUUID)
+        return key
+      else
+        return v1time(key)
+    })
+
+    // const scores = Object.keys(activities)  // map(long_t, activities.keys())
+    const values = Object.values(activities)
+    // const scores = Object.values(activities)  // map(long_t, activities.keys())
+    // const values = Object.keys(activities)
+
+    const scoreValuePairs = zip(scores, values)
+    // const scoreValuePairs = zip(scores, Object.values(activities))
+
     const result = await cache.addMany(scoreValuePairs)
 
     for (const r of result) {

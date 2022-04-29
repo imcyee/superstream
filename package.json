@@ -30,11 +30,10 @@
     "faker": "^5.5.3",
     "lodash": "^4.17.21",
     "morgan": "^1.10.0",
-    "redis": "^4.0.0-rc.2",
+    "redis": "^4.0.6",
     "statsd-client": "^0.4.7",
     "supports-color": "^9.0.2",
     "testcontainers": "^7.20.4",
-    "ts-jest": "^27.0.5",
     "ts-mixer": "^6.0.0",
     "typescript": "^4.2.4",
     "uuid": "^8.3.2"
@@ -43,8 +42,9 @@
     "@types/faker": "^5.5.8",
     "@types/jest": "^27.0.1",
     "@types/lodash": "^4.14.170",
-    "jest": "^28.0.2",
-    "ts-node": "^10.7.0",
+    "jest": "^27.5.1",
+    "ts-jest": "^27.0.5",
+    "ts-node": "^9.1.1",
     "ts-node-dev": "^1.1.8"
   },
   "jest": {

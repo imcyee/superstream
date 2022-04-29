@@ -51,6 +51,7 @@ export abstract class BaseRedisListCache extends RedisCache {
     // # We need check to see if we need to populate more of the cache.
     var results
     try {
+      console.log('getting error soon');
       results = await this.getResults(start, bound)
     } catch (err) {
       // except StopIteration:

@@ -1,7 +1,7 @@
 import * as cassandra from 'cassandra-driver'
 import { NotImplementedError, ValueError } from "../../errors"
-import { CassandraActivitySerializer } from "../../serializers/cassandra/CassandraActivitySerializer"
-import { BaseTimelineStorage } from "../base/base"
+import { CassandraActivitySerializer } from "../../serializers/cassandra/CassandraActivitySerializer" 
+import { BaseTimelineStorage } from '../base/base_timeline_storage'
 import { getClient } from "./connection"
 import { models } from "./models"
 

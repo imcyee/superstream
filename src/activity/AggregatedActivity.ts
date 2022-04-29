@@ -294,25 +294,27 @@ export class AggregatedActivity extends BaseActivity {
     this.read_at = Date.now()
   }
 
-  /**
-   * Inspect only part of the data instead of all the noise
-   * @example
-   * call `console.log(util.inspect(my_object));` || `console.log(my_object);` to inspect the data
-   * Inspect only part of the data instead of all the noise
-   * @returns 
-   */
-  [util.inspect.custom]() {
-    var message
-    if (this.dehydrated) {
-      message = `Dehydrated AggregatedActivity (${this._activityIds})`
-      return message
-    }
-    const verbs = this.verbs.map((v) => v.past_tense) // [v.past_tense for v in this.verbs]
-    const actor_ids = this.actor_ids
-    const object_ids = this.object_ids
-    // const actors = ','.join(map(str, actor_ids))
-    const actors = actor_ids.join(',')
-    message = `AggregatedActivity(${this.group}-${verbs.join(',')}) Actors ${actors}: Objects ${object_ids}`
-    return message
-  }
+  // /**
+  //  * Inspect only part of the data instead of all the noise
+  //  * @example
+  //  * call `console.log(util.inspect(my_object));` || `console.log(my_object);` to inspect the data
+  //  * Inspect only part of the data instead of all the noise
+  //  * @returns 
+  //  */
+  // [util.inspect.custom]() {
+  //   var message
+  //   if (this.dehydrated) {
+  //     message = `Dehydrated AggregatedActivity (${this._activityIds})`
+  //     return message
+  //   }
+  //   console.log(this.verbs);
+  //   // const verbs = this.verbs?.map((v) => v.past_tense) // [v.past_tense for v in this.verbs]
+  //   const actor_ids = this.actor_ids
+  //   const object_ids = this.object_ids
+  //   // const actors = ','.join(map(str, actor_ids))
+  //   const actors = actor_ids.join(',')
+  //   // message = `AggregatedActivity(${this.group}-${verbs.join(',')}) Actors ${actors}: Objects ${object_ids}`
+  //   message = `AggregatedActivity(${this.group}) Actors ${actors}: Objects ${object_ids}`
+  //   return message
+  // }
 }

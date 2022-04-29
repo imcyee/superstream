@@ -1,5 +1,4 @@
 import { ActivitySerializer } from "../serializers/ActivitySerializer"
-import { SimpleTimelineSerializer } from "../serializers/SimpleTimelineSerializer"
 import { RedisActivityStorage } from "../storage/redis/RedisActivityStorage"
 import { RedisTimelineStorage } from "../storage/redis/RedisTimelineStorage"
 import { BaseFeed } from "./base/base"

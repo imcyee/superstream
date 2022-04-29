@@ -1,10 +1,5 @@
-import * as cassandra from 'cassandra-driver';
 import express from 'express';
 import { getRedisConnection, setupRedisConfig } from "../src/storage/redis/connection";
-import { RedisFeed } from "../src/feeds/RedisFeed";
-import { SimpleTimelineSerializer } from "../src/serializers/SimpleTimelineSerializer";
-import { CassandraTimelineStorage } from "../src/storage/cassandra/CassandraTimelineStorage";
-import { getClient } from "../src/storage/cassandra/connection";
 import createDebug from 'debug'
 import routes from './routes'
 import morgan from 'morgan' 

@@ -19,8 +19,6 @@ export function setupCassandraConnection(options: {
       contactPoint = `${options.host}:${options.port}`
     }
 
-
-
     client = new cassandra.Client({
       contactPoints: [contactPoint],
       // localDataCenter: 'datacenter',

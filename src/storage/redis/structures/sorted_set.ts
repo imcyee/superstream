@@ -1,5 +1,4 @@
 import chunk from 'lodash/chunk'
-import { RedisClientType } from "redis/dist/lib/client"
 import { promisify } from 'util'
 import { ValueError } from "../../../errors"
 import { zip } from "../../../utils"
@@ -8,6 +7,7 @@ import { BaseRedisHashCache } from "./hash"
 import { BaseRedisListCache } from "./list"
 import createDebug from 'debug'
 import { Mixin } from 'ts-mixer';
+import { RedisClientType } from 'redis'
 
 const debug = createDebug('ns:debug:sorted_set')
 
@@ -60,12 +60,15 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
 
   // StrictRedis so it expects score1, name1
   async addMany(scoreValuePairs) {
-    const key = this.getKey()
-    console.log('scoreValuePairs', scoreValuePairs);
+    const key = this.getKey() 
     const scores = (zip(...scoreValuePairs))[0] as string[]
     scores.forEach(element => {
+      // // Please send floats as the first part of the pairs got 70262030-c7a9-11ec-941b-6d18f0aebf4f,70262030-c7a9-11ec-941b-6d18f0aebf4f
       if (isNaN(Number(element)))
         throw new Error(`Please send floats as the first part of the pairs got ${scoreValuePairs}`)
+
+
+
 
       // if (typeof element === "number")
       return true
@@ -86,7 +89,14 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
         score: Number(svp[0]),
         value: svp[1],
       }))
-      const membersChunk = chunk(members, 200) as { value: string, score: number }[][]
+      let membersChunk
+      try {
+
+        membersChunk = chunk(members, 200) as { value: string, score: number }[][]
+      } catch (error) {
+        console.log('found error');
+        throw error
+      }
 
       for await (const members of membersChunk) {
         const result = await redis.zAdd(key, members)

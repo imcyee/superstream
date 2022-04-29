@@ -2,7 +2,8 @@ import { Activity } from "../../activity/Activity"
 import { AssertionError } from "../../errors"
 import { BaseSerializer } from "../../serializers/BaseSerializer"
 import { SimpleTimelineSerializer } from "../../serializers/SimpleTimelineSerializer"
-import { BaseActivityStorage, BaseTimelineStorage } from "../../storage/base/base"
+import { BaseActivityStorage } from "../../storage/base/base_activity_storage"
+import { BaseTimelineStorage } from "../../storage/base/base_timeline_storage"
 
 /**
  * The feed class allows you to add and remove activities from a feed.
@@ -94,7 +95,7 @@ export abstract class BaseFeed {
   static ActivitySerializer = BaseSerializer
 
   /**
-   * the class the timline storage should use for serialization
+   * the class the timeline storage should use for serialization
    */
   static TimelineSerializer = SimpleTimelineSerializer
 
@@ -403,11 +404,24 @@ export abstract class BaseFeed {
    * hydrates the activities using the activityStorage
    */
   async hydrateActivities(activities) {
-    const activityIds = activities.map((a) => a._activityIds)
-    const activity_list = await this.activityStorage.getMany(activityIds)
+    console.log('hydrateActivities', activities);
+
+
+    // const activityIds = activities.map((a) => a._activityIds)
+    let activityIds = []
+    activities.forEach(a => {
+      activityIds = [
+        ...activityIds,
+        ...a._activityIds
+      ]  // activityIds  a._activityIds 
+    })
+    console.log(activityIds);
+
+
+    const activityList = await this.activityStorage.getMany(activityIds)
 
     var activityData = {}
-    for (const a of activity_list) {
+    for (const a of activityList) {
       activityData[a.serializationId] = a
     }
 

@@ -17,7 +17,7 @@ export class CassandraActivitySerializer extends BaseSerializer {
     model,
     ActivityClass,
     ...kwargs
-  }) { 
+  }) {
     super({ ActivityClass, ...kwargs })
     // this.model = model
   }
@@ -37,7 +37,7 @@ export class CassandraActivitySerializer extends BaseSerializer {
   }
 
   loads(serializedActivity) {
-    delete serializedActivity['activity_id']
+    // delete serializedActivity['activity_id']
     delete serializedActivity['feed_id']
     // serializedActivity['verb'] = get_verb_by_id(serializedActivity['verb'])
     // serializedActivity['verb'] = get_verb_by_id(serializedActivity['verb'])
@@ -51,8 +51,10 @@ export class CassandraActivitySerializer extends BaseSerializer {
     //  pickle.loads(
     //       serializedActivity['context']
     //  ) 
-
+    console.log('serializedActivity.activity_id',serializedActivity.activity_id);
     return new this.ActivityClass({
+      // cassandra will return in the form of buffer if toString is not called
+      serializationId: serializedActivity.activity_id.toString(),
       actor: serializedActivity.actor_id,
       verb: serializedActivity.verb_id,
       object: serializedActivity.object_id,

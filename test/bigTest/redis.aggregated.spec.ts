@@ -1,6 +1,6 @@
 import faker from 'faker';
 import { GenericContainer } from "testcontainers";
-import { RedisAggregatedFeed } from '../../src/feeds/aggregated_feed/redis';
+import { RedisAggregatedFeed } from '../../src/feeds/aggregated_feed/RedisAggregatedFeed';
 import { setupRedisConfig } from "../../src/storage/redis/connection";
 import { generateActivity } from '../utils/generateActivity';
 
@@ -50,7 +50,7 @@ describe("GenericContainer", () => {
     await feed.addManyAggregated(aggregatedActivities)
 
     const result = await feed.getItem(0, 5)
-
+    console.log('result', result);
     var totalActivities = 0
     result.forEach(element => {
       totalActivities += element.activities.length

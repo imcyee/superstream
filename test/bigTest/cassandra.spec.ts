@@ -74,7 +74,7 @@ describe("GenericContainer", () => {
       } else if (key === 'context') {
         return
       }
-
+      console.log(activityJSON[key], initialJSON[key]);
       expect(activityJSON[key]).toBe(initialJSON[key])
     })
   })

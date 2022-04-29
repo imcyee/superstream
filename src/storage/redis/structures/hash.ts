@@ -5,9 +5,9 @@ import { dictZip, parseBigInt, zip } from "../../../utils"
 import range from 'lodash/range'
 import merge from 'lodash/merge'
 import toPairs from 'lodash/toPairs'
-import * as crypto from 'crypto'
-import { RedisClientType } from "redis/dist/lib/client"
+import * as crypto from 'crypto' 
 import createDebug from 'debug'
+import { RedisClientType } from "redis"
 
 const debug = createDebug('ns:debug')
 
@@ -154,7 +154,6 @@ export class FallbackHashCache extends RedisHashCache {
 
 export class ShardedHashCache extends RedisHashCache {
 
-
   // Use multiple keys instead of one so its easier to shard across redis machines
   number_of_keys = 10
 
@@ -185,14 +184,16 @@ export class ShardedHashCache extends RedisHashCache {
   }
 
   async getMany(fields) {
-
+    console.log('fields', fields);
     async function _get_many(redis: RedisClientType, fields) {
       var results = {}
       for await (const field of fields) {
         // # allow for easy sharding
         const key = this.getKey(field)
+        console.log('field', field, key);
         debug(`getting field ${field} from ${key}`)
         const result = await redis.hGet(key, field)
+        console.log(result);
         results[field] = result
       }
       return results
@@ -200,6 +201,7 @@ export class ShardedHashCache extends RedisHashCache {
     var results = {}
     // # start a new map redis or go with the given one
     results = await this._pipeline_if_needed(_get_many.bind(this), fields)
+    console.log(results);
     results = dictZip(zip(fields, Object.values(results)))
 
     return results

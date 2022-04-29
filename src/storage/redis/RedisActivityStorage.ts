@@ -1,6 +1,6 @@
 import { zip } from "lodash"
 import { ActivitySerializer } from "../../serializers/ActivitySerializer"
-import { BaseActivityStorage } from "../base/base"
+import { BaseActivityStorage } from "../base/base_activity_storage"
 import { ShardedHashCache } from "./structures/hash"
 
 class ActivityCache extends ShardedHashCache {
@@ -19,7 +19,7 @@ export class RedisActivityStorage extends BaseActivityStorage {
     return new ActivityCache(key)
   }
 
-  async getFromStorage(activityIds, kwargs) {
+  async getFromStorage(activityIds, kwargs): Promise<any> {
     const cache = this.getCache()
     var activities = await cache.getMany(activityIds)
     return activities
@@ -34,6 +34,7 @@ export class RedisActivityStorage extends BaseActivityStorage {
       // should check number of ok in result
       insert_count = (key_value_pairs).length
     }
+    console.log("insert_count", insert_count);
     return insert_count
   }
 

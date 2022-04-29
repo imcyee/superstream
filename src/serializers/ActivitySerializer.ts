@@ -14,10 +14,11 @@ import { BaseSerializer } from "./BaseSerializer"
 export class ActivitySerializer extends BaseSerializer {
 
   dumps(activity) {
-    this.checkType(activity)
+    this.checkType(activity) 
     // keep the milliseconds
     const activityTime = datetimeToEpoch(activity.time).toFixed(6) // '%.6f' % datetimeToEpoch(activity.time)
     const parts = [
+      activity.serializationId, 
       activity.actorId,
       activity.verbId, // activity.verb.id,
       activity.objectId,
@@ -36,21 +37,21 @@ export class ActivitySerializer extends BaseSerializer {
     return serializedActivity
   }
 
-  loads(serializedActivity) {
-    console.log('inside serializer', serializedActivity);
+  loads(serializedActivity) { 
+    console.log('serializedActivity', serializedActivity);
     const parts = serializedActivity.split(',')
 
     // convert these to ids
-    const [actorId, verbId, objectId, targetId] = parts
+    const [serializationId, actorId, verbId, objectId, targetId] = parts
     const activity_datetime = epochToDatetime(parseFloat(parts[4]))  // epochToDatetime(parseFloat(parts[4]))// activityTime
     const pickleString = parts[5]
 
     var context = {}
     if (pickleString) {
       context = JSON.parse(pickleString)
-    }
-    console.log(this.ActivityClass);
+    } 
     const activity = new this.ActivityClass({
+      serializationId: serializationId,
       actor: actorId,
       verb: verbId, // verb,
       object: objectId,
