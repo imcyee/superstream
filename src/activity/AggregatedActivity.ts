@@ -12,7 +12,6 @@ const maxAggregatedActivitiesLength = 15
 export class AggregatedActivity extends BaseActivity {
 
   maxAggregatedActivitiesLength = maxAggregatedActivitiesLength
-
   group
   activities
   created_at

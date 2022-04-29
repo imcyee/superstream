@@ -54,7 +54,7 @@ import { BaseFeed } from "../base/base"
 export class AggregatedFeed extends BaseFeed {
 
   //// # : The class to use for storing the aggregated activity
-  static AggregatedActivityClass: typeof AggregatedActivity = AggregatedActivity
+  static AggregatedActivityClass = AggregatedActivity
 
   //// # : The class to use for aggregating activities into aggregated activities
   //// # : also see :class:`.BaseAggregator`
@@ -343,7 +343,7 @@ export class AggregatedFeed extends BaseFeed {
   // '''
   async addManyAggregated(aggregated, kwargs?) {
     // validate_list_of_strict(aggregated, [this.AggregatedActivityClass, FakeAggregatedActivity])
- 
+
     await this.timelineStorage.addMany(this.key, aggregated, kwargs)
   }
 

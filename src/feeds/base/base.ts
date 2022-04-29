@@ -408,12 +408,9 @@ export abstract class BaseFeed {
 
 
     // const activityIds = activities.map((a) => a._activityIds)
-    let activityIds = []
+    const activityIds = []
     activities.forEach(a => {
-      activityIds = [
-        ...activityIds,
-        ...a._activityIds
-      ]  // activityIds  a._activityIds 
+      activityIds.push(...a._activityIds)
     })
     console.log(activityIds);
 

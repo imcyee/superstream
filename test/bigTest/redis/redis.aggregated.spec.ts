@@ -1,11 +1,11 @@
 import faker from 'faker';
-import { GenericContainer } from "testcontainers";
-import { RedisAggregatedFeed } from '../../src/feeds/aggregated_feed/RedisAggregatedFeed';
-import { setupRedisConfig } from "../../src/storage/redis/connection";
-import { generateActivity } from '../utils/generateActivity';
+import { GenericContainer, StartedTestContainer } from "testcontainers";
+import { RedisAggregatedFeed } from '../../../src/feeds/aggregated_feed/RedisAggregatedFeed';
+import { setupRedisConfig } from "../../../src/storage/redis/connection";
+import { generateActivity } from '../../utils/generateActivity';
 
 describe("GenericContainer", () => {
-  let container;
+  let container: StartedTestContainer;
 
   beforeAll(async () => {
     // pull the image first

@@ -1,8 +1,8 @@
 import faker from 'faker';
 import { GenericContainer } from "testcontainers";
-import { RedisNotificationFeed } from '../../src/feeds/notification_feed/RedisNotificationFeed';
-import { setupRedisConfig } from "../../src/storage/redis/connection";
-import { generateActivity } from '../utils/generateActivity';
+import { RedisNotificationFeed } from '../../../src/feeds/notification_feed/RedisNotificationFeed';
+import { setupRedisConfig } from "../../../src/storage/redis/connection";
+import { generateActivity } from '../../utils/generateActivity';
 
 describe("GenericContainer", () => {
   let container;

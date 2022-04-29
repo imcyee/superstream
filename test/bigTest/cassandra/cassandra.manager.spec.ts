@@ -1,9 +1,9 @@
 import faker from 'faker';
 import { GenericContainer } from "testcontainers";
-import { CassandraManager } from '../../src/feedManagers/CassandraManager';
-import { runCassandraMigration } from '../../src/storage/cassandra/cassandra.migration';
-import { setupCassandraConnection } from '../../src/storage/cassandra/connection';
-import { generateActivity } from '../utils/generateActivity';
+import { CassandraManager } from '../../../src/feedManagers/CassandraManager';
+import { runCassandraMigration } from '../../../src/storage/cassandra/cassandra.migration';
+import { setupCassandraConnection } from '../../../src/storage/cassandra/connection';
+import { generateActivity } from '../../utils/generateActivity';
 
 
 /**

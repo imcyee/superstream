@@ -17,11 +17,11 @@ export class Activity extends BaseActivity {
   verb = null
   time = null
   context
-  dehydrated
-  objectId = null
-  actorId = null
-  targetId = null
-  verbId = null
+  dehydrated: boolean
+  objectId: string = null
+  actorId: string = null
+  targetId: string = null
+  verbId: string = null
   serializationId: string // uuid
 
   constructor({
