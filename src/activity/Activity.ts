@@ -1,41 +1,27 @@
 import { ValueError } from "../errors"
 import { datetimeToEpoch, hashCode, hashCodePositive } from "../utils"
-import { BaseActivity } from "./BaseActivity"
+import { BaseActivity } from "./base/BaseActivity"
 import { DehydratedActivity } from "./DehydratedActivity"
+import * as util from 'util'
+import {} from 'uuid'
+
 
 /**
  * Wrapper class for storing activities
  * Note
- * actorId
- * targetId
- * and objectId are always present
+ * actorId, targetId  & objectId are always present
  * actor, target and object are lazy by default
  */
 export class Activity extends BaseActivity {
 
   verb = null
   time = null
-  extraContext
+  context
   dehydrated
   objectId = null
   actorId = null
   targetId = null
   verbId = null
-
-  /**
-   * override default 
-   */
-  toJSON() {
-    return {
-      activityId: this.serializationId,
-      time: this.time,
-      extraContext: this.extraContext,
-      objectId: this.objectId,
-      actorId: this.actorId,
-      targetId: this.targetId,
-      verbId: this.verbId
-    }
-  }
 
   constructor({
     actor,
@@ -43,7 +29,7 @@ export class Activity extends BaseActivity {
     object,
     target = null,
     time = null,
-    extraContext = null
+    context = null
   }) {
     super()
 
@@ -66,7 +52,7 @@ export class Activity extends BaseActivity {
 
 
     // # store the extra context which gets serialized
-    this.extraContext = extraContext || {}
+    this.context = context || {}
     this.dehydrated = false
   }
 
@@ -75,7 +61,7 @@ export class Activity extends BaseActivity {
     return new DehydratedActivity(this.serializationId)
   }
 
-  __eq__(other) {
+  isEqual(other) {
     if (!(other instanceof Activity)) {
       const message = `Can only compare to Activity not ${other} of type ${typeof (other)}`
       throw new ValueError(message)
@@ -83,7 +69,7 @@ export class Activity extends BaseActivity {
     return this.serializationId == other.serializationId
   }
 
-  __lt__(other) {
+  islessThan(other) {
     return this.serializationId < other.serializationId
   }
 
@@ -110,15 +96,17 @@ export class Activity extends BaseActivity {
    * :returns: int --the serialization id 
    */
   get serializationId() {
-    if (!this.time) {
+    if (!this.time) 
       throw new TypeError('Cant serialize activities without a time')
-    }
+ 
 
     // remove all the unhashable key such as :;,
     // convert any string to int any number and truncate the number to fixed size
     // using object id and verb
     // which can be generated repeatedly under any machine
+    // predictable part
     const milliseconds = (Number(datetimeToEpoch(this.time) * 1000))
+    // random part
     const objectIdPad = hashCodePositive(this.objectId + this.verbId)
       .toString()
       .padStart(10, '0')
@@ -151,8 +139,6 @@ export class Activity extends BaseActivity {
     return serializationId
   }
 
-
-
   /**
    * set id to `field`_id  
    */
@@ -171,7 +157,24 @@ export class Activity extends BaseActivity {
     }
   }
 
-  __repr__() {
+  toJSON() {
+    return {
+      activityId: this.serializationId,
+      time: this.time,
+      context: this.context,
+      objectId: this.objectId,
+      actorId: this.actorId,
+      targetId: this.targetId,
+      verbId: this.verbId
+    }
+  }
+
+  /**
+   * Inspect only part of the data instead of all the noise
+   * @example
+   * call `console.log(util.inspect(my_object));` || `console.log(my_object);` to inspect the data
+   */
+  [util.inspect.custom]() {
     const class_name = this.constructor.name
     const message = `${class_name}(${this.verb.past_tense}) ${this.actorId} ${this.objectId}`
     return message
