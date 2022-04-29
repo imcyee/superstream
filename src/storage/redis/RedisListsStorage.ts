@@ -1,4 +1,4 @@
-import { BaseListsStorage } from "../base_lists_storage"
+import { BaseListsStorage } from "../base/base_lists_storage"
 import { getRedisConnection } from "./connection"
 import { promisify } from 'util'
 import { RedisClientType } from "redis/dist/lib/client"

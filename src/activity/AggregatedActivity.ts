@@ -1,7 +1,8 @@
 import { ActivityNotFound, DuplicateActivityException, ValueError } from "../errors"
 import { datetimeToEpoch, hashCode, make_list_unique } from "../utils"
 import { Activity } from "./Activity"
-import { BaseActivity } from "./BaseActivity"
+import { BaseActivity } from "./base/BaseActivity"
+import * as util from 'util'
 
 const maxAggregatedActivitiesLength = 15
 
@@ -106,7 +107,7 @@ export class AggregatedActivity extends BaseActivity {
   }
 
   // replace with valueOf || primitive
-  __eq__(other) {
+  isEqual(other) {
     if ((other instanceof AggregatedActivity)) {
       throw new ValueError('I can only compare aggregated activities to other aggregated activities')
     }
@@ -294,10 +295,13 @@ export class AggregatedActivity extends BaseActivity {
   }
 
   /**
-   * this is how python get this when print is called
+   * Inspect only part of the data instead of all the noise
+   * @example
+   * call `console.log(util.inspect(my_object));` || `console.log(my_object);` to inspect the data
+   * Inspect only part of the data instead of all the noise
    * @returns 
    */
-  __repr__() {
+  [util.inspect.custom]() {
     var message
     if (this.dehydrated) {
       message = `Dehydrated AggregatedActivity (${this._activityIds})`

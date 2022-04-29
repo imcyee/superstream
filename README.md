@@ -41,7 +41,7 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
         verb: faker.random.arrayElement([`cinema:book`, 'themepark:go']),
         object: `movie:${faker.datatype.number()}`,
         target: 'cinema:gold_bridge_cinema',
-        extraContext: {
+        context: {
           price: 12
         }
       })

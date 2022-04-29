@@ -8,7 +8,7 @@ import { NotificationActivity } from "../../activity/NotificationActivity"
 import { NotificationAggregator } from "../../aggregators/base"
 import { ValueError } from "../../errors"
 import { NotificationSerializer } from "../../serializers/AggregatedActivitySerializer"
-import { BaseListsStorage } from "../../storage/base_lists_storage"
+import { BaseListsStorage } from "../../storage/base/base_lists_storage"
 import { RedisListsStorage } from "../../storage/redis/RedisListsStorage"
 import { AggregatedFeed } from "../aggregated_feed/AggregatedFeed"
 

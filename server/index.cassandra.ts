@@ -52,7 +52,7 @@ app.listen(port, () => {
 //   //   object: 'object:13',
 //   //   target: 'test:124445566',
 //   //   time: null,
-//   //   extraContext: { extra: 123 }
+//   //   context: { extra: 123 }
 //   // })
 //   // const result2 = await cassandraFeed.add(activity)
 //   // ;

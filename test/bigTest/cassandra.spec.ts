@@ -71,7 +71,7 @@ describe("GenericContainer", () => {
     activityJSONKey.forEach((key) => {
       if (key === 'time') {
         return new Date(activityJSON[key]).getTime() === new Date(initialJSON[key]).getTime()
-      } else if (key === 'extraContext') {
+      } else if (key === 'context') {
         return
       }
 

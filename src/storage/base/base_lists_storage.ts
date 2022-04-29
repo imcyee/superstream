@@ -1,4 +1,4 @@
-import { NotImplementedError } from "../errors"
+import { NotImplementedError } from "../../errors"
 
 /**
  * A storage used to simultaneously track data in one or more lists.

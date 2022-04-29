@@ -1,5 +1,5 @@
 import { AggregatedActivity } from "../activity/AggregatedActivity"
-import { BaseAggregator } from "./BaseAggregator"
+import { BaseAggregator } from "./base/BaseAggregator"
 import dayjs from 'dayjs'
 import { Mixin } from 'ts-mixer'
 

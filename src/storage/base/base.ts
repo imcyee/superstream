@@ -1,9 +1,9 @@
-import { Activity } from "../activity/Activity"
-import { AggregatedActivity } from "../activity/AggregatedActivity"
-import { getMetricsInstance } from "../metrics/node_statsd"
-import { DummySerializer } from "../serializers/dummy"
-import { SimpleTimelineSerializer } from "../serializers/SimpleTimelineSerializer"
-import { zip } from "../utils"
+import { Activity } from "../../activity/Activity"
+import { AggregatedActivity } from "../../activity/AggregatedActivity"
+import { getMetricsInstance } from "../../metrics/node_statsd"
+import { DummySerializer } from "../../serializers/dummy"
+import { SimpleTimelineSerializer } from "../../serializers/SimpleTimelineSerializer"
+import { zip } from "../../utils"
 
 /**
  * The feed uses two storage classes,

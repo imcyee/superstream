@@ -1,6 +1,6 @@
 import { zip } from "lodash"
 import { ActivitySerializer } from "../../serializers/ActivitySerializer"
-import { BaseActivityStorage } from "../base"
+import { BaseActivityStorage } from "../base/base"
 import { ShardedHashCache } from "./structures/hash"
 
 class ActivityCache extends ShardedHashCache {

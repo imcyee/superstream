@@ -1,6 +1,6 @@
-import { Activity } from "../activity/Activity"
-import { AggregatedActivity } from "../activity/AggregatedActivity"
-import { DuplicateActivityException, ValueError } from "../errors"
+import { Activity } from "../../activity/Activity"
+import { AggregatedActivity } from "../../activity/AggregatedActivity"
+import { DuplicateActivityException, ValueError } from "../../errors"
 
 /**
  * Base aggregator class

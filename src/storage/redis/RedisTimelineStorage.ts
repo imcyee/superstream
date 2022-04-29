@@ -1,6 +1,6 @@
 import { NotImplementedError, ValueError } from "../../errors"
 // import { zip } from "../../utils"
-import { BaseTimelineStorage } from "../base"
+import { BaseTimelineStorage } from "../base/base"
 import { getRedisConnection } from "./connection"
 import { RedisSortedSetCache } from "./structures/sorted_set"
 import zip from 'lodash/zip'

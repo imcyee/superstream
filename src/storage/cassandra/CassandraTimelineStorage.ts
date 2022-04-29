@@ -1,7 +1,7 @@
 import * as cassandra from 'cassandra-driver'
 import { NotImplementedError, ValueError } from "../../errors"
 import { CassandraActivitySerializer } from "../../serializers/cassandra/CassandraActivitySerializer"
-import { BaseTimelineStorage } from "../base"
+import { BaseTimelineStorage } from "../base/base"
 import { getClient } from "./connection"
 import { models } from "./models"
 
@@ -15,7 +15,7 @@ const q = cassandra.mapping.q;
  * Each row has data as such
  *  feed_id ascii, 
  *  actor_id ascii, 
- *  extra_context blob, 
+ *  context blob, 
  *  object_id ascii,
  *  target_id ascii,
  *  time timestamp,

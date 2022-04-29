@@ -1,4 +1,4 @@
-import { BaseActivityStorage } from "../base"
+import { BaseActivityStorage } from "../base/base"
 
 /**
  * Cassandra does not store seperate activity like redis

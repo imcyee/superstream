@@ -22,7 +22,7 @@ router.route('/feeds')
   })
   .post(async (req, res) => {
     console.log('adding feeds');
-    const { actorId, verbId, objectId, targetId, time, extraContext } = req.body
+    const { actorId, verbId, objectId, targetId, time, context } = req.body
     const { group, userId } = req.query
     const manager = new CustomManager()
     const activity = new Activity({
@@ -31,7 +31,7 @@ router.route('/feeds')
       object: objectId,
       target: targetId,
       time: time || new Date(),
-      extraContext: extraContext
+      context: context
     })
     const result = await manager.addUserActivity(userId, activity)
     return res.json(result)

@@ -2,7 +2,7 @@ import { Activity } from "../../activity/Activity"
 import { AssertionError } from "../../errors"
 import { BaseSerializer } from "../../serializers/BaseSerializer"
 import { SimpleTimelineSerializer } from "../../serializers/SimpleTimelineSerializer"
-import { BaseActivityStorage, BaseTimelineStorage } from "../../storage/base"
+import { BaseActivityStorage, BaseTimelineStorage } from "../../storage/base/base"
 
 /**
  * The feed class allows you to add and remove activities from a feed.

@@ -1,6 +1,5 @@
 // from celery import shared_task
 // from stream_framework.activity import Activity, AggregatedActivity
-
 import { Activity } from "./activity/Activity"
 import { AggregatedActivity } from "./activity/AggregatedActivity"
 import { BaseFeed } from "./feeds/base/base"
@@ -15,10 +14,9 @@ import { Manager } from "./feedManagers/base"
 
 // @shared_task
 export function fanout_operation(feedManager: Manager, FeedClass, user_ids, operation, operation_kwargs) {
-  // '''
+
   // Simple task wrapper for _fanout task
   // Just making sure code is where you expect it :)
-  // '''
   feedManager.fanout(user_ids, FeedClass, operation, operation_kwargs)
 
   const format = (a, b, c, d) => { return `${a} user_ids, ${b}, ${c} ${d}` }

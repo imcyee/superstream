@@ -1,4 +1,4 @@
-import { BaseActivity } from "./BaseActivity"
+import { BaseActivity } from "./base/BaseActivity"
 
 /** 
  * The dehydrated verions of an :class:`Activity`.
