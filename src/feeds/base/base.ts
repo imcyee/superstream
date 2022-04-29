@@ -243,7 +243,7 @@ export abstract class BaseFeed {
       batchInterface = null,
       trim = true,
       ...kwargs
-    }) { 
+    }) {
     const del_count = await this.timelineStorage.removeMany(
       this.key,
       activityIds,
@@ -269,8 +269,8 @@ export abstract class BaseFeed {
   // Trims the feed to the length specified
   // @param length: the length to which to trim the feed, defaults to this.maxLength
   async trim(length = null) {
-    length = length || this.maxLength 
-    await this.timelineStorage.trim(this.key, length) 
+    length = length || this.maxLength
+    await this.timelineStorage.trim(this.key, length)
   }
 
   // Count the number of items in the feed
@@ -403,11 +403,7 @@ export abstract class BaseFeed {
    * hydrates the activities using the activityStorage
    */
   async hydrateActivities(activities) {
-    const activityIds = []
-    for (const activity of activities) {
-      activityIds.push(...activity._activityIds)
-    }
-
+    const activityIds = activities.map((a) => a._activityIds)
     const activity_list = await this.activityStorage.getMany(activityIds)
 
     var activityData = {}
@@ -415,12 +411,12 @@ export abstract class BaseFeed {
       activityData[a.serializationId] = a
     }
 
-    const activities2 = []
+    const hydratedActivities = []
     for (const activity of activities) {
       const hydrated_activity = await activity.getHydrated(activityData)
-      activities2.push(hydrated_activity)
+      hydratedActivities.push(hydrated_activity)
     }
-    return activities2
+    return hydratedActivities
     // return [activity.getHydrated(activityData) for activity of activities]
   }
 
