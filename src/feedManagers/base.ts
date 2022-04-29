@@ -445,17 +445,17 @@ export class Manager {
 
   }
 
-  // '''
-  // Batch import all of the users activities and distributes
-  // them to the users followers
-  // **Example**::
-  //     activities = [long list of activities]
-  //     stream_framework.batchImport(13, activities, 500)
-  // :param userId: the user who created the activities
-  // :param activities: a list of activities from this user
-  // :param fanout: if we should run the fanout or not
-  // :param chunk_size: per how many activities to run the batch operations
-  // '''
+  /** 
+  * Batch import all of the users activities and distributes
+  * them to the users followers
+  * @example
+  *     activities = [long list of activities]
+  *     stream_framework.batchImport(13, activities, 500)
+  * :param userId: the user who created the activities
+  * :param activities: a list of activities from this user
+  * :param fanout: if we should run the fanout or not
+  * :param chunk_size: per how many activities to run the batch operations 
+  */
   batchImport(userId, activities, fanout = true, chunk_size = 500) {
     // activities = list(activities)
     // # skip empty lists

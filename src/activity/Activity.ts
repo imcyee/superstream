@@ -3,7 +3,7 @@ import { datetimeToEpoch, hashCode, hashCodePositive } from "../utils"
 import { BaseActivity } from "./base/BaseActivity"
 import { DehydratedActivity } from "./DehydratedActivity"
 import * as util from 'util'
-import {} from 'uuid'
+import { v1 as uuid } from 'uuid'
 
 
 /**
@@ -96,9 +96,9 @@ export class Activity extends BaseActivity {
    * :returns: int --the serialization id 
    */
   get serializationId() {
-    if (!this.time) 
+    if (!this.time)
       throw new TypeError('Cant serialize activities without a time')
- 
+
 
     // remove all the unhashable key such as :;,
     // convert any string to int any number and truncate the number to fixed size
@@ -115,7 +115,7 @@ export class Activity extends BaseActivity {
     return serializationId
   }
 
- 
+
   /**
    * set id to `field`_id  
    */
