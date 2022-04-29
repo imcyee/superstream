@@ -115,30 +115,7 @@ export class Activity extends BaseActivity {
     return serializationId
   }
 
-
-  /**
-   * Not required
-   * DehydratedActivity has serializationId
-   * @returns 
-   */
-  generateSerializationId() {
-    if (!this.time) {
-      throw new TypeError('Cant serialize activities without a time')
-    }
-
-    // remove all the unhashable key such as :;,
-    // convert any string to int any number and truncate the number to fixed size
-    // using object id and verb
-    // which can be generated repeatedly under any machine
-    const milliseconds = (Number(datetimeToEpoch(this.time) * 1000))
-    const objectIdPad = hashCodePositive(this.objectId + this.verbId)
-      .toString()
-      .padStart(10, '0')
-    const serialization_id_str = `${milliseconds}${objectIdPad}` // % (milliseconds, this.objectId, this.verb.id)
-    const serializationId = serialization_id_str
-    return serializationId
-  }
-
+ 
   /**
    * set id to `field`_id  
    */
