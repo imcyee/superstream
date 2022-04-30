@@ -62,6 +62,7 @@ export abstract class BaseRedisListCache extends RedisCache {
 }
 
 export class RedisListCache extends BaseRedisListCache {
+
   keyFormat = (s) => `redis:list_cache:${s}`
   // #: the maximum number of items the list stores
   max_items = 1000
@@ -81,12 +82,12 @@ export class RedisListCache extends BaseRedisListCache {
 
   async append(value) {
     const values = [value]
-    const results = await this.append_many(values)
+    const results = await this.appendMany(values)
     const result = results[0]
     return result
   }
 
-  async append_many(values) {
+  async appendMany(values) {
     const key = this.getKey()
     var results = []
     for (const value of values) {
@@ -144,9 +145,6 @@ export abstract class FallbackRedisListCache extends RedisListCache {
   keyFormat = s => `redis:db_list_cache:${s}`
 
   abstract get_fallback_results(start, stop)
-  //  {
-  //   throw new NotImplementedError('please define this function in subclasses')
-  // }
 
   // '''
   // Retrieves results from redis && the fallback datasource
@@ -205,7 +203,7 @@ export abstract class FallbackRedisListCache extends RedisListCache {
   // Hook to write the results from the fallback to redis
   // '''
   async cache(fallback_results) {
-    await this.append_many(fallback_results)
+    await this.appendMany(fallback_results)
   }
 
   // '''

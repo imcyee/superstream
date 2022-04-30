@@ -1,14 +1,10 @@
-// import redis
-//   from stream_framework import settings
-import * as redis from 'redis'  
+import * as redis from 'redis'
 
 var connection_pool = null
 var connection: redis.RedisClientType
 
 export function getRedisConnection(serverName: string = 'default') {
-  // 
-  // // Gets the specified redis connection
-  // 
+  // Gets the specified redis connection
   // global connection_pool
   if (!connection) {
     const pool = setupRedis()
@@ -16,11 +12,7 @@ export function getRedisConnection(serverName: string = 'default') {
     connection = pool
   }
   return connection
-  // const pool = connection_pool[serverName]
-  // return redis.StrictRedis(connection_pool = pool)
-  // return redis.StrictRedis(connection_pool = pool)
 }
-
 
 let config = {}
 
@@ -35,30 +27,15 @@ export function setupRedisConfig(_config: {
   return
 }
 
-export function setupRedis() {
-  // Starts the connection pool for all configured redis servers
-  // const pool = redis.createClient(
-  //   config['port'] || 6379,
-  //   config['host'] || 'redis'
-  // )
-
-  // const pool = redis.createClient({
-  //   socket: {
-  //     port: config['port'] || 6379,
-  //     host: config['host'] || 'redis'
-  //   }
-  // })
-
-
+export function getRedisAddress() {
   const port = config['port'] || 6379
   const host = config['host'] || 'redis'
+  return `redis://${host}:${port}`
+}
 
+export function setupRedis() {
   const pool = redis.createClient({
-    url: `redis://${host}:${port}`
-    // socket: {
-    //   port: config['port'] || 6379,
-    //   host: config['host'] || 'redis'
-    // }
+    url: getRedisAddress()
   })
 
   pool

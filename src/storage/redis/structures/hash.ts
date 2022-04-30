@@ -7,11 +7,9 @@ import merge from 'lodash/merge'
 import toPairs from 'lodash/toPairs'
 import * as crypto from 'crypto'
 import createDebug from 'debug'
-import { RedisClientType } from "redis"
 
 const debug = createDebug('ns:debug')
 
-const md5sum = crypto.createHash('md5');
 
 export class BaseRedisHashCache extends RedisCache {
   keyFormat = (s) => `redis:base_hash_cache:${s}`
@@ -53,7 +51,7 @@ export class RedisHashCache extends BaseRedisHashCache {
     return keys
   }
 
-  async delete_many(fields) {
+  async deleteMany(fields) {
     var results = {}
     for (const field of fields) {
       const key = this.getKey(field)
@@ -78,12 +76,12 @@ export class RedisHashCache extends BaseRedisHashCache {
 
   set(key, value) {
     const key_value_pairs = [[key, value]]
-    const results = this.set_many(key_value_pairs)
+    const results = this.setMany(key_value_pairs)
     const result = results[0]
     return result
   }
 
-  async set_many(key_value_pairs) {
+  async setMany(key_value_pairs) {
     var results = []
     for (const a of key_value_pairs) {
       const [field, value] = a
@@ -122,7 +120,7 @@ export class FallbackHashCache extends RedisHashCache {
       // # redis
       results = merge(results, database_results)
       // results.update(database_results)
-      this.set_many(toPairs(database_results))
+      this.setMany(toPairs(database_results))
     }
     return results
   }
@@ -159,7 +157,7 @@ export class ShardedHashCache extends RedisHashCache {
     field = field.toString() // .encode('utf-8') 
     const md5sumDigested = crypto.createHash('md5')
       .update(field)
-      .digest("hex");// md5sum.digest(field) 
+      .digest("hex");
     const number = parseBigInt(md5sumDigested.toString(), 16)
     const position = Number(number % BigInt(this.number_of_keys))
     return `${this.key}:${position}`
@@ -173,13 +171,13 @@ export class ShardedHashCache extends RedisHashCache {
       debug(`getting field ${field} from ${key}`)
       const result = await this.redis.hGet(key, field)
       results[field] = result
-    } 
+    }
     results = dictZip(zip(fields, Object.values(results)))
     return results
   }
 
 
-  async delete_many(fields) {
+  async deleteMany(fields) {
     var results = {}
 
     for (const field of fields) {
@@ -189,16 +187,12 @@ export class ShardedHashCache extends RedisHashCache {
       const result = await this.redis.hDel(key, field)
       results[field] = result
     }
-
     results = dictZip(zip(fields, Object.values(results)))
-    // # results = dict((k, v) for k, v in results.items() if v)
-
     return results
   }
 
+  // Returns the number of elements in the sorted set
   async count() {
-    // Returns the number of elements in the sorted set
-    console.warn('counting all keys is slow && should be used sparsely');
     const keys = this.getKeys()
     var total = 0
     for (const key of keys) {
@@ -210,15 +204,13 @@ export class ShardedHashCache extends RedisHashCache {
   }
 
   async contains(field): Promise<boolean> {
-    throw new NotImplementedError(
-      'contains isnt implemented for ShardedHashCache')
+    throw new NotImplementedError('contains isnt implemented for ShardedHashCache')
   }
 
   async delete() {
     // Delete all the base variations of the key 
     console.warn('deleting all keys is slow && should be used sparsely');
     const keys = this.getKeys()
-
     for await (const key of keys) {
       // # TODO, batch this, but since we barely do this
       // # not too important  
@@ -238,24 +230,4 @@ export class ShardedHashCache extends RedisHashCache {
     return fields
   }
 }
-
-// export class ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache { }
-
-// interface ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache { }
-// // Apply the mixins into the base class via
-// // the JS at runtime
-// applyMixins(ShardedDatabaseFallbackHashCache, [ShardedHashCache, FallbackHashCache]);
-
-// // This can live anywhere in your codebase:
-// function applyMixins(derivedCtor: any, constructors: any[]) {
-//   constructors.forEach((baseCtor) => {
-//     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-//       Object.defineProperty(
-//         derivedCtor.prototype,
-//         name,
-//         Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
-//         Object.create(null)
-//       );
-//     });
-//   });
-// }
+ 

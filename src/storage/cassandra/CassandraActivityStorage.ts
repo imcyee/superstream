@@ -1,8 +1,7 @@
 import { BaseActivityStorage } from "../base/base_activity_storage";
 
-
 /**
- * Cassandra does not store seperate activity like redis
+ * Cassandra does not store seperate activity like in redis
  * all the activity is store within cassandra row
  * this is here to fulfill inheritance
  */

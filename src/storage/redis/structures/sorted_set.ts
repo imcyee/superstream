@@ -1,17 +1,14 @@
+import createDebug from 'debug'
 import chunk from 'lodash/chunk'
+import { Mixin } from 'ts-mixer'
 import { promisify } from 'util'
 import { ValueError } from "../../../errors"
 import { zip } from "../../../utils"
-import { RedisCache } from "./base"
+import { TScoreValuePair } from '../redis.type'
 import { BaseRedisHashCache } from "./hash"
 import { BaseRedisListCache } from "./list"
-import createDebug from 'debug'
-import { Mixin } from 'ts-mixer';
-import { RedisClientType } from 'redis'
-import { TScoreValuePair } from '../redis.type'
 
 const debug = createDebug('ns:debug:sorted_set')
-
 
 /**
  * We use this mostly to store activityId with score
@@ -59,8 +56,8 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     const results = await this.addMany(scoreValuePairs)
     const result = results[0]
     return result
-  } 
- 
+  }
+
   async addMany(scoreValuePairs: TScoreValuePair[]) {
     // validate
     const key = this.getKey()
@@ -148,13 +145,12 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     max_score = null
   }) {
     // #-1 means infinity
-    if (!stop) {
+    if (!stop) 
       stop = -1
-    }
-    if (!start) {
+    
+    if (!start) 
       start = 0
-    }
-
+    
     var limit
     if (stop != -1) {
       limit = stop - start
@@ -164,23 +160,19 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     const key = this.getKey()
 
     // #some type validations
-    if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string')) {
+    if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string')) 
       throw new ValueError(`min_score is not of type float, int, long or str got ${min_score}`)
-    }
 
-    if (max_score && (typeof max_score !== 'number' || typeof max_score !== 'string')) {
-      throw new ValueError(
-        `max_score is not of type float, int, long or str got ${max_score}`)
-    }
+    if (max_score && (typeof max_score !== 'number' || typeof max_score !== 'string')) 
+      throw new ValueError( `max_score is not of type float, int, long or str got ${max_score}`)
+    
 
-    if (!min_score) {
+    if (!min_score) 
       min_score = this.sort_asc ? '-inf' : '+inf'
-    }
-
-    if (!max_score) {
+    
+    if (!max_score) 
       max_score = this.sort_asc ? '+inf' : '-inf'
-    }
-
+    
     const results = await this.redis.zRangeWithScores(
       key,
       min_score,
@@ -195,9 +187,8 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
         }
       }
     )
-
     const a = []
-    results.map(element => {
+    results.forEach(element => {
       a.push(element.value)
       a.push(element.score)
     })
@@ -205,23 +196,4 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
   }
 }
 
-
-// export interface RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache { }
-
-// // Apply the mixins into the base class via
-// // the JS at runtime
-// applyMixins(RedisSortedSetCache, [BaseRedisListCache, BaseRedisHashCache]);
-
-// // This can live anywhere in your codebase:
-// function applyMixins(derivedCtor: any, constructors: any[]) {
-//   constructors.forEach((baseCtor) => {
-//     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-//       Object.defineProperty(
-//         derivedCtor.prototype,
-//         name,
-//         Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
-//         Object.create(null)
-//       );
-//     });
-//   });
-// }
+ 

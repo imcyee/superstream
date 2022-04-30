@@ -1,12 +1,18 @@
 import { RedisClientType } from "redis"
 import { getRedisConnection } from "../connection"
 
+type RedisKey = string
+
 export class RedisCache {
 
   // The base for all redis data structures
   keyFormat = (s) => `redis:cache:${s}`
-  key
+
+  /** Redis key */
+  key: RedisKey
+
   source
+
   _redis: RedisClientType
 
   redis_server: string
@@ -26,27 +32,25 @@ export class RedisCache {
     this.redis_server = redis_server
   }
 
-  getRedis() {
-    // Only load the redis connection if we use it
-    if (!this._redis) {
-      this._redis = getRedisConnection(this.redis_server)
-    }
-    return this._redis
+  getKey() {
+    return this.key
   }
 
-  // Sets the redis connection
-  set_redis(value) {
-    this._redis = value
+  getRedis() {
+    // Only load the redis connection if we use it
+    if (!this._redis)
+      this._redis = getRedisConnection(this.redis_server)
+
+    return this._redis
   }
 
   get redis(): RedisClientType {
     const redis = this.getRedis()
     return redis
   }
-  set redis(value) { this.set_redis(value) }
 
-  getKey() {
-    return this.key
+  set redis(value) {
+    this._redis = value
   }
 
   async delete() {
@@ -54,20 +58,4 @@ export class RedisCache {
     await this.redis.del(key)
     return
   }
-
-  // // Redis in JS all command is sended in pipeline
-  // // If the redis connection is already in distributed state use it
-  // // Otherwise spawn a new distributed connection using .map
-  // async _pipeline_if_needed<T>(operation, kwargs): Promise<T> {
-  //   var results
-  //   // const pipe_needed = !(this.redis instanceof BasePipeline)
-  //   // if (pipe_needed) {
-  //   //   const pipe = this.redis.pipeline(transaction = false)
-  //   //   operation(pipe, kwargs)
-  //   //   results = pipe.execute()
-  //   // } else { 
-  //   results = await operation(this.redis, kwargs)
-  //   // }
-  //   return results
-  // }
 }

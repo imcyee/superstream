@@ -31,10 +31,8 @@ describe("GenericContainer", () => {
     const activity1 = generateActivity()
     await RedisFeed.insertActivity(activity1)
 
-    await feed.add(activity1)
-
-    const result = await feed.getItem(0, 5)
-    console.log(result);
+    await feed.add(activity1) 
+    const result = await feed.getItem(0, 5) 
     expect(result.length).toBe(1)
   });
 

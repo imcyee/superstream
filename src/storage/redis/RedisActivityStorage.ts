@@ -28,7 +28,7 @@ export class RedisActivityStorage extends BaseActivityStorage {
   async addToStorage(serializedActivities, kwargs) {
     const cache = this.getCache()
     const key_value_pairs = zip(Object.keys(serializedActivities), Object.values(serializedActivities))
-    const result = await cache.set_many(key_value_pairs)
+    const result = await cache.setMany(key_value_pairs)
     var insert_count = 0
     if (result) {
       // should check number of ok in result
@@ -41,7 +41,7 @@ export class RedisActivityStorage extends BaseActivityStorage {
   removeFromStorage(activityIds, kwargs) {
     // # we never explicitly remove things from storage
     const cache = this.getCache()
-    const result = cache.delete_many(activityIds)
+    const result = cache.deleteMany(activityIds)
     return result
   }
 

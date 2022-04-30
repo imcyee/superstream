@@ -37,7 +37,6 @@ export abstract class BaseTimelineStorage extends BaseStorage {
   ) {
     this.metrics.onFeedWrite(this.constructor.name, activities?.length)
     const serializedActivities = this.serializeActivities(activities)
-    console.log('in addMany', serializedActivities);
     return this.addToStorage(
       key,
       serializedActivities,
@@ -49,7 +48,7 @@ export abstract class BaseTimelineStorage extends BaseStorage {
     key,
     serializedActivities,
     opts
-  ): Promise<any[]>
+  ): Promise<any>
 
   remove(key, activity, opts) {
     return this.removeMany(key, [activity], opts)

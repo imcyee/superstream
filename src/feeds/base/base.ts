@@ -199,7 +199,8 @@ export abstract class BaseFeed {
     kwargs?: {
       batchInterface?,
       trim?: boolean,
-    }) {
+    }
+  ) {
     return await this.addMany([activity], kwargs)
   }
 
@@ -210,15 +211,14 @@ export abstract class BaseFeed {
   async addMany(
     activities,
     optsArg?
-  ) {
+  ): Promise<number> {
     const {
       batchInterface = null,
       trim = true,
       ...opts
     } = optsArg || {}
-    // validate_list_of_strict(activities, (this.ActivityClass, FakeActivity))
 
-    const add_count = await this.timelineStorage.addMany(
+    const addCount = await this.timelineStorage.addMany(
       this.key,
       activities,
       {
@@ -230,7 +230,7 @@ export abstract class BaseFeed {
       this.trim()
     }
     this.onUpdateFeed({ newInserted: activities, deleted: [] })
-    return add_count
+    return addCount
   }
 
   async remove(activityId, kwargs = {}) {
