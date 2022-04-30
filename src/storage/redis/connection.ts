@@ -1,10 +1,9 @@
 // import redis
 //   from stream_framework import settings
-import * as redis from 'redis'
-import { RedisClientType } from 'redis/dist/lib/client'
+import * as redis from 'redis'  
 
 var connection_pool = null
-var connection: RedisClientType
+var connection: redis.RedisClientType
 
 export function getRedisConnection(serverName: string = 'default') {
   // 
@@ -13,6 +12,7 @@ export function getRedisConnection(serverName: string = 'default') {
   // global connection_pool
   if (!connection) {
     const pool = setupRedis()
+    // @ts-ignore
     connection = pool
   }
   return connection

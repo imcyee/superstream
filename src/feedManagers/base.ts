@@ -215,7 +215,7 @@ export class Manager {
   // :returns dict: a dictionary with the feeds we're pushing to
   // '''
   getFeeds(userId): {
-    [key: string]: BaseFeed
+    [key: string]: UserBaseFeed
   } {
     const feeds_dict = {}
     for (const [k, Feed] of Object.entries(this.FeedClasses)) {
@@ -254,7 +254,7 @@ export class Manager {
   // :param feed: the feed to copy to
   // :param source_feed: the feed with a list of activities to add
   // '''
-  async followFeed(feed: BaseFeed, source_feed: BaseFeed) {
+  async followFeed(feed: UserBaseFeed, source_feed: UserBaseFeed) {
     const activities = await source_feed.getItem(0, this.follow_activity_limit)
     if (activities.length)
       return await feed.addMany(activities)
@@ -266,7 +266,7 @@ export class Manager {
   // :param feed: the feed to copy to
   // :param source_feed: the feed with a list of activities to remove
   // '''
-  async unfollowFeed(feed: BaseFeed, source_feed: BaseFeed) {
+  async unfollowFeed(feed: UserBaseFeed, source_feed: UserBaseFeed) {
     const activities = await source_feed.getItem(0) // from 0 to end of activities need to slice
     if (activities.length) {
       const activityIds = activities.map(a => a.serializationId)

@@ -5,7 +5,7 @@ import { dictZip, parseBigInt, zip } from "../../../utils"
 import range from 'lodash/range'
 import merge from 'lodash/merge'
 import toPairs from 'lodash/toPairs'
-import * as crypto from 'crypto' 
+import * as crypto from 'crypto'
 import createDebug from 'debug'
 import { RedisClientType } from "redis"
 
@@ -55,19 +55,12 @@ export class RedisHashCache extends BaseRedisHashCache {
 
   async delete_many(fields) {
     var results = {}
-
-    async function _delete_many(redis, fields) {
-      for (const field of fields) {
-        const key = this.getKey(field)
-        debug(`removing field ${field} from ${key}`)
-        const result = await promisify(redis.hdel)(key, field)
-        results[field] = result
-      }
-      return results
+    for (const field of fields) {
+      const key = this.getKey(field)
+      debug(`removing field ${field} from ${key}`)
+      const result = await promisify(this.redis.hDel)(key, field)
+      results[field] = result
     }
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_delete_many, fields)
-
     return results
   }
 
@@ -92,20 +85,13 @@ export class RedisHashCache extends BaseRedisHashCache {
 
   async set_many(key_value_pairs) {
     var results = []
-
-    async function _set_many(redis: RedisClientType, key_value_pairs) {
-      for (const a of key_value_pairs) {
-        const [field, value] = a
-        const key = this.getKey(field)
-        debug(`writing hash(${key}) field ${field} to ${value}`)
-        const result = await redis.hSet(key, { [field]: value })
-        results.push(result)
-      }
-      return results
+    for (const a of key_value_pairs) {
+      const [field, value] = a
+      const key = this.getKey(field)
+      debug(`writing hash(${key}) field ${field} to ${value}`)
+      const result = await this.redis.hSet(key, { [field]: value })
+      results.push(result)
     }
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_set_many.bind(this), key_value_pairs)
-
     return results
   }
 }
@@ -118,18 +104,14 @@ export class FallbackHashCache extends RedisHashCache {
   async getMany(fields, database_fallback = true) {
     var results = {}
 
-    async function _get_many(redis, fields) {
-      for (const field of fields) {
-        // # allow for easy sharding
-        const key = this.getKey(field)
-        debug(`getting field ${field} from ${key}`)
-        const result = await promisify(redis.hget)(key, field)
-        results[field] = result
-      }
-      return results
+    for (const field of fields) {
+      // # allow for easy sharding
+      const key = this.getKey(field)
+      debug(`getting field ${field} from ${key}`)
+      const result = await promisify(this.redis.hGet)(key, field)
+      results[field] = result
     }
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many, fields)
+
     results = zip(fields, Object.values(results))
 
     // # query missing results from the database && store them
@@ -184,26 +166,15 @@ export class ShardedHashCache extends RedisHashCache {
   }
 
   async getMany(fields) {
-    console.log('fields', fields);
-    async function _get_many(redis: RedisClientType, fields) {
-      var results = {}
-      for await (const field of fields) {
-        // # allow for easy sharding
-        const key = this.getKey(field)
-        console.log('field', field, key);
-        debug(`getting field ${field} from ${key}`)
-        const result = await redis.hGet(key, field)
-        console.log(result);
-        results[field] = result
-      }
-      return results
-    }
     var results = {}
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many.bind(this), fields)
-    console.log(results);
+    for await (const field of fields) {
+      // # allow for easy sharding
+      const key = this.getKey(field)
+      debug(`getting field ${field} from ${key}`)
+      const result = await this.redis.hGet(key, field)
+      results[field] = result
+    } 
     results = dictZip(zip(fields, Object.values(results)))
-
     return results
   }
 
@@ -211,19 +182,14 @@ export class ShardedHashCache extends RedisHashCache {
   async delete_many(fields) {
     var results = {}
 
-    async function _get_many(redis: RedisClientType, fields) {
-      for (const field of fields) {
-        // # allow for easy sharding
-        const key = this.getKey(field)
-        debug(`getting field ${field} from ${key}`)
-        const result = await redis.hDel(key, field)
-        results[field] = result
-      }
-      return results
+    for (const field of fields) {
+      // # allow for easy sharding
+      const key = this.getKey(field)
+      debug(`getting field ${field} from ${key}`)
+      const result = await this.redis.hDel(key, field)
+      results[field] = result
     }
 
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many, fields)
     results = dictZip(zip(fields, Object.values(results)))
     // # results = dict((k, v) for k, v in results.items() if v)
 

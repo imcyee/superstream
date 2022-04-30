@@ -1,5 +1,5 @@
 import { RedisClientType } from "redis"
-import { getRedisConnection } from "../connection" 
+import { getRedisConnection } from "../connection"
 
 export class RedisCache {
 
@@ -55,19 +55,19 @@ export class RedisCache {
     return
   }
 
-  // If the redis connection is already in distributed state use it
-  // Otherwise spawn a new distributed connection using .map
-  async _pipeline_if_needed(operation, kwargs) {
-    var results
-    // const pipe_needed = !(this.redis instanceof BasePipeline)
-    // if (pipe_needed) {
-    //   const pipe = this.redis.pipeline(transaction = false)
-    //   operation(pipe, kwargs)
-    //   results = pipe.execute()
-    // } else { 
-    results = await operation(this.redis, kwargs)
-    // }
-    return results
-  }
+  // // Redis in JS all command is sended in pipeline
+  // // If the redis connection is already in distributed state use it
+  // // Otherwise spawn a new distributed connection using .map
+  // async _pipeline_if_needed<T>(operation, kwargs): Promise<T> {
+  //   var results
+  //   // const pipe_needed = !(this.redis instanceof BasePipeline)
+  //   // if (pipe_needed) {
+  //   //   const pipe = this.redis.pipeline(transaction = false)
+  //   //   operation(pipe, kwargs)
+  //   //   results = pipe.execute()
+  //   // } else { 
+  //   results = await operation(this.redis, kwargs)
+  //   // }
+  //   return results
+  // }
 }
- 

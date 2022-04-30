@@ -35,7 +35,6 @@ export abstract class BaseActivityStorage extends BaseStorage {
   async getMany(activityIds, opts?) {
     this.metrics.onFeedRead(this.constructor.name, activityIds?.length)
     const activitiesData = await this.getFromStorage(activityIds, opts)
-
     return this.deserializeActivities(activitiesData)
   }
 

@@ -1,5 +1,6 @@
 import { Activity } from "../../activity/Activity"
 import { AssertionError } from "../../errors"
+import { ActivitySerializer } from "../../serializers/ActivitySerializer"
 import { BaseSerializer } from "../../serializers/BaseSerializer"
 import { SimpleTimelineSerializer } from "../../serializers/SimpleTimelineSerializer"
 import { BaseActivityStorage } from "../../storage/base/base_activity_storage"

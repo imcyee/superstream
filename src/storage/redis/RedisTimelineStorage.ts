@@ -7,6 +7,7 @@ import createDebug from 'debug'
 import { BaseTimelineStorage } from "../base/base_timeline_storage"
 import * as uuid from 'uuid'
 import { v1time } from "../../utils/v1time"
+import { TScoreValuePair } from "./redis.type"
 
 const debug = createDebug('test:RedisTimelineStorage')
 
@@ -140,11 +141,11 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
 
   async addToStorage(
     key,
-    activities: {
-      [activityId: string]: [time: number]
+    activities: ({
+      [activityId: string]: string // activityId
     } | {
-      [aggregateTimestamp: string]: [aggregratedActivityInString: number],
-    }, // in the form of 123:123
+      [aggregateTimestamp: string]: string // aggregratedActivityInString
+    }), // in the form of 123:123
     kwargs = {} as any
   ) {
     const { batchInterface } = kwargs
@@ -170,10 +171,13 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
 
     // const scores = Object.keys(activities)  // map(long_t, activities.keys())
     const values = Object.values(activities)
+
+    const v = values[0]
+
     // const scores = Object.values(activities)  // map(long_t, activities.keys())
     // const values = Object.keys(activities)
 
-    const scoreValuePairs = zip(scores, values)
+    const scoreValuePairs = zip<string | number, string>(scores, values)
     // const scoreValuePairs = zip(scores, Object.values(activities))
 
     const result = await cache.addMany(scoreValuePairs)
@@ -181,7 +185,7 @@ export class RedisTimelineStorage extends BaseTimelineStorage {
     for (const r of result) {
       // # errors in strings?
       // # anyhow throw new them here :)
-      if (r?.isdigit && !r.isdigit()) {
+      if (isNaN(Number(r))) {
         throw new ValueError(`got error ${r} in results ${result}`)
       }
       return result

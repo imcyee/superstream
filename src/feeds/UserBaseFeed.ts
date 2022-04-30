@@ -1,5 +1,8 @@
 
-import { RedisFeed } from ".."
+import { Activity, RedisFeed } from ".."
+import { BaseSerializer } from "../serializers/BaseSerializer"
+import { BaseActivityStorage } from "../storage/base/base_activity_storage"
+import { BaseTimelineStorage } from "../storage/base/base_timeline_storage"
 import { BaseFeed } from "./base/base"
 
 // // Implementation of the base feed with a different

@@ -5,6 +5,9 @@ import { BaseFeed } from "./base/base"
 
 export class RedisFeed extends BaseFeed {
 
+  ['timelineStorage']: RedisTimelineStorage //  BaseTimelineStorage // | RedisTimelineStorage
+  ['activityStorage']: RedisActivityStorage
+
   static TimelineStorageClass = RedisTimelineStorage
   static ActivityStorageClass = RedisActivityStorage
   static ActivitySerializer = ActivitySerializer
