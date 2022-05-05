@@ -47,7 +47,7 @@ import { BaseTimelineStorage } from "../../storage/base/base_timeline_storage"
  * @example
  *     feed = BaseFeed(userId)
  *     feed.insertActivity(activity)
- *     follower_feed = BaseFeed(follower_user_id)
+ *     follower_feed = BaseFeed(follower_userId)
  *     feed.add(activity)
  * 
  * @description
@@ -119,6 +119,9 @@ export abstract class BaseFeed {
   _orderingArgs
 
   constructor(userId: string) {
+    if (!userId)
+      throw new Error(`userId must be defined, userId: ${userId}`)
+
     this.userId = userId
     this.key = this.keyFormat(this.userId)
 
@@ -245,8 +248,9 @@ export abstract class BaseFeed {
       batchInterface = null,
       trim = true,
       ...kwargs
-    }) {
-    const del_count = await this.timelineStorage.removeMany(
+    }
+  ) {
+    const delCount = await this.timelineStorage.removeMany(
       this.key,
       activityIds,
       {
@@ -255,6 +259,7 @@ export abstract class BaseFeed {
       }
       // kwargs
     )
+    console.log('del', delCount, 'key', this.key);
     // # trim the feed sometimes
     if (trim && Math.random() <= this.trimChance)
       this.trim()
@@ -262,7 +267,7 @@ export abstract class BaseFeed {
       newInserted: [],
       deleted: activityIds
     })
-    return del_count
+    return delCount
   }
 
   // A hook called when activities area created or removed from the feed
@@ -358,7 +363,7 @@ export abstract class BaseFeed {
     step?: number
   ) {
     if (!start && !stop) {
-      throw new TypeError()
+      throw new TypeError("Missing start/stop")
     }
 
     if ((start < 0) || (stop < 0)) {

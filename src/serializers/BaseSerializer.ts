@@ -16,10 +16,11 @@ export abstract class BaseSerializer {
   }
 
   checkType(data) {
+    console.log('data', data);
+    console.log('!(data instanceof Activity)', !(data instanceof Activity));
     if (!(data instanceof Activity)) {
-      throw new ValueError(
-        `we only know how to dump activities, not ${typeof (data)}`
-      )
+      console.log('throwing error');
+      throw new ValueError(`we only know how to dump activities, not ${typeof (data)}`)
     }
   }
 

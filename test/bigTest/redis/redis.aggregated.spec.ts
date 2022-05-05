@@ -8,6 +8,7 @@ describe("GenericContainer", () => {
   let container: StartedTestContainer;
 
   beforeAll(async () => {
+    
     // pull the image first
     container = await new GenericContainer("redis:6.2.5")
       .withExposedPorts(6379)

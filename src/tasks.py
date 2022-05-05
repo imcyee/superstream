@@ -3,7 +3,7 @@ from stream_framework.activity import Activity, AggregatedActivity
 
 
 @shared_task
-def fanout_operation(feed_manager, feed_class, user_ids, operation, operation_kwargs):
+def fanout_operation(feed_manager, feed_class, userIds, operation, operation_kwargs):
     '''
     Simple task wrapper for _fanout task
     Just making sure code is where you expect it :)
@@ -23,7 +23,7 @@ def fanout_operation_low_priority(feed_manager, feed_class, user_ids, operation,
 
 
 @shared_task
-def follow_many(feed_manager, user_id, target_ids, follow_limit):
+def follow_many(feed_manager, user_id, targetIds, follow_limit):
     feeds = feed_manager.get_feeds(user_id).values()
     target_feeds = map(feed_manager.get_user_feed, target_ids)
 

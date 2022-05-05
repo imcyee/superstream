@@ -195,3 +195,13 @@ setConfig({
 # Refillment Guide
 All activities queried are id only, hence it is required to rehydrate your activity before sending to client.
 Guide can be founded [here](./doc/refillment).
+
+
+# Serializer issue
+We used data serializer
+unlike in python (pickle) or java
+
+in JS we use json.
+
+Here is how we can serialize it if we have to.
+https://stackoverflow.com/a/11761533/11497165

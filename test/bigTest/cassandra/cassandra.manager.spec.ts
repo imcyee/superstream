@@ -1,36 +1,44 @@
 import faker from 'faker';
-import { GenericContainer } from "testcontainers";
-import { CassandraManager } from '../../../src/feedManagers/CassandraManager';
+import { GenericContainer, StartedTestContainer } from "testcontainers";
+import { setupRedisConfig } from '../../../src';
+import { CassandraTestManager } from '../../../src/feedManagers/cassandra/CassandraTestManager';
 import { runCassandraMigration } from '../../../src/storage/cassandra/cassandra.migration';
 import { setupCassandraConnection } from '../../../src/storage/cassandra/connection';
+import { fanoutLowWorker, fanoutHighWorker, fanoutWorker } from '../../../src/task';
+import { fanoutQueue, fanoutHighPriorityQueue, fanoutLowPriorityQueue, followManyQueue, unfollowManyQueue } from '../../../src/task_registration';
 import { generateActivity } from '../../utils/generateActivity';
+import { wait } from '../../utils/wait';
 
-
-/**
- * Test class for manager
- */
-export class TestManager extends CassandraManager {
-
-  async getUserFollowerIds() {
-    return {
-      HIGH: [
-        faker.datatype.uuid(),
-        faker.datatype.uuid(),
-        faker.datatype.uuid(),
-        faker.datatype.uuid(),
-      ]
-    }
-  }
-}
+const defaultTaskTimeout = 8000
 
 describe("GenericContainer", () => {
-  let container;
+  let container: StartedTestContainer
+  let container2: StartedTestContainer
 
   beforeAll(async () => {
-    container = await new GenericContainer("cassandra:3.11.0")
+
+
+    // pull the image first
+    const promise2 = new GenericContainer("redis:6.2.5")
+      // .withExposedPorts(6379)
+      .withExposedPorts({
+        container: 6379,
+        host: 6379
+      })
+      .start();
+    const promise1 = new GenericContainer("cassandra:3.11.0")
       .withExposedPorts(9042) // 7000 for node, 9042 for client
       .start();
 
+    const [c1, c2] = await Promise.all([promise1, promise2])
+    container = c1
+    container2 = c2
+
+
+    setupRedisConfig({
+      host: container2.getHost(),
+      port: container2.getMappedPort(6379),
+    })
 
     setupCassandraConnection({
       // host: '192.168.0.146',// container.getHost(),
@@ -38,72 +46,103 @@ describe("GenericContainer", () => {
       port: container.getMappedPort(9042),
     })
 
+
+
     await runCassandraMigration()
-    await new Promise(r => setTimeout(r, 1000))
+
+    // task is executed in seperated process
+    await wait(2500)
   }, 50000);
 
   afterAll(async () => {
 
     // wait for statsd to flush out 
-    await new Promise((r) => {
-      setTimeout(r, 3000)
-    })
-    await container.stop();
+    await wait(2500)
+    await fanoutQueue.close()
+    await fanoutHighPriorityQueue.close()
+    await fanoutLowPriorityQueue.close()
+    await followManyQueue.close()
+    await unfollowManyQueue.close()
+
+    await fanoutLowWorker.close()
+    await fanoutHighWorker.close()
+    await fanoutWorker.close()
+
+    await container.stop()
+    await container2.stop()
   });
 
 
   it("Able to add user activity", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new TestManager()
-    await feed.addUserActivity(userId, generateActivity())
+    const feedManager = new CassandraTestManager()
 
+    console.log('before add');
+    await feedManager.addUserActivity(userId, generateActivity())
+    console.log('after add');
     // current user feed
-    const userFeed = feed.getUserFeed(userId)
+    const userFeed = feedManager.getUserFeed(userId)
+    console.log('before get');
     const activities = await userFeed.getItem(0, 5)
+    console.log('activities after get', activities);
+    console.log('after get length', activities.length);
     expect(activities.length).toBe(1)
-  });
+    console.log('expected here');
+    expect(activities.length).toBe(1)
+    console.log('expected here');
+  }, 80000);
 
 
   it("Able to fan out activities to follower", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new TestManager()
+    const feedManager = new CassandraTestManager()
     const followers = [
       faker.datatype.uuid(),
       faker.datatype.uuid()
     ]
-    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+    jest.spyOn(feedManager, 'getUserFollowerIds').mockImplementation(async () => ({
       'HIGH': followers
     }));
 
-    const followerFeed = feed.getUserFeed(followers[0])
+    const followerFeed = feedManager.getUserFeed(followers[0])
     const followerFeedItem0 = await followerFeed.getItem(0, 5)
     expect(followerFeedItem0.length).toBe(0)
 
-    await feed.addUserActivity(userId, generateActivity())
+    await feedManager.addUserActivity(userId, generateActivity())
 
     // current user feed
-    const userFeed = feed.getUserFeed(userId)
+    const userFeed = feedManager.getUserFeed(userId)
     const activities = await userFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
 
+    // fanout is slow if we test it right away we will get different result
+    // task is executed in seperated process
+    await wait(2500)
+
     // follower user feed 
     const followerFeedItem1 = await followerFeed.getItem(0, 5)
+    console.log('followerFeedItem1', followerFeedItem1);
     expect(followerFeedItem1.length).toBe(1)
 
     // add another entry 
-    await feed.addUserActivity(userId, generateActivity())
+    await feedManager.addUserActivity(userId, generateActivity())
 
     // fanout is slow if we test it right away we will get different result
-    await new Promise(r => setTimeout(r, 1000))
+    // task is executed in seperated process
+    await wait(2500)
 
     // follower user feed
     const followerFeedItem2 = await followerFeed.getItem(0, 5)
     expect(followerFeedItem2.length).toBe(2)
-  });
+
+
+
+  }, defaultTaskTimeout);
+
 
   it("Able to remove and remove fan out activities to follower", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new TestManager()
+    const feed = new CassandraTestManager()
 
     const followers = [
       faker.datatype.uuid(),
@@ -128,56 +167,70 @@ describe("GenericContainer", () => {
     // could generate error due to async that is not awaited fanout
     // there will be race condition
     // so a simple timeout to solve the race
-    await new Promise(r => setTimeout(r, 1000))
+
+    // task is executed in seperated process
+    await wait(2500)
+
     const followerFeedItem2 = await followerFeed.getItem(0, 5)
     expect(activities2.length).toBe(0)
     expect(followerFeedItem2.length).toBe(0)
-  });
+  }, defaultTaskTimeout);
 
   it("follow user and copy content", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new TestManager()
+    const feed = new CassandraTestManager()
     const followers = []
     jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
       'HIGH': followers
     }));
+
+    const newUserId = faker.datatype.uuid()
     const activity1 = generateActivity({
-      actor: userId
+      actor: `user:${userId}`,
+      target: `user:${newUserId}`,
     })
+
     await feed.addUserActivity(userId, activity1)
     // current user feed
     const userFeed = feed.getUserFeed(userId)
     const activities = await userFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
-    const newUserId = faker.datatype.uuid()
     await feed.followUser(newUserId, userId)
+
+    // task is executed in seperated process
+    await wait(2500)
+
     const newUserFeed = feed.getUserFeed(newUserId)
     const activities1 = await newUserFeed.getItem(0, 5)
     expect(activities1.length).toBe(1)
 
-  });
+  }, defaultTaskTimeout);
+
 
   it("unfollow user and remove copied content", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new TestManager()
+    const feed = new CassandraTestManager()
 
     const followers = []
     jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
       'HIGH': followers
     }));
-
+    const newUserId = faker.datatype.uuid()
     const activity1 = generateActivity({
-      actor: userId
+      actor: `user:${userId}`,
+      target: `user:${newUserId}`,
     })
     await feed.addUserActivity(userId, activity1)
 
     // current user feed
     const userFeed = feed.getUserFeed(userId)
 
+    // task is executed in seperated process
+    await wait(2500)
+
     const activities = await userFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
 
-    const newUserId = faker.datatype.uuid()
 
     await feed.followUser(newUserId, userId)
     const newUserFeed = feed.getUserFeed(newUserId)
@@ -185,14 +238,20 @@ describe("GenericContainer", () => {
     var newUserActivities = await newUserFeed.getItem(0, 5)
     expect(newUserActivities.length).toBe(1)
 
+
     await feed.unfollowUser(newUserId, userId)
-    await new Promise(r => setTimeout(r, 1000))
+
+    // task is executed in seperated process
+    await wait(2500)
+
     newUserActivities = await newUserFeed.getItem(0, 5)
     expect(newUserActivities.length).toBe(0)
 
     // let async task to settle
-    await new Promise(r => setTimeout(r, 1000))
-  });
+
+    // task is executed in seperated process
+    await wait(2500)
+  }, defaultTaskTimeout);
 
 
 });

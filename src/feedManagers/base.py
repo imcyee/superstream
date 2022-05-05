@@ -100,10 +100,10 @@ class Manager(object):
     follow_activity_limit = 5000
     # : the number of users which are handled in one asynchronous task
     # : when doing the fanout
-    fanout_chunk_size = 100
+    fanoutChunkSize = 100
 
     # maps between priority and fanout tasks
-    priority_fanout_task = {
+    priorityFanoutTask = {
         FanoutPriority.HIGH: fanout_operation_hi_priority,
         FanoutPriority.LOW: fanout_operation_low_priority
     }
@@ -294,14 +294,14 @@ class Manager(object):
         :param priority: the priority of the task
         :param feed_class: the feed_class the task will write to
         '''
-        return self.priority_fanout_task.get(priority, fanout_operation)
+        return self.priorityFanoutTask.get(priority, fanout_operation)
 
     def create_fanout_tasks(self, follower_ids, feed_class, operation, operation_kwargs=None, fanout_priority=None):
         '''
         Creates the fanout task for the given activities and feed classes
         followers
 
-        It takes the following ids and distributes them per fanout_chunk_size
+        It takes the following ids and distributes them per fanoutChunkSize
         into smaller tasks
 
         :param follower_ids: specify the list of followers
@@ -314,7 +314,7 @@ class Manager(object):
             fanout_priority, feed_class=feed_class)
         if not fanout_task:
             return []
-        chunk_size = self.fanout_chunk_size
+        chunk_size = self.fanoutChunkSize
         user_ids_chunks = list(chunks(follower_ids, chunk_size))
         msg_format = 'spawning %s subtasks for %s user ids in chunks of %s users'
         logger.info(

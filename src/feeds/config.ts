@@ -1,4 +1,4 @@
-var seperator = ''
+var seperator = ':'
 
 /**
  * set seperator for follow and unfollow function

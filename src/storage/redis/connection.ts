@@ -15,6 +15,8 @@ export function getRedisConnection(serverName: string = 'default') {
 }
 
 let config = {}
+/** Any get address call before setup will be falsy */
+let hasBeenSetup = false
 
 export function setupRedisConfig(_config: {
   port,
@@ -24,6 +26,7 @@ export function setupRedisConfig(_config: {
     ...config,
     ..._config
   }
+  hasBeenSetup = true
   return
 }
 

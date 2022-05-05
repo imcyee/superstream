@@ -38,7 +38,7 @@ export class CassandraActivitySerializer extends BaseSerializer {
 
   loads(serializedActivity) {
     // delete serializedActivity['activity_id']
-    delete serializedActivity['feed_id']
+    // delete serializedActivity['feed_id']
     // serializedActivity['verb'] = get_verb_by_id(serializedActivity['verb'])
     // serializedActivity['verb'] = get_verb_by_id(serializedActivity['verb'])
     // serializedActivity['context'] = pickle.loads(

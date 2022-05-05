@@ -36,7 +36,9 @@ export abstract class BaseTimelineStorage extends BaseStorage {
     opts
   ) {
     this.metrics.onFeedWrite(this.constructor.name, activities?.length)
+    console.log('before', activities);
     const serializedActivities = this.serializeActivities(activities)
+    console.log('serializedActivities', serializedActivities);
     return this.addToStorage(
       key,
       serializedActivities,

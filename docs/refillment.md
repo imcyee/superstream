@@ -171,7 +171,7 @@ activities.forEach((activity)=>{
 // YOUR DB ACCESS MODEL 
 const modelMap = {
   user: {
-    key: 'user_id',
+    key: 'userId',
     model: UserModel
   },
   ticket: {

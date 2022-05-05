@@ -5,10 +5,10 @@
 // from stream_framework.tests.managers.base import BaseManagerTest
 // import pytest
 
-import { Mixin } from "ts-mixer"
-import { Manager } from ".."
-import { CassandraFeed } from "../feeds/cassandra"
-import { UserBaseFeed } from "../feeds/UserBaseFeed"
+import { Mixin } from "ts-mixer" 
+import { CassandraFeed } from "../../feeds/cassandra"
+import { UserBaseFeed } from "../../feeds/UserBaseFeed" 
+import { Manager } from "../base"
 
 class CassandraUserBaseFeed extends Mixin(UserBaseFeed, CassandraFeed) { }
 

@@ -1,6 +1,6 @@
 import * as cassandra from 'cassandra-driver'
 import { NotImplementedError, ValueError } from "../../errors"
-import { CassandraActivitySerializer } from "../../serializers/cassandra/CassandraActivitySerializer" 
+import { CassandraActivitySerializer } from "../../serializers/cassandra/CassandraActivitySerializer"
 import { BaseTimelineStorage } from '../base/base_timeline_storage'
 import { getClient } from "./connection"
 import { models } from "./models"
@@ -81,6 +81,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
       kwargs
     }
   ) {
+    console.log('adding to storage', key, activities);
     const changes = []
     for (const modelInstance of Object.values(activities)) {
       // @ts-ignore
@@ -103,8 +104,8 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
         feed_id: key,
         activity_id: activityId
       }))
-    } 
-    await this.mapper.batch(changes) 
+    }
+    await this.mapper.batch(changes)
   }
 
   // trim using Cassandra's tombstones black magic
@@ -135,7 +136,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     const parameters = [key, maxLength + 1]
     console.log('execute trimming');
     console.log('query', query);
- 
+
     const results = await this.client.execute(query, parameters, { prepare: true })
     console.log('trimming result', results);
 

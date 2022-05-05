@@ -61,8 +61,11 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
   async addMany(scoreValuePairs: TScoreValuePair[]) {
     // validate
     const key = this.getKey()
+    console.log('scoreValuePairs',scoreValuePairs);
     const scores = (zip(...scoreValuePairs))[0]
     scores.forEach(element => {
+      console.log('element', element);
+
       if (isNaN(Number(element)))
         throw new Error(`Please send floats as the first part of the pairs got ${scoreValuePairs}`)
       return true
@@ -145,12 +148,12 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     max_score = null
   }) {
     // #-1 means infinity
-    if (!stop) 
+    if (!stop)
       stop = -1
-    
-    if (!start) 
+
+    if (!start)
       start = 0
-    
+
     var limit
     if (stop != -1) {
       limit = stop - start
@@ -160,19 +163,19 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     const key = this.getKey()
 
     // #some type validations
-    if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string')) 
+    if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string'))
       throw new ValueError(`min_score is not of type float, int, long or str got ${min_score}`)
 
-    if (max_score && (typeof max_score !== 'number' || typeof max_score !== 'string')) 
-      throw new ValueError( `max_score is not of type float, int, long or str got ${max_score}`)
-    
+    if (max_score && (typeof max_score !== 'number' || typeof max_score !== 'string'))
+      throw new ValueError(`max_score is not of type float, int, long or str got ${max_score}`)
 
-    if (!min_score) 
+
+    if (!min_score)
       min_score = this.sort_asc ? '-inf' : '+inf'
-    
-    if (!max_score) 
+
+    if (!max_score)
       max_score = this.sort_asc ? '+inf' : '-inf'
-    
+
     const results = await this.redis.zRangeWithScores(
       key,
       min_score,
@@ -196,4 +199,3 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
   }
 }
 
- 

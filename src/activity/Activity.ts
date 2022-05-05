@@ -24,8 +24,14 @@ export class Activity extends BaseActivity {
   verbId: string = null
   serializationId: string // uuid
 
+
+
   constructor({
     serializationId = null,
+    actorId = null,
+    objectId = null,
+    targetId = null,
+    verbId = null,
     actor,
     verb,
     object,
@@ -36,10 +42,10 @@ export class Activity extends BaseActivity {
     super()
 
     // sanitize invalid activity
-    if (!verb) // verb writetime is require to purge old data
+    if (!verb && !verbId) // verb writetime is require to purge old data
       throw new Error('This does not seems like a valid activity, verb is required')
 
-    if (!actor && !object && !target)
+    if (!(actor || actorId) && !(object || objectId) && !(target || targetId))
       throw new Error('This does not seems like a valid activity')
 
     this.serializationId = serializationId
@@ -49,11 +55,11 @@ export class Activity extends BaseActivity {
     this.time = time || Date.now() // datetime.datetime.utcnow()
 
     // this.verb = new VerbClass()
-    this._setObjectOrId('verb', verb)
+    this._setObjectOrId('verb', verb ?? verbId)
     // # either set .actor or .actorId depending on the data
-    this._setObjectOrId('actor', actor)
-    this._setObjectOrId('object', object)
-    this._setObjectOrId('target', target)
+    this._setObjectOrId('actor', actor ?? actorId)
+    this._setObjectOrId('object', object ?? objectId)
+    this._setObjectOrId('target', target ?? targetId)
 
 
     // # store the extra context which gets serialized
@@ -139,9 +145,16 @@ export class Activity extends BaseActivity {
     }
   }
 
+  /**
+   * 
+   * @example invocation
+   * - Serialization for task
+   * - console.log(activity)
+   * @returns 
+   */
   toJSON() {
     return {
-      activityId: this.serializationId,
+      serializationId: this.serializationId,
       time: this.time,
       context: this.context,
       objectId: this.objectId,
