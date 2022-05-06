@@ -165,9 +165,8 @@ setConfig({
 ```
  
 # Refillment Guide
-All activities queried are id only, hence it is required to rehydrate your activity before sending to client.
+All activities queried are id only, rehydration has to be done on your side.
 Guide can be founded [here](./doc/refillment).
-
 
 # Serializer issue
 We used data serializer
