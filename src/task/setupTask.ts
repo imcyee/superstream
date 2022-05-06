@@ -4,8 +4,8 @@ import IORedis from 'ioredis'
 import chunk from "lodash/chunk"
 import { getSeparator } from ".."
 import { Activity } from "../activity/Activity"
-import { AggregatedActivity } from "../activity/AggregatedActivity"
-import { managerRegistration } from "../feedManagers/manager_registration"
+import { AggregatedActivity } from "../activity/AggregatedActivity" 
+import { registeredManagers } from '../feedManagers/registerManager'
 import { BaseFeed } from "../feeds/base/base"
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import { Guard } from "../utils/Guard"
@@ -137,7 +137,7 @@ export const setupTask = async ({
         operationName,
         operationArgs
       } = job.data
-    
+
       const result = Guard.againstNullOrUndefinedBulk([
         { argumentName: 'operationName', argument: operationName },
         { argumentName: 'feedManagerName', argument: feedManagerName },
@@ -145,7 +145,7 @@ export const setupTask = async ({
       if (!result.succeeded)
         throw new Error(result.message)
 
-      const ManagerClass = managerRegistration[feedManagerName];
+      const ManagerClass = registeredManagers[feedManagerName]; 
       if (!ManagerClass)
         throw new Error("Unable to find manager class in Manager Registration.")
 
@@ -154,7 +154,7 @@ export const setupTask = async ({
       operationArgs.activities = operationArgs.activities.map((a) => {
         return new Activity(a)
       })
-   
+
       // we are creating a mini Manager that cant spawn task
       // const feedManager = ManagerClass.createNew();
       const feedManager = new ManagerClass({ tasks: taskQueues })
@@ -209,8 +209,8 @@ export const setupTask = async ({
       ])
       if (!result.succeeded)
         throw new Error(result.message)
-
-      const ManagerClass = managerRegistration[feedManagerName];
+ 
+      const ManagerClass = registeredManagers[feedManagerName];
       if (!ManagerClass)
         throw new Error("Unable to find manager class in Manager Registration.")
 
@@ -281,7 +281,7 @@ export const setupTask = async ({
       if (!result.succeeded)
         throw new Error(result.message)
 
-      const ManagerClass = managerRegistration[feedManagerName];
+      const ManagerClass = registeredManagers[feedManagerName]; 
       if (!ManagerClass)
         throw new Error("Unable to find manager class in Manager Registration.")
 

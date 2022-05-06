@@ -1,4 +1,3 @@
-
 export const getStorageName = () => {
   var storageName = 'redis'
   const storageOptions = ['redis', 'cassandra']

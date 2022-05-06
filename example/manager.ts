@@ -1,12 +1,13 @@
-// test file
-import { Manager, setupRedisConfig, Activity } from 'superstream'
+// Not tested example
+import { Manager, setupRedisConfig, Activity, RegisterManager, setupTask } from 'superstream'
 import { GenericContainer } from "testcontainers";
 import * as faker from 'faker'
 
 /**
- * extend manager class
+ * Extend manager class
  * Test class for manager
  */
+@RegisterManager()
 export class TestManager extends Manager {
   // override method to getUserFollowerIds
   async getUserFollowerIds() {
@@ -22,16 +23,25 @@ export class TestManager extends Manager {
 }
 
 (async () => {
-  const manager = new TestManager()
-  // pull the image first
-  const container = await new GenericContainer("redis:6.2.5")
+  // pull Redis image 
+  const redisContainer = await new GenericContainer("redis:6.2.5")
     .withExposedPorts(6379)
     .start();
 
+  // storage configuration
   setupRedisConfig({
-    host: container.getHost(),
-    port: container.getMappedPort(6379),
+    host: redisContainer.getHost(),
+    port: redisContainer.getMappedPort(6379),
   })
+
+  // task configuration
+  const setupProps = await setupTask({
+    host: redisContainer.getHost(),
+    port: redisContainer.getMappedPort(6379),
+  })
+
+  // after storage and task are successfully started
+  const managerFeed = new TestManager()
   const userId = faker.datatype.uuid()
 
   // create activity
@@ -40,13 +50,18 @@ export class TestManager extends Manager {
     verb: faker.random.arrayElement([`cinema:book`, 'themepark:go']),
     object: `movie:${faker.datatype.number()}`,
   })
-
-
-  await manager.addUserActivity(userId, activity)
+ 
+  await managerFeed.addUserActivity(userId, activity)
 
   // get current user feed
-  const userFeed = manager.getUserFeed(userId)
+  const userFeed = managerFeed.getUserFeed(userId)
 
   const activities = await userFeed.getItem(0, 5)
   console.log('activities: ', activities);
+
+  // cleanup
+  return async () => {
+    await setupProps.shutdown()
+    await redisContainer.stop()
+  }
 })()

@@ -7,6 +7,7 @@ import { RedisFeed } from "../feeds/RedisFeed"
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import { getMetricsInstance } from "../metrics/node_statsd"
 import { setupTask } from '../task/setupTask'
+import { RegisterManager } from './registerManager'
 // import type { setupTask } from '../task/setupTask'
 
 
@@ -67,6 +68,7 @@ const debug = createDebug('ns:debug:base')
  *             # removes the pin from the user's followers feeds
  *             this.removeUserActivity(pin.userId, activity)
 */
+@RegisterManager()
 export class Manager {
 
   // '''

@@ -1,9 +1,11 @@
 import faker from "faker";
+import { RegisterManager } from "../registerManager";
 import { CassandraManager } from "./CassandraManager";
 
 /**
  * Test class for manager
  */
+@RegisterManager()
 export class CassandraTestManager extends CassandraManager {
 
   async getUserFollowerIds() {

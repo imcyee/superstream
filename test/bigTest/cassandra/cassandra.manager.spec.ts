@@ -2,6 +2,7 @@ import faker from 'faker';
 import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { setupRedisConfig } from '../../../src';
 import { CassandraTestManager } from '../../../src/feedManagers/cassandra/CassandraTestManager';
+import { registeredManagers } from '../../../src/feedManagers/registerManager';
 import { runCassandraMigration } from '../../../src/storage/cassandra/cassandra.migration';
 import { setupCassandraConnection } from '../../../src/storage/cassandra/connection';
 import { setupTask } from '../../../src/task/setupTask';
@@ -56,7 +57,7 @@ describe("GenericContainer", () => {
       host: redisHost
     })
 
-
+    console.log('managers in here', registeredManagers);
     await runCassandraMigration()
 
     // task is executed in seperated process
