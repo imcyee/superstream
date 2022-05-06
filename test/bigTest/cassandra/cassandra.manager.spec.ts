@@ -10,6 +10,16 @@ import { wait } from '../../utils/wait';
 
 const defaultTaskTimeout = 8000
 
+// const followers = [
+//   faker.datatype.uuid(),
+//   faker.datatype.uuid()
+// ]
+// jest.spyOn(CassandraTestManager.prototype, 'getUserFollowerIds')
+//   .mockImplementation(async () => ({
+//     'HIGH': followers
+//   }));
+
+
 describe("GenericContainer", () => {
   let container: StartedTestContainer
   let container2: StartedTestContainer

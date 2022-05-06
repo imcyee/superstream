@@ -3,7 +3,6 @@ import { CassandraTestManager } from "./cassandra/CassandraTestManager";
 import { RedisManager } from "./redis/RedisManager";
 import { RedisTestManager } from "./redis/RedisTestManager";
 
-
 export const managerRegistration = {
   CassandraManager,
   RedisManager,
