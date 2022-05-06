@@ -1,58 +1,81 @@
 # Notice
-Currently, this library is in the process of porting and developing. This public repository is to seek help to port from [Stream Framework](https://github.com/tschellenbach/Stream-Framework).
+This library is still in the process of porting/developing from [Stream Framework](https://github.com/tschellenbach/Stream-Framework). 
 
+# Help needed
+If you wish to help, PR is always welcome.
 
 # Features: 
 - Activity Feed, eg: facebook feeds
 - Notification
 
-
-# Help wanted
-Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is most welcome.
-
 # Usage
 ```
-  import { Manager, setupRedisConfig } from 'superstream'
-  import faker from 'faker'
+import { Manager, setupRedisConfig, Activity, RegisterManager, setupTask } from 'superstream'
+import { GenericContainer } from "testcontainers";
+import * as faker from 'faker'
 
-  class CustomManager extends Manager {
-
-      // get your User FollowerIds
-      // to copy activities to your user's follower
-      async getUserFollowerIds(userId) {
-          const followerIds = await this.myDatabase.getFollowers(userId)
-          return {
-            [FanoutPriority.HIGH] : followerIds
-          }
-      }
+/**
+ * Extend manager class
+ * Test class for manager
+ */
+@RegisterManager()
+export class TestManager extends Manager {
+  // override method to getUserFollowerIds
+  async getUserFollowerIds() {
+    return {
+      HIGH: [
+        faker.datatype.uuid(),
+        faker.datatype.uuid(),
+        faker.datatype.uuid(),
+        faker.datatype.uuid(),
+      ]
+    }
   }
+}
 
-  (()=>{
-      setupRedisConfig({
-        host: 'localhost',
-        port: 6379
-      })
+(async () => {
+  // pull Redis image 
+  const redisContainer = await new GenericContainer("redis:6.2.5")
+    .withExposedPorts(6379)
+    .start();
 
-      const customManager = new CustomManager()
-
-      // user creates an activity
-      const newActivity = new Activity({
-        actor: `user:${faker.datatype.uuid()}`,
-        verb: faker.random.arrayElement([`cinema:book`, 'themepark:go']),
-        object: `movie:${faker.datatype.number()}`,
-        target: 'cinema:gold_bridge_cinema',
-        context: {
-          price: 12
-        }
-      })
-
-      // add to user feed
-      await feed.addUserActivity(userId, activity1)
-
-      // get current user feed
-      const userFeed = feed.getUserFeed(userId)
-      const activities = await userFeed.getItem(0, 5)
+  // storage configuration
+  setupRedisConfig({
+    host: redisContainer.getHost(),
+    port: redisContainer.getMappedPort(6379),
   })
+
+  // task configuration
+  const setupProps = await setupTask({
+    host: redisContainer.getHost(),
+    port: redisContainer.getMappedPort(6379),
+  })
+
+  // after storage and task are successfully started
+  const managerFeed = new TestManager()
+  const userId = faker.datatype.uuid()
+
+  // create activity
+  const activity = new Activity({
+    actor: `user:${faker.datatype.uuid()}`,
+    verb: faker.random.arrayElement([`cinema:book`, 'themepark:go']),
+    object: `movie:${faker.datatype.number()}`,
+  })
+ 
+  await managerFeed.addUserActivity(userId, activity)
+
+  // get current user feed
+  const userFeed = managerFeed.getUserFeed(userId)
+
+  const activities = await userFeed.getItem(0, 5)
+  console.log('activities: ', activities);
+
+  // cleanup
+  return async () => {
+    await setupProps.shutdown()
+    await redisContainer.stop()
+  }
+})()
 ```
  
 # How it works  
@@ -95,20 +118,7 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
 
 # How can you help 
 Please see this issue: https://github.com/imcyee/superstream/issues/1
-
-# Road map
-- [X] Support any type of id (now only support integer, and kinda problematic for string id)
-- [X] sorted set support of integer rank
-- [ ] Port aggregate
-  - [X] Direct translate
-  - [] Test
-  - [X] redis
-  - [ ] cassandra
-  - [ ] myrocks
-- [ ] Port manager
-
-
-
+  
 # Key concept
 ## Activity 
 an entity that enclose information, actors, context, objects, etc
@@ -117,13 +127,11 @@ Best practice - Saves only IDs instead of the whole object to activity and then 
 ## Feed
 A feed stores a collection of activities. 
 Each user can have a few feeds, such as notification feed that store all the notification feed. 
-
-
+ 
 ## Serializer
 Preparing data to be persisted/loaded, Each type of persistence will require a different serializer.
 It jobs determine how data is getting translate between api layer and persistence layer.
- 
-
+  
 ## Storage
 Currently supported storages are 
 - redis
@@ -157,12 +165,10 @@ Attach metadata like tags and categories (if applicable) to your activities. Thi
 If you're using ranked feeds we recommend storing counts of the likes and comments. That allows you to take those factors into account when sorting feeds.
 
 Activities have a max size. Storing a large amount of text is ok, storing images directly in the activity won't work, you should store the image URL instead.
-
-
+ 
 # Why timeline are saving to activity and timeline
 Each activity can be save in different feed, your custom feed, timeline feed, notification feed and etc. Saving a seperate activity can share among all feeds. Think of it as RMDBS normalization, like how we use join, instead of populating every row, which is fast but also waste spaces.
-
-
+ 
 # Running test 
 We are using testContainer which run with docker.
 If test failed: 
@@ -171,8 +177,7 @@ You may have to:
 
 # Credit
 Stream-Framework [https://github.com/tschellenbach/Stream-Framework] 
-
-
+ 
 # Follow user/unfollow user
 We will copy every activity that has actorId or targetId of the user being followed.
 Same goes for unfollow, all activities with actorId or targetId will be removed from current user feed. 
@@ -190,8 +195,7 @@ setConfig({
 })
 
 ```
-
-
+ 
 # Refillment Guide
 All activities queried are id only, hence it is required to rehydrate your activity before sending to client.
 Guide can be founded [here](./doc/refillment).
