@@ -1,8 +1,10 @@
 import { Activity } from "../../activity/Activity"
 import { AssertionError } from "../../errors"
+import { ActivitySerializer } from "../../serializers/ActivitySerializer"
 import { BaseSerializer } from "../../serializers/BaseSerializer"
 import { SimpleTimelineSerializer } from "../../serializers/SimpleTimelineSerializer"
-import { BaseActivityStorage, BaseTimelineStorage } from "../../storage/base"
+import { BaseActivityStorage } from "../../storage/base/base_activity_storage"
+import { BaseTimelineStorage } from "../../storage/base/base_timeline_storage"
 
 /**
  * The feed class allows you to add and remove activities from a feed.
@@ -45,7 +47,7 @@ import { BaseActivityStorage, BaseTimelineStorage } from "../../storage/base"
  * @example
  *     feed = BaseFeed(userId)
  *     feed.insertActivity(activity)
- *     follower_feed = BaseFeed(follower_user_id)
+ *     follower_feed = BaseFeed(follower_userId)
  *     feed.add(activity)
  * 
  * @description
@@ -94,7 +96,7 @@ export abstract class BaseFeed {
   static ActivitySerializer = BaseSerializer
 
   /**
-   * the class the timline storage should use for serialization
+   * the class the timeline storage should use for serialization
    */
   static TimelineSerializer = SimpleTimelineSerializer
 
@@ -117,6 +119,9 @@ export abstract class BaseFeed {
   _orderingArgs
 
   constructor(userId: string) {
+    if (!userId)
+      throw new Error(`userId must be defined, userId: ${userId}`)
+
     this.userId = userId
     this.key = this.keyFormat(this.userId)
 
@@ -197,7 +202,8 @@ export abstract class BaseFeed {
     kwargs?: {
       batchInterface?,
       trim?: boolean,
-    }) {
+    }
+  ) {
     return await this.addMany([activity], kwargs)
   }
 
@@ -208,15 +214,14 @@ export abstract class BaseFeed {
   async addMany(
     activities,
     optsArg?
-  ) {
+  ): Promise<number> {
     const {
       batchInterface = null,
       trim = true,
       ...opts
     } = optsArg || {}
-    // validate_list_of_strict(activities, (this.ActivityClass, FakeActivity))
 
-    const add_count = await this.timelineStorage.addMany(
+    const addCount = await this.timelineStorage.addMany(
       this.key,
       activities,
       {
@@ -228,24 +233,24 @@ export abstract class BaseFeed {
       this.trim()
     }
     this.onUpdateFeed({ newInserted: activities, deleted: [] })
-    return add_count
+    return addCount
   }
 
-  remove(activityId, kwargs = {}) {
-    return this.removeMany([activityId], kwargs)
+  async remove(activityId, kwargs = {}) {
+    return await this.removeMany([activityId], kwargs)
   }
 
-  removeMany(
+  // Remove many activities
+  // @param activityIds: a list of activities or activity ids
+  async removeMany(
     activityIds: string[],
     {
       batchInterface = null,
       trim = true,
       ...kwargs
-    }) {
-
-    // Remove many activities
-    // @param activityIds: a list of activities or activity ids
-    const del_count = this.timelineStorage.removeMany(
+    }
+  ) {
+    const delCount = await this.timelineStorage.removeMany(
       this.key,
       activityIds,
       {
@@ -261,7 +266,7 @@ export abstract class BaseFeed {
       newInserted: [],
       deleted: activityIds
     })
-    return del_count
+    return delCount
   }
 
   // A hook called when activities area created or removed from the feed
@@ -269,21 +274,21 @@ export abstract class BaseFeed {
 
   // Trims the feed to the length specified
   // @param length: the length to which to trim the feed, defaults to this.maxLength
-  trim(length = null) {
+  async trim(length = null) {
     length = length || this.maxLength
-    this.timelineStorage.trim(this.key, length)
+    await this.timelineStorage.trim(this.key, length)
   }
 
   // Count the number of items in the feed
-  count() {
-    return this.timelineStorage.count(this.key)
+  async count() {
+    return await this.timelineStorage.count(this.key)
   }
 
   __len__ = this.count
 
   // Delete the entire feed
-  delete() {
-    return this.timelineStorage.delete(this.key)
+  async delete() {
+    return await this.timelineStorage.delete(this.key)
   }
 
 
@@ -357,7 +362,7 @@ export abstract class BaseFeed {
     step?: number
   ) {
     if (!start && !stop) {
-      throw new TypeError()
+      throw new TypeError("Missing start/stop")
     }
 
     if ((start < 0) || (stop < 0)) {
@@ -404,24 +409,23 @@ export abstract class BaseFeed {
    * hydrates the activities using the activityStorage
    */
   async hydrateActivities(activities) {
+    // const activityIds = activities.map((a) => a._activityIds)
     const activityIds = []
-    for (const activity of activities) {
-      activityIds.push(...activity._activityIds)
-    }
+    activities.forEach(a => activityIds.push(...a._activityIds))
 
-    const activity_list = await this.activityStorage.getMany(activityIds)
+    const activityList = await this.activityStorage.getMany(activityIds)
 
     var activityData = {}
-    for (const a of activity_list) {
+    for (const a of activityList) {
       activityData[a.serializationId] = a
     }
 
-    const activities2 = []
+    const hydratedActivities = []
     for (const activity of activities) {
       const hydrated_activity = await activity.getHydrated(activityData)
-      activities2.push(hydrated_activity)
+      hydratedActivities.push(hydrated_activity)
     }
-    return activities2
+    return hydratedActivities
     // return [activity.getHydrated(activityData) for activity of activities]
   }
 

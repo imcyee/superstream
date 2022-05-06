@@ -15,8 +15,8 @@
 import { cloneDeep, uniq } from "lodash"
 import zip from "lodash/zip"
 import { Activity } from "../../activity/Activity"
-import { AggregatedActivity } from "../../activity/AggregatedActivity"
-import { RecentVerbAggregator } from "../../aggregators/base"
+import { AggregatedActivity } from "../../activity/AggregatedActivity" 
+import { RecentVerbAggregator } from "../../aggregators/recentVerb.aggregator"
 import { ValueError } from "../../errors"
 import { AggregatedActivitySerializer } from "../../serializers/AggregatedActivitySerializer"
 import { BaseFeed } from "../base/base"
@@ -67,7 +67,8 @@ export class AggregatedFeed extends BaseFeed {
   mergeMaxLength = 20
 
   //// # : we use a different timeline serializer for aggregated activities
-  TimelineSerializer = AggregatedActivitySerializer
+  static TimelineSerializer = AggregatedActivitySerializer
+  // TimelineSerializer = AggregatedActivitySerializer
 
   // '''
   // Returns the options for the timeline storage
@@ -105,16 +106,16 @@ export class AggregatedFeed extends BaseFeed {
       currentActivities = await this.getItem(0, this.mergeMaxLength)
     const msg_format = 'reading %s items took %s'
     // logger.debug(msg_format, this.mergeMaxLength, t.next())
- 
+
 
     // # merge the current activities with the new ones
     const { latest, changed, deleted } = aggregator.merge(currentActivities, activities)
     // logger.debug('merge took %s', t.next())
- 
+
 
     // # new ones we insert, changed we do a delete and insert
     var newAggregated = await this._updateFromDiff(latest, changed, deleted)
- 
+
     newAggregated = aggregator.rank(newAggregated)
 
     // # trim every now and then
@@ -343,7 +344,6 @@ export class AggregatedFeed extends BaseFeed {
   async addManyAggregated(aggregated, kwargs?) {
     // validate_list_of_strict(aggregated, [this.AggregatedActivityClass, FakeAggregatedActivity])
 
-    console.log(this.timelineStorage.constructor);
     await this.timelineStorage.addMany(this.key, aggregated, kwargs)
   }
 
@@ -432,8 +432,8 @@ export class AggregatedFeed extends BaseFeed {
     // # return the merge of these two
     var newAggregated = latest
 
-    
-    
+
+
     // if (changed)
     //   newAggregated += zip(...changed)[1]
     if (changed)

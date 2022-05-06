@@ -1,25 +1,13 @@
-import { NotImplementedError } from "../../errors"
-import { BaseActivityStorage } from "../base"
+import { BaseActivityStorage } from "../base/base_activity_storage";
 
 /**
- * Cassandra does not store seperate activity like redis
+ * Cassandra does not store seperate activity like in redis
  * all the activity is store within cassandra row
  * this is here to fulfill inheritance
  */
 export class CassandraActivityStorage extends BaseActivityStorage {
-
-  async getFromStorage(activityIds, kwargs): Promise<{}> {
-    throw new NotImplementedError('Not implemented')
-  }
-  async addToStorage(serializedActivities, kwargs) {
-    throw new NotImplementedError('Not implemented')
-  }
-  async removeFromStorage(activityIds, kwargs) {
-    throw new NotImplementedError('Not implemented')
-  }
-
-  flush() {
-    throw new Error('Not implement')
-    return 'not_implemented'
-  }
+  async getFromStorage(activityIds, kwargs) { /** no-op */ }
+  async addToStorage(serializedActivities, kwargs) { /** no-op */ }
+  async removeFromStorage(activityIds, kwargs) { /** no-op */ }
+  async flush() { /** no-op */ }
 }

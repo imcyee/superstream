@@ -6,12 +6,10 @@ import range from 'lodash/range'
 import merge from 'lodash/merge'
 import toPairs from 'lodash/toPairs'
 import * as crypto from 'crypto'
-import { RedisClientType } from "redis/dist/lib/client"
 import createDebug from 'debug'
 
 const debug = createDebug('ns:debug')
 
-const md5sum = crypto.createHash('md5');
 
 export class BaseRedisHashCache extends RedisCache {
   keyFormat = (s) => `redis:base_hash_cache:${s}`
@@ -53,21 +51,14 @@ export class RedisHashCache extends BaseRedisHashCache {
     return keys
   }
 
-  async delete_many(fields) {
+  async deleteMany(fields) {
     var results = {}
-
-    async function _delete_many(redis, fields) {
-      for (const field of fields) {
-        const key = this.getKey(field)
-        debug(`removing field ${field} from ${key}`)
-        const result = await promisify(redis.hdel)(key, field)
-        results[field] = result
-      }
-      return results
+    for (const field of fields) {
+      const key = this.getKey(field)
+      debug(`removing field ${field} from ${key}`)
+      const result = await promisify(this.redis.hDel)(key, field)
+      results[field] = result
     }
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_delete_many, fields)
-
     return results
   }
 
@@ -85,27 +76,20 @@ export class RedisHashCache extends BaseRedisHashCache {
 
   set(key, value) {
     const key_value_pairs = [[key, value]]
-    const results = this.set_many(key_value_pairs)
+    const results = this.setMany(key_value_pairs)
     const result = results[0]
     return result
   }
 
-  async set_many(key_value_pairs) {
+  async setMany(key_value_pairs) {
     var results = []
-
-    async function _set_many(redis: RedisClientType, key_value_pairs) {
-      for (const a of key_value_pairs) {
-        const [field, value] = a
-        const key = this.getKey(field)
-        debug(`writing hash(${key}) field ${field} to ${value}`)
-        const result = await redis.hSet(key, { [field]: value })
-        results.push(result)
-      }
-      return results
+    for (const a of key_value_pairs) {
+      const [field, value] = a
+      const key = this.getKey(field)
+      debug(`writing hash(${key}) field ${field} to ${value}`)
+      const result = await this.redis.hSet(key, { [field]: value })
+      results.push(result)
     }
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_set_many.bind(this), key_value_pairs)
-
     return results
   }
 }
@@ -118,18 +102,14 @@ export class FallbackHashCache extends RedisHashCache {
   async getMany(fields, database_fallback = true) {
     var results = {}
 
-    async function _get_many(redis, fields) {
-      for (const field of fields) {
-        // # allow for easy sharding
-        const key = this.getKey(field)
-        debug(`getting field ${field} from ${key}`)
-        const result = await promisify(redis.hget)(key, field)
-        results[field] = result
-      }
-      return results
+    for (const field of fields) {
+      // # allow for easy sharding
+      const key = this.getKey(field)
+      debug(`getting field ${field} from ${key}`)
+      const result = await promisify(this.redis.hGet)(key, field)
+      results[field] = result
     }
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many, fields)
+
     results = zip(fields, Object.values(results))
 
     // # query missing results from the database && store them
@@ -140,7 +120,7 @@ export class FallbackHashCache extends RedisHashCache {
       // # redis
       results = merge(results, database_results)
       // results.update(database_results)
-      this.set_many(toPairs(database_results))
+      this.setMany(toPairs(database_results))
     }
     return results
   }
@@ -153,7 +133,6 @@ export class FallbackHashCache extends RedisHashCache {
 
 
 export class ShardedHashCache extends RedisHashCache {
-
 
   // Use multiple keys instead of one so its easier to shard across redis machines
   number_of_keys = 10
@@ -178,59 +157,42 @@ export class ShardedHashCache extends RedisHashCache {
     field = field.toString() // .encode('utf-8') 
     const md5sumDigested = crypto.createHash('md5')
       .update(field)
-      .digest("hex");// md5sum.digest(field) 
+      .digest("hex");
     const number = parseBigInt(md5sumDigested.toString(), 16)
     const position = Number(number % BigInt(this.number_of_keys))
     return `${this.key}:${position}`
   }
 
   async getMany(fields) {
-
-    async function _get_many(redis: RedisClientType, fields) {
-      var results = {}
-      for await (const field of fields) {
-        // # allow for easy sharding
-        const key = this.getKey(field)
-        debug(`getting field ${field} from ${key}`)
-        const result = await redis.hGet(key, field)
-        results[field] = result
-      }
-      return results
-    }
     var results = {}
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many.bind(this), fields)
+    for await (const field of fields) {
+      // # allow for easy sharding
+      const key = this.getKey(field)
+      debug(`getting field ${field} from ${key}`)
+      const result = await this.redis.hGet(key, field)
+      results[field] = result
+    }
     results = dictZip(zip(fields, Object.values(results)))
-
     return results
   }
 
 
-  async delete_many(fields) {
+  async deleteMany(fields) {
     var results = {}
 
-    async function _get_many(redis: RedisClientType, fields) {
-      for (const field of fields) {
-        // # allow for easy sharding
-        const key = this.getKey(field)
-        debug(`getting field ${field} from ${key}`)
-        const result = await redis.hDel(key, field)
-        results[field] = result
-      }
-      return results
+    for (const field of fields) {
+      // # allow for easy sharding
+      const key = this.getKey(field)
+      debug(`getting field ${field} from ${key}`)
+      const result = await this.redis.hDel(key, field)
+      results[field] = result
     }
-
-    // # start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_get_many, fields)
     results = dictZip(zip(fields, Object.values(results)))
-    // # results = dict((k, v) for k, v in results.items() if v)
-
     return results
   }
 
+  // Returns the number of elements in the sorted set
   async count() {
-    // Returns the number of elements in the sorted set
-    console.warn('counting all keys is slow && should be used sparsely');
     const keys = this.getKeys()
     var total = 0
     for (const key of keys) {
@@ -242,15 +204,13 @@ export class ShardedHashCache extends RedisHashCache {
   }
 
   async contains(field): Promise<boolean> {
-    throw new NotImplementedError(
-      'contains isnt implemented for ShardedHashCache')
+    throw new NotImplementedError('contains isnt implemented for ShardedHashCache')
   }
 
   async delete() {
     // Delete all the base variations of the key 
     console.warn('deleting all keys is slow && should be used sparsely');
     const keys = this.getKeys()
-
     for await (const key of keys) {
       // # TODO, batch this, but since we barely do this
       // # not too important  
@@ -270,24 +230,4 @@ export class ShardedHashCache extends RedisHashCache {
     return fields
   }
 }
-
-// export class ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache { }
-
-// interface ShardedDatabaseFallbackHashCache extends ShardedHashCache, FallbackHashCache { }
-// // Apply the mixins into the base class via
-// // the JS at runtime
-// applyMixins(ShardedDatabaseFallbackHashCache, [ShardedHashCache, FallbackHashCache]);
-
-// // This can live anywhere in your codebase:
-// function applyMixins(derivedCtor: any, constructors: any[]) {
-//   constructors.forEach((baseCtor) => {
-//     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-//       Object.defineProperty(
-//         derivedCtor.prototype,
-//         name,
-//         Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
-//         Object.create(null)
-//       );
-//     });
-//   });
-// }
+ 

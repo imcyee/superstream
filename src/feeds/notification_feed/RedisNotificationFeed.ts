@@ -12,8 +12,7 @@ import { BaseNotificationFeed } from "./BaseNotificationFeed"
 export class RedisNotificationFeed extends BaseNotificationFeed {
   get MarkersStorageClass() { return RedisListsStorage }
   static TimelineStorageClass = RedisTimelineStorage
-
-
+ 
 
   // static ActivityStorageClass = RedisActivityStorage
 }

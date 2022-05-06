@@ -1,18 +1,27 @@
 FROM node:12.18.1
 
 # Create app directory
-WORKDIR /usr/src/app
+# WORKDIR /usr/src/app
+WORKDIR /app
+
 
 # Install app dependencies
 # A wildcard is used to ensure both package.json AND package-lock.json are copied
 # where available (npm@5+)
-COPY package*.json ./
+# COPY package*.json ./
+COPY ["package.json", "package-lock.json*", "./"]
 
+# RUN npm install
+# RUN npm install --production
 RUN npm install
 
 COPY . .
 
-EXPOSE 8080
+# EXPOSE 8080
+# CMD [ "ts-node", "./server/index.ts" ]
+CMD ["npm","run","start:server"]
+
+
 
 # CMD [ "ts-node-dev", "./src/index.ts" ]
 

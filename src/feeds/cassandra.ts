@@ -1,9 +1,8 @@
 import { CassandraActivitySerializer } from "../serializers/cassandra/CassandraActivitySerializer"
 import { CassandraActivityStorage } from "../storage/cassandra/CassandraActivityStorage"
-import { models } from "../storage/cassandra/models"
 import { CassandraTimelineStorage } from "../storage/cassandra/CassandraTimelineStorage"
+import { models } from "../storage/cassandra/models"
 import { BaseFeed } from "./base/base"
-import createDebug from 'debug'
 
 
 // Apache Cassandra feed implementation
@@ -18,7 +17,7 @@ export class CassandraFeed extends BaseFeed {
   static timeline_model = models.Activity
 
   // # ; the name of the column family
-  static timeline_cf_name = 'feeds' // 'example'
+  static timelineClassFamilyName = 'feeds' // 'example'
 
   // # : clarify that this feed supports filtering and ordering
   filteringSupported = true
@@ -29,7 +28,7 @@ export class CassandraFeed extends BaseFeed {
     const options = super.getTimelineStorageOptions()
     options['modelClass'] = this.timeline_model
     options['hosts'] = ['192.168.0.146:9046'] // settings.STREAM_CASSANDRA_HOSTS
-    options['column_family_name'] = this.timeline_cf_name
+    options['columnFamilyName'] = this.timelineClassFamilyName
     return options
   }
 

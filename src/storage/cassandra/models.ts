@@ -43,7 +43,7 @@ export const models = {
 
 // class Activity extends BaseActivity {
 //   actor = columns.Integer(required = False)
-//   extraContext = columns.Bytes(required = False)
+//   context = columns.Bytes(required = False)
 //   object = columns.Integer(required = False)
 //   target = columns.Integer(required = False)
 //   time = columns.DateTime(required = False)

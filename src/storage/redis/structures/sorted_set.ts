@@ -1,45 +1,46 @@
+import createDebug from 'debug'
 import chunk from 'lodash/chunk'
-import { RedisClientType } from "redis/dist/lib/client"
+import { Mixin } from 'ts-mixer'
 import { promisify } from 'util'
 import { ValueError } from "../../../errors"
 import { zip } from "../../../utils"
-import { RedisCache } from "./base"
+import { TScoreValuePair } from '../redis.type'
 import { BaseRedisHashCache } from "./hash"
 import { BaseRedisListCache } from "./list"
-import createDebug from 'debug'
-import { Mixin } from 'ts-mixer';
 
 const debug = createDebug('ns:debug:sorted_set')
 
-
+/**
+ * We use this mostly to store activityId with score
+ * We will use others to store activity payload
+ */
 export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHashCache) {
-  // export class RedisSortedSetCache extends RedisCache {
 
   sort_asc = false
 
   // Returns the number of elements in the sorted set
   async count() {
     const key = this.getKey()
-    const redis_result = await this.redis.zCard(key)
+    const redisResult = await this.redis.zCard(key)
     // #lazily convert this to an int, this keeps it compatible with
     // #distributed connections
     // const redis_count = lambda: int(redis_result)
     // const lazy_factory = lazy(redis_count, * six.integer_types)
     // const lazy_object = lazy_factory()
     // return lazy_object
-    return Number(redis_result)
+    return Number(redisResult)
   }
 
 
   // Returns the index of the given value
   async indexOf(value) {
-    var redis_rank_fn = this.sort_asc
+    var redisRankFn = this.sort_asc
       ? this.redis.zRank
       : this.redis.zRevRank
 
     const key = this.getKey()
 
-    var result = await (promisify(redis_rank_fn).bind(this.redis))(key, value)
+    var result = await (promisify(redisRankFn).bind(this.redis))(key, value)
     if (result) {
       result = Number(result)
     }
@@ -50,92 +51,59 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     return result
   }
 
-  async add(score, key) {
-    const scoreValuePairs = [[score, key]]
-
+  async add(score: string, key: string) {
+    const scoreValuePairs: TScoreValuePair[] = [[score, key]]
     const results = await this.addMany(scoreValuePairs)
     const result = results[0]
     return result
   }
 
-  // StrictRedis so it expects score1, name1
-  async addMany(scoreValuePairs) {
+  async addMany(scoreValuePairs: TScoreValuePair[]) {
+    // validate
     const key = this.getKey()
-    console.log('scoreValuePairs', scoreValuePairs);
-    const scores = (zip(...scoreValuePairs))[0] as string[]
+    console.log('scoreValuePairs',scoreValuePairs);
+    const scores = (zip(...scoreValuePairs))[0]
     scores.forEach(element => {
+      console.log('element', element);
+
       if (isNaN(Number(element)))
         throw new Error(`Please send floats as the first part of the pairs got ${scoreValuePairs}`)
-
-      // if (typeof element === "number")
       return true
     });
 
-    // const numeric_types = (float,) + six.integer_types
-    // if (not all([isinstance(score, numeric_types) for score in scores])) {
-    //   const msg_format = `Please send floats as the first part of the pairs got ${scoreValuePairs}`
-    //   throw new ValueError(msg_format)
-    // }
-    var results = []
-
-    async function _addMany(
-      redis: RedisClientType,
-      scoreValuePairs
-    ) {
-      const members = scoreValuePairs.map((svp) => ({
-        score: Number(svp[0]),
-        value: svp[1],
-      }))
-      const membersChunk = chunk(members, 200) as { value: string, score: number }[][]
-
-      for await (const members of membersChunk) {
-        const result = await redis.zAdd(key, members)
-        debug(`adding to ${key} with members ${members}`)
-        results.push(result)
-      }
-      return results
+    const results: number[] = []
+    const members = scoreValuePairs.map((svp) => ({
+      score: Number(svp[0]),
+      value: svp[1],
+    }))
+    let membersChunk = chunk(members, 200)
+    for await (const members of membersChunk) {
+      const result = await this.redis.zAdd(key, members)
+      debug(`adding to ${key} with members ${members}`)
+      results.push(result)
     }
-
-    // #start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_addMany, scoreValuePairs)
-
     return results
   }
 
-  // values
   async removeMany(values) {
-
     const key = this.getKey()
     var results = []
-
-    async function _remove_many(redis: RedisClientType, values) {
-      for (const value of values) {
-        debug(`removing value ${value} from ${key}`)
-        const result = await redis.zRem(key, value)
-        results.push(result)
-      }
-      return results
+    for (const value of values) {
+      debug(`removing value ${value} from ${key}`)
+      const result = await this.redis.zRem(key, value)
+      results.push(result)
     }
-    // #start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_remove_many, values)
     return results
   }
 
   async remove_by_scores(scores) {
     const key = this.getKey()
     var results = []
-
-    async function _remove_many(redis: RedisClientType, scores) {
-      for await (const score of scores) {
-        debug(`removing score ${score} from ${key}`)
-        const result = await redis.zRemRangeByScore(key, score, score)
-        results.push(result)
-      }
-      return results
+    for await (const score of scores) {
+      debug(`removing score ${score} from ${key}`)
+      const result = await this.redis.zRemRangeByScore(key, score, score)
+      results.push(result)
     }
-    // #start a new map redis or go with the given one
-    results = await this._pipeline_if_needed(_remove_many, scores)
-
     return results
   }
 
@@ -180,12 +148,11 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     max_score = null
   }) {
     // #-1 means infinity
-    if (!stop) {
+    if (!stop)
       stop = -1
-    }
-    if (!start) {
+
+    if (!start)
       start = 0
-    }
 
     var limit
     if (stop != -1) {
@@ -196,22 +163,18 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
     const key = this.getKey()
 
     // #some type validations
-    if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string')) {
+    if (min_score && (typeof min_score !== 'number' || typeof min_score !== 'string'))
       throw new ValueError(`min_score is not of type float, int, long or str got ${min_score}`)
-    }
 
-    if (max_score && (typeof max_score !== 'number' || typeof max_score !== 'string')) {
-      throw new ValueError(
-        `max_score is not of type float, int, long or str got ${max_score}`)
-    }
+    if (max_score && (typeof max_score !== 'number' || typeof max_score !== 'string'))
+      throw new ValueError(`max_score is not of type float, int, long or str got ${max_score}`)
 
-    if (!min_score) {
+
+    if (!min_score)
       min_score = this.sort_asc ? '-inf' : '+inf'
-    }
 
-    if (!max_score) {
+    if (!max_score)
       max_score = this.sort_asc ? '+inf' : '-inf'
-    }
 
     const results = await this.redis.zRangeWithScores(
       key,
@@ -227,9 +190,8 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
         }
       }
     )
-
     const a = []
-    results.map(element => {
+    results.forEach(element => {
       a.push(element.value)
       a.push(element.score)
     })
@@ -237,23 +199,3 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
   }
 }
 
-
-// export interface RedisSortedSetCache extends BaseRedisListCache, BaseRedisHashCache { }
-
-// // Apply the mixins into the base class via
-// // the JS at runtime
-// applyMixins(RedisSortedSetCache, [BaseRedisListCache, BaseRedisHashCache]);
-
-// // This can live anywhere in your codebase:
-// function applyMixins(derivedCtor: any, constructors: any[]) {
-//   constructors.forEach((baseCtor) => {
-//     Object.getOwnPropertyNames(baseCtor.prototype).forEach((name) => {
-//       Object.defineProperty(
-//         derivedCtor.prototype,
-//         name,
-//         Object.getOwnPropertyDescriptor(baseCtor.prototype, name) ||
-//         Object.create(null)
-//       );
-//     });
-//   });
-// }

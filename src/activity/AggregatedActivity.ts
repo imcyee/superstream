@@ -1,17 +1,14 @@
 import { ActivityNotFound, DuplicateActivityException, ValueError } from "../errors"
 import { datetimeToEpoch, hashCode, make_list_unique } from "../utils"
 import { Activity } from "./Activity"
-import { BaseActivity } from "./BaseActivity"
-
-const maxAggregatedActivitiesLength = 15
+import { BaseActivity } from "./base/BaseActivity"
 
 /**
  * to store aggregated activities
  */
 export class AggregatedActivity extends BaseActivity {
 
-  maxAggregatedActivitiesLength = maxAggregatedActivitiesLength
-
+  maxAggregatedActivitiesLength = 15
   group
   activities
   created_at
@@ -47,17 +44,14 @@ export class AggregatedActivity extends BaseActivity {
   // @property
   // serializationId is used to keep items locally sorted and unique
   // (eg. used redis sorted sets' score or cassandra column names)
-
   // serializationId is also used to select random activities from the feed
   // (eg. remove activities from feeds must be fast operation)
   // for this reason the serializationId should be unique and not change over time
-
   // eg:
   // activity.serializationId = 1373266755000000000042008
   // 1373266755000 activity creation time as epoch with millisecond resolution
   // 0000000000042 activity left padded objectId (10 digits)
   // 008 left padded activity verb id (3 digits)
-
   // :returns: int --the serialization id
   get serializationId() {
     const milliseconds = (Number(datetimeToEpoch(this.updated_at)) * 1000).toString()
@@ -66,13 +60,13 @@ export class AggregatedActivity extends BaseActivity {
 
   // returns the dehydrated version of the current activity
   getDehydated() {
-    if (this.dehydrated) {
+    if (this.dehydrated)
       throw new ValueError('already dehydrated')
-    }
+
     this._activityIds = []
-    for (const activity of this.activities) {
+    for (const activity of this.activities) 
       this._activityIds.push(activity.serializationId)
-    }
+    
     this.activities = []
     this.dehydrated = true
     return this
@@ -106,7 +100,7 @@ export class AggregatedActivity extends BaseActivity {
   }
 
   // replace with valueOf || primitive
-  __eq__(other) {
+  isEqual(other) {
     if ((other instanceof AggregatedActivity)) {
       throw new ValueError('I can only compare aggregated activities to other aggregated activities')
     }
@@ -293,22 +287,27 @@ export class AggregatedActivity extends BaseActivity {
     this.read_at = Date.now()
   }
 
-  /**
-   * this is how python get this when print is called
-   * @returns 
-   */
-  __repr__() {
-    var message
-    if (this.dehydrated) {
-      message = `Dehydrated AggregatedActivity (${this._activityIds})`
-      return message
-    }
-    const verbs = this.verbs.map((v) => v.past_tense) // [v.past_tense for v in this.verbs]
-    const actor_ids = this.actor_ids
-    const object_ids = this.object_ids
-    // const actors = ','.join(map(str, actor_ids))
-    const actors = actor_ids.join(',')
-    message = `AggregatedActivity(${this.group}-${verbs.join(',')}) Actors ${actors}: Objects ${object_ids}`
-    return message
-  }
+  // /**
+  //  * Inspect only part of the data instead of all the noise
+  //  * @example
+  //  * call `console.log(util.inspect(my_object));` || `console.log(my_object);` to inspect the data
+  //  * Inspect only part of the data instead of all the noise
+  //  * @returns 
+  //  */
+  // [util.inspect.custom]() {
+  //   var message
+  //   if (this.dehydrated) {
+  //     message = `Dehydrated AggregatedActivity (${this._activityIds})`
+  //     return message
+  //   }
+  //   console.log(this.verbs);
+  //   // const verbs = this.verbs?.map((v) => v.past_tense) // [v.past_tense for v in this.verbs]
+  //   const actor_ids = this.actor_ids
+  //   const object_ids = this.object_ids
+  //   // const actors = ','.join(map(str, actor_ids))
+  //   const actors = actor_ids.join(',')
+  //   // message = `AggregatedActivity(${this.group}-${verbs.join(',')}) Actors ${actors}: Objects ${object_ids}`
+  //   message = `AggregatedActivity(${this.group}) Actors ${actors}: Objects ${object_ids}`
+  //   return message
+  // }
 }

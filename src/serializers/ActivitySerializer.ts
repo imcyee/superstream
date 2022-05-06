@@ -9,24 +9,25 @@ import { BaseSerializer } from "./BaseSerializer"
 // - verbId
 // - objectId
 // - targetId
-// - extraContext (pickle)
+// - context (pickle)
 // null values are stored as 0
 export class ActivitySerializer extends BaseSerializer {
 
   dumps(activity) {
-    this.checkType(activity)
+    this.checkType(activity) 
     // keep the milliseconds
     const activityTime = datetimeToEpoch(activity.time).toFixed(6) // '%.6f' % datetimeToEpoch(activity.time)
     const parts = [
+      activity.serializationId, 
       activity.actorId,
       activity.verbId, // activity.verb.id,
       activity.objectId,
       activity.targetId || 'null'
     ]
-    const extraContext = Object.assign({}, activity.extraContext) // activity.extraContext.copy()
+    const context = Object.assign({}, activity.context) // activity.context.copy()
     var pickleString = ''
-    if (Object.keys(extraContext).length) {
-      pickleString = JSON.stringify(activity.extraContext)
+    if (Object.keys(context).length) {
+      pickleString = JSON.stringify(activity.context)
       parts.push(pickleString)
     }
     parts.push(activityTime)
@@ -36,27 +37,27 @@ export class ActivitySerializer extends BaseSerializer {
     return serializedActivity
   }
 
-  loads(serializedActivity) {
-    console.log('inside serializer', serializedActivity);
+  loads(serializedActivity) { 
+    console.log('serializedActivity', serializedActivity);
     const parts = serializedActivity.split(',')
 
     // convert these to ids
-    const [actorId, verbId, objectId, targetId] = parts
+    const [serializationId, actorId, verbId, objectId, targetId] = parts
     const activity_datetime = epochToDatetime(parseFloat(parts[4]))  // epochToDatetime(parseFloat(parts[4]))// activityTime
     const pickleString = parts[5]
 
-    var extraContext = {}
+    var context = {}
     if (pickleString) {
-      extraContext = JSON.parse(pickleString)
-    }
-    console.log(this.ActivityClass);
+      context = JSON.parse(pickleString)
+    } 
     const activity = new this.ActivityClass({
+      serializationId: serializationId,
       actor: actorId,
       verb: verbId, // verb,
       object: objectId,
       target: targetId === 'null' ? null : targetId,
       time: activity_datetime,
-      extraContext
+      context
     })
     return activity
   }

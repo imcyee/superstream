@@ -41,7 +41,7 @@ Yes, I am shorts of hands and also 'brain-power'. If you wish to help, PR is mos
         verb: faker.random.arrayElement([`cinema:book`, 'themepark:go']),
         object: `movie:${faker.datatype.number()}`,
         target: 'cinema:gold_bridge_cinema',
-        extraContext: {
+        context: {
           price: 12
         }
       })
@@ -104,6 +104,7 @@ Please see this issue: https://github.com/imcyee/superstream/issues/1
   - [] Test
   - [X] redis
   - [ ] cassandra
+  - [ ] myrocks
 - [ ] Port manager
 
 
@@ -130,9 +131,12 @@ Currently supported storages are
  
 ### Which persistence storage to use
 Redis: https://redis.io/topics/persistence
+Pros: easy to work with
+Cons: getting more expensive as data grows
 
 (Not fully supported yet)
 Cassandra: https://stackoverflow.com/questions/18462530/why-dont-you-start-off-with-a-single-small-cassandra-server-as-you-usually
+Pros: cheaper than memory based persistence
 
 ### Get started - storage
 #### Redis - setup redis config
@@ -186,3 +190,18 @@ setConfig({
 })
 
 ```
+
+
+# Refillment Guide
+All activities queried are id only, hence it is required to rehydrate your activity before sending to client.
+Guide can be founded [here](./doc/refillment).
+
+
+# Serializer issue
+We used data serializer
+unlike in python (pickle) or java
+
+in JS we use json.
+
+Here is how we can serialize it if we have to.
+https://stackoverflow.com/a/11761533/11497165

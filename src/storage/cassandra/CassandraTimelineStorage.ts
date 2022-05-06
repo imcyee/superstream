@@ -1,88 +1,77 @@
 import * as cassandra from 'cassandra-driver'
 import { NotImplementedError, ValueError } from "../../errors"
 import { CassandraActivitySerializer } from "../../serializers/cassandra/CassandraActivitySerializer"
-import { BaseTimelineStorage } from "../base"
+import { BaseTimelineStorage } from '../base/base_timeline_storage'
 import { getClient } from "./connection"
 import { models } from "./models"
 
-
-
-// const client = getClient()
-// const Mapper = cassandra.mapping.Mapper;
-const q = cassandra.mapping.q;
 const keyspace = 'stream'
-// const mapper = new Mapper(client, {
-//   models: {
-//     'Activity': {
-//       keyspace: keyspace,
-//       tables: ['feeds'],
-//     },
-//   }
-// });
+const q = cassandra.mapping.q;
 
+
+/**
+ * How cassandra saves feeds
+ * 
+ * Each row has data as such
+ *  feed_id ascii, 
+ *  actor_id ascii, 
+ *  context blob, 
+ *  object_id ascii,
+ *  target_id ascii,
+ *  time timestamp,
+ *  verb_id ascii,
+ *  activities blob,
+ *  created_at timestamp,
+ *  group ascii,
+ *  updated_at timestamp, 
+ *  activity_id varint, 
+ * 
+ * Aggregated and user feed both are store together
+ * Hence, activities is null for user feed
+ * and others field such as actor_id will be null for aggregated
+ */
+
+
+// A feed timeline implementation that uses Apache Cassandra 2.0 for storage.
+// CQL3 is used to access the data stored on Cassandra via the ORM
+// library CqlEngine.
 export class CassandraTimelineStorage extends BaseTimelineStorage {
-
-  flush() { throw new NotImplementedError() }
-  getIndexOf() { throw new NotImplementedError() }
-  getBatchInterface() { throw new NotImplementedError() }
-
-  // A feed timeline implementation that uses Apache Cassandra 2.0 for storage.
-  // CQL3 is used to access the data stored on Cassandra via the ORM
-  // library CqlEngine.
-  default_serializer_class = CassandraActivitySerializer as any
+  DefaultSerializerClass = CassandraActivitySerializer
   insert_batch_size = 100
 
   model: cassandra.mapping.ModelMapper<any>
-  base_model
-  column_family_name
+  baseModel
+  /**
+   * Column family name is like table name
+   */
+  columnFamilyName
 
   mapper: cassandra.mapping.Mapper
   client: cassandra.Client
-  // constructor({
-  //   SerializerClass = null,
-  //   modelClass = models.Activity,
-  //   ...options
-  // }) {
-  //   super({
-  //     SerializerClass,
-  //     ...options
-  //   })
-  //   this.column_family_name = options['column_family_name']
-  //   this.base_model = modelClass
-  //   this.model = mapper.forModel(modelClass)
-  // }
 
   constructor({
     SerializerClass = null,
     modelClass = models.Activity,
+    columnFamilyName,
     ...options
   }) {
-    super({
-      SerializerClass,
-      ...options
-    })
-    this.column_family_name = options['column_family_name']
-    this.base_model = modelClass
-
-
-
+    super({ SerializerClass, ...options })
+    this.columnFamilyName = columnFamilyName
+    this.baseModel = modelClass
     this.client = getClient()
     const Mapper = cassandra.mapping.Mapper;
-    const q = cassandra.mapping.q;
-    const keyspace = 'stream'
-
     this.mapper = new Mapper(this.client, {
       models: {
         'Activity': {
-          keyspace: keyspace,
+          keyspace,
           tables: ['feeds'],
         },
       }
     });
-
-
     this.model = this.mapper.forModel(modelClass)
   }
+
+
 
   async addToStorage(
     key,
@@ -92,13 +81,14 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
       kwargs
     }
   ) {
+    console.log('adding to storage', key, activities);
     const changes = []
-    for (const model_instance of Object.values(activities)) {
+    for (const modelInstance of Object.values(activities)) {
       // @ts-ignore
-      model_instance.feed_id = key.toString()
-      changes.push(this.model.batching.insert(model_instance))
+      modelInstance.feed_id = key.toString()
+      changes.push(this.model.batching.insert(modelInstance))
     }
-    
+
     const results = await this.mapper.batch(changes)
     return results.toArray()
   }
@@ -112,7 +102,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     for (const activityId of Object.keys(activities)) {
       changes.push(this.model.batching.remove({
         feed_id: key,
-        activityId: activityId
+        activity_id: activityId
       }))
     }
     await this.mapper.batch(changes)
@@ -126,29 +116,29 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
   // WARNING: since activities created using Batch share the same timestamp
   // trim can trash up to (batch_size - 1) more activities than requested
   async trim(key, maxLength, batchInterface = null) {
-    const variable = this.base_model === models.Activity
-      ? 'verbId' // must make sure null is not allow to be empty
+    const variable = this.baseModel === models.Activity
+      ? 'verb_id' // must make sure null is not allow to be empty
       : 'group'
 
     const query = `
       SELECT 
         WRITETIME(${variable}) as wt 
       FROM 
-        ${keyspace}.${this.column_family_name} 
+        ${keyspace}.${this.columnFamilyName} 
       WHERE 
         feed_id=? 
       ORDER BY 
-        activityId DESC 
+        activity_id DESC 
       LIMIT 
         ?;
     `
 
-    const parameters = [,
-      key,
-      maxLength + 1
-    ]
+    const parameters = [key, maxLength + 1]
+    console.log('execute trimming');
+    console.log('query', query);
 
     const results = await this.client.execute(query, parameters, { prepare: true })
+    console.log('trimming result', results);
 
     // # compatibility with both cassandra driver 2.7 and 3.0
     const results_length = results.rowLength
@@ -169,7 +159,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     if (trim_ts > Date.now() * 1000) // in micro
       throw new Error("trim timestamp should not be more than current timestamp")
 
-    const delete_query = `DELETE FROM ${keyspace}.${this.column_family_name} USING TIMESTAMP ? WHERE feed_id=?;`
+    const delete_query = `DELETE FROM ${keyspace}.${this.columnFamilyName} USING TIMESTAMP ? WHERE feed_id=?;`
     const delete_params = [
       trim_ts, // in microseconds
       key
@@ -224,17 +214,17 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     // return this.model.objects.filter(feed_id = key, activity_id__gt = activityId).count()
   }
 
-  get_ordering_or_default(orderingArgs) {
+  getOrderingOrDefault(orderingArgs) {
     var ordering
     if (!orderingArgs)
-      ordering = { 'activityId': 'asc' }
+      ordering = { 'activity_id': 'asc' }
     else
       ordering = orderingArgs
     return ordering
   }
 
   async get_nth_item(key, index, orderingArgs = null) {
-    const ordering = this.get_ordering_or_default(orderingArgs)
+    const ordering = this.getOrderingOrDefault(orderingArgs)
     const results = (await this.model.find(
       { feed_id: key, },
       { orderBy: ordering, limit: (index + 1) }
@@ -253,7 +243,7 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
     const results = []
     var limit = 10 ** 6
 
-    const ordering = this.get_ordering_or_default(orderingArgs)
+    const ordering = this.getOrderingOrDefault(orderingArgs)
 
     var findOptions = {} as any;
     findOptions.feed_id = key
@@ -267,8 +257,8 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
 
     try {
       if (start === null || start != 0) {
-        const offset_activity_id = await this.get_nth_item(key, start, ordering)
-        findOptions = { ...findOptions, activityId: q.lte(offset_activity_id.activityId) }
+        const offsetActivityId = await this.get_nth_item(key, start, ordering)
+        findOptions = { ...findOptions, activityId: q.lte(offsetActivityId.activityId) }
       }
     } catch (err) {
       console.error(err);
@@ -288,4 +278,14 @@ export class CassandraTimelineStorage extends BaseTimelineStorage {
 
     return results
   }
+
+  flush() { throw new NotImplementedError() }
+  getIndexOf() { throw new NotImplementedError() }
+
+
+  // def get_batch_interface(self):
+  // return Batch(batch_size=self.insert_batch_size, atomic_inserts=False)
+  // getBatchInterface() { throw new NotImplementedError() }
+
+  getBatchInterface() { return {} }
 }
