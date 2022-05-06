@@ -4,8 +4,8 @@ import { setupRedisConfig } from '../../../src';
 import { CassandraTestManager } from '../../../src/feedManagers/cassandra/CassandraTestManager';
 import { runCassandraMigration } from '../../../src/storage/cassandra/cassandra.migration';
 import { setupCassandraConnection } from '../../../src/storage/cassandra/connection';
-import { fanoutLowWorker, fanoutHighWorker, fanoutWorker } from '../../../src/task';
-import { fanoutQueue, fanoutHighPriorityQueue, fanoutLowPriorityQueue, followManyQueue, unfollowManyQueue } from '../../../src/task_registration';
+import { fanoutWorker } from '../../../src/task';
+import { fanoutQueue, followManyQueue, unfollowManyQueue } from '../../../src/task_registration';
 import { generateActivity } from '../../utils/generateActivity';
 import { wait } from '../../utils/wait';
 
@@ -16,11 +16,8 @@ describe("GenericContainer", () => {
   let container2: StartedTestContainer
 
   beforeAll(async () => {
-
-
     // pull the image first
     const promise2 = new GenericContainer("redis:6.2.5")
-      // .withExposedPorts(6379)
       .withExposedPorts({
         container: 6379,
         host: 6379
@@ -59,13 +56,9 @@ describe("GenericContainer", () => {
     // wait for statsd to flush out 
     await wait(2500)
     await fanoutQueue.close()
-    await fanoutHighPriorityQueue.close()
-    await fanoutLowPriorityQueue.close()
     await followManyQueue.close()
     await unfollowManyQueue.close()
 
-    await fanoutLowWorker.close()
-    await fanoutHighWorker.close()
     await fanoutWorker.close()
 
     await container.stop()
@@ -76,20 +69,12 @@ describe("GenericContainer", () => {
   it("Able to add user activity", async () => {
     const userId = faker.datatype.uuid()
     const feedManager = new CassandraTestManager()
-
-    console.log('before add');
     await feedManager.addUserActivity(userId, generateActivity())
-    console.log('after add');
     // current user feed
     const userFeed = feedManager.getUserFeed(userId)
-    console.log('before get');
     const activities = await userFeed.getItem(0, 5)
-    console.log('activities after get', activities);
-    console.log('after get length', activities.length);
     expect(activities.length).toBe(1)
-    console.log('expected here');
     expect(activities.length).toBe(1)
-    console.log('expected here');
   }, 80000);
 
 
@@ -121,7 +106,6 @@ describe("GenericContainer", () => {
 
     // follower user feed 
     const followerFeedItem1 = await followerFeed.getItem(0, 5)
-    console.log('followerFeedItem1', followerFeedItem1);
     expect(followerFeedItem1.length).toBe(1)
 
     // add another entry 
@@ -134,9 +118,6 @@ describe("GenericContainer", () => {
     // follower user feed
     const followerFeedItem2 = await followerFeed.getItem(0, 5)
     expect(followerFeedItem2.length).toBe(2)
-
-
-
   }, defaultTaskTimeout);
 
 
@@ -164,10 +145,10 @@ describe("GenericContainer", () => {
     expect(followerFeedItem.length).toBe(1)
     await feed.removeUserActivity(userId, activity1)
     const activities2 = await userFeed.getItem(0, 5)
+
     // could generate error due to async that is not awaited fanout
     // there will be race condition
     // so a simple timeout to solve the race
-
     // task is executed in seperated process
     await wait(2500)
 
@@ -225,15 +206,15 @@ describe("GenericContainer", () => {
     // current user feed
     const userFeed = feed.getUserFeed(userId)
 
-    // task is executed in seperated process
-    await wait(2500)
-
     const activities = await userFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
 
 
     await feed.followUser(newUserId, userId)
     const newUserFeed = feed.getUserFeed(newUserId)
+
+    // task is executed in seperated process
+    await wait(2500)
 
     var newUserActivities = await newUserFeed.getItem(0, 5)
     expect(newUserActivities.length).toBe(1)

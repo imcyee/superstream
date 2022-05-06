@@ -2,16 +2,13 @@ import { ActivityNotFound, DuplicateActivityException, ValueError } from "../err
 import { datetimeToEpoch, hashCode, make_list_unique } from "../utils"
 import { Activity } from "./Activity"
 import { BaseActivity } from "./base/BaseActivity"
-import * as util from 'util'
-
-const maxAggregatedActivitiesLength = 15
 
 /**
  * to store aggregated activities
  */
 export class AggregatedActivity extends BaseActivity {
 
-  maxAggregatedActivitiesLength = maxAggregatedActivitiesLength
+  maxAggregatedActivitiesLength = 15
   group
   activities
   created_at
@@ -47,17 +44,14 @@ export class AggregatedActivity extends BaseActivity {
   // @property
   // serializationId is used to keep items locally sorted and unique
   // (eg. used redis sorted sets' score or cassandra column names)
-
   // serializationId is also used to select random activities from the feed
   // (eg. remove activities from feeds must be fast operation)
   // for this reason the serializationId should be unique and not change over time
-
   // eg:
   // activity.serializationId = 1373266755000000000042008
   // 1373266755000 activity creation time as epoch with millisecond resolution
   // 0000000000042 activity left padded objectId (10 digits)
   // 008 left padded activity verb id (3 digits)
-
   // :returns: int --the serialization id
   get serializationId() {
     const milliseconds = (Number(datetimeToEpoch(this.updated_at)) * 1000).toString()
@@ -66,13 +60,13 @@ export class AggregatedActivity extends BaseActivity {
 
   // returns the dehydrated version of the current activity
   getDehydated() {
-    if (this.dehydrated) {
+    if (this.dehydrated)
       throw new ValueError('already dehydrated')
-    }
+
     this._activityIds = []
-    for (const activity of this.activities) {
+    for (const activity of this.activities) 
       this._activityIds.push(activity.serializationId)
-    }
+    
     this.activities = []
     this.dehydrated = true
     return this

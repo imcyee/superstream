@@ -50,8 +50,7 @@ describe("GenericContainer", () => {
 
     await feed.addManyAggregated(aggregatedActivities)
 
-    const result = await feed.getItem(0, 5)
-    console.log('result', result);
+    const result = await feed.getItem(0, 5) 
     var totalActivities = 0
     result.forEach(element => {
       totalActivities += element.activities.length

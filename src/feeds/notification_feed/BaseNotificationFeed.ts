@@ -4,8 +4,8 @@
 // from stream_framework.serializers.aggregated_activity_serializer import NotificationSerializer
 // from stream_framework.storage.base_lists_storage import BaseListsStorage
 
-import { NotificationActivity } from "../../activity/NotificationActivity"
-import { NotificationAggregator } from "../../aggregators/base"
+import { NotificationActivity } from "../../activity/NotificationActivity" 
+import { NotificationAggregator } from "../../aggregators/notification.aggregator"
 import { ValueError } from "../../errors"
 import { NotificationSerializer } from "../../serializers/AggregatedActivitySerializer"
 import { BaseListsStorage } from "../../storage/base/base_lists_storage"

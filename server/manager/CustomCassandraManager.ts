@@ -1,4 +1,4 @@
-import { CassandraManager } from '../../src/feedManagers/CassandraManager';
+import { CassandraManager } from '../../src/feedManagers/cassandra/CassandraManager';
 
 export class CustomCassandraManager extends CassandraManager {
   // temporary stud

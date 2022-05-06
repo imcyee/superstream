@@ -54,7 +54,7 @@ class Manager(object):
 
     To write your own Manager class you will need to implement
 
-    - get_user_follower_ids
+    - get_user_followerIds
     - feed_classes
     - user_feed_class
 

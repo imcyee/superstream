@@ -259,7 +259,6 @@ export abstract class BaseFeed {
       }
       // kwargs
     )
-    console.log('del', delCount, 'key', this.key);
     // # trim the feed sometimes
     if (trim && Math.random() <= this.trimChance)
       this.trim()
@@ -410,16 +409,9 @@ export abstract class BaseFeed {
    * hydrates the activities using the activityStorage
    */
   async hydrateActivities(activities) {
-    console.log('hydrateActivities', activities);
-
-
     // const activityIds = activities.map((a) => a._activityIds)
     const activityIds = []
-    activities.forEach(a => {
-      activityIds.push(...a._activityIds)
-    })
-    console.log(activityIds);
-
+    activities.forEach(a => activityIds.push(...a._activityIds))
 
     const activityList = await this.activityStorage.getMany(activityIds)
 

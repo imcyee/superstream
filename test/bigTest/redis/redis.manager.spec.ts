@@ -2,8 +2,8 @@ import faker from 'faker';
 import { GenericContainer } from "testcontainers";
 import { RedisTestManager } from '../../../src/feedManagers/redis/RedisTestManager';
 import { setupRedisConfig } from "../../../src/storage/redis/connection";
-import { fanoutHighWorker, fanoutLowWorker, fanoutWorker } from '../../../src/task';
-import { fanoutHighPriorityQueue, fanoutLowPriorityQueue, fanoutQueue, followManyQueue, unfollowManyQueue } from '../../../src/task_registration';
+import { fanoutWorker } from '../../../src/task';
+import { fanoutQueue, followManyQueue, unfollowManyQueue } from '../../../src/task_registration';
 import { generateActivity } from '../../utils/generateActivity';
 import { wait } from '../../utils/wait';
 
@@ -35,14 +35,10 @@ describe("GenericContainer", () => {
 
     // wait for statsd to flush out 
     await wait(2500)  
-    await fanoutQueue.close()
-    await fanoutHighPriorityQueue.close()
-    await fanoutLowPriorityQueue.close()
+    await fanoutQueue.close() 
     await followManyQueue.close()
     await unfollowManyQueue.close()
-
-    await fanoutLowWorker.close()
-    await fanoutHighWorker.close()
+ 
     await fanoutWorker.close()  
 
     await container.stop(); 
@@ -88,8 +84,7 @@ describe("GenericContainer", () => {
     // follower user feed
     const followerFeed = feed.getUserFeed(followers[0])
 
-    const followerFeedItem = await followerFeed.getItem(0, 5)
-    console.log(followerFeedItem);
+    const followerFeedItem = await followerFeed.getItem(0, 5) 
     expect(followerFeedItem.length).toBe(1)
 
     // add another entry

@@ -1,7 +1,7 @@
 import createDebug from 'debug';
 import express from 'express';
 import morgan from 'morgan';
-import { GenericContainer } from 'testcontainers';
+import { GenericContainer, StartedTestContainer } from 'testcontainers';
 import { runCassandraMigration } from '../src/storage/cassandra/cassandra.migration';
 import { setupCassandraConnection } from "../src/storage/cassandra/connection";
 import { getRedisConnection, setupRedisConfig } from "../src/storage/redis/connection";
@@ -11,16 +11,15 @@ import { getStorageName } from './utils/getStorageName';
 const debug = createDebug('superstream:server')
 const app = express()
 
-
-
 const main = async () => {
   var storageName = getStorageName()
 
-  var container
+  var container: StartedTestContainer
+  var container2: StartedTestContainer
   switch (storageName) {
     case 'redis':
       container = await new GenericContainer("redis:6.2.5")
-        .withExposedPorts(6379)
+        .withExposedPorts({ container: 6379, host: 6379 })
         .start();
 
       setupRedisConfig({
@@ -47,16 +46,24 @@ const main = async () => {
       //   // port: 9042
       // })
       // await runCassandraMigration()
+      container = await new GenericContainer("redis:6.2.5")
+        .withExposedPorts({ container: 6379, host: 6379 })
+        .start();
 
-      container = await new GenericContainer("cassandra:3.11.0")
+      setupRedisConfig({
+        host: container.getHost(),
+        port: container.getMappedPort(6379),
+      })
+
+      container2 = await new GenericContainer("cassandra:3.11.0")
         .withExposedPorts(9042) // 7000 for node, 9042 for client
         .start();
       console.log(container.getHost(), container.getMappedPort(9042));
 
       setupCassandraConnection({
         // host: '192.168.0.146',// container.getHost(),
-        host: container.getHost(),
-        port: container.getMappedPort(9042),
+        host: container2.getHost(),
+        port: container2.getMappedPort(9042),
       })
 
       await runCassandraMigration()

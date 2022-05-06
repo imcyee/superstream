@@ -1,10 +1,11 @@
 import { Activity } from "../../activity/Activity"
 import { AggregatedActivity } from "../../activity/AggregatedActivity"
-import { DuplicateActivityException, ValueError } from "../../errors"
+import { DuplicateActivityException } from "../../errors"
 
 /**
  * Base aggregator class
- * Aggregators implement the combining of multiple activities into aggregated activities.
+ * Aggregators implement the combining of multiple activities into 
+ * aggregated activities.
  * The two most important methods are
  * aggregate and merge
  * Aggregate takes a list of activities and turns it into a list of aggregated activities
@@ -28,17 +29,15 @@ export abstract class BaseAggregator {
   }
 
   /** 
-   * @param activities 
-   * @returns  
-   * :param activties: A list of activities
-   * :returns list: A list of aggregated activities
    * Runs the group activities (using get group)
    * Ranks them using the giving ranking function
    * And returns the sorted activities
-   * **Example** ::
+   * @example
    *     aggregator = ModulusAggregator()
    *     activities = [Activity(1), Activity(2)]
    *     aggregatedActivities = aggregator.aggregate(activities)
+   * @param activities An array of activities
+   * @returns An array of aggregated activities
    */
   aggregate(activities) {
     const aggregateDict = this.groupActivities(activities)
@@ -81,7 +80,9 @@ export abstract class BaseAggregator {
         latest.push(aggregated)
       } else {
         const current_aggregated = currentActivitiesDict[aggregated.group]
-        const newAggregated = JSON.parse(JSON.stringify(current_aggregated)) //deepcopy(current_aggregated)
+
+        //deepcopy(current_aggregated)
+        const newAggregated = JSON.parse(JSON.stringify(current_aggregated))
         for (const activity of aggregated.activities) {
           try {
             newAggregated.push(activity)
@@ -105,12 +106,12 @@ export abstract class BaseAggregator {
 
   // Groups the activities based on their group
   // Found by running getGroup(actvity on them) 
-  groupActivities(activities) {
-    const aggregateDict = {} // dict()
+  groupActivities(activities: Activity[]): { [key: string]: AggregatedActivity } {
+    const aggregateDict = {}
+
     // # make sure that if we aggregated multiple activities
     // # they end up in serializationId desc in the aggregated activity
     // activities = list(activities) 
-
     activities = activities.sort((activityA, activityB) => {
       return (activityA.serializationId > activityB.serializationId) ? 1 : -1
     })

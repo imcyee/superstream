@@ -1,4 +1,4 @@
-import { RedisManager } from '../../src/feedManagers/RedisManager';
+import { RedisManager } from '../../src/feedManagers/redis/RedisManager';
 
 export class CustomRedisManager extends RedisManager {
   // temporary stud

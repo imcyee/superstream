@@ -1,9 +1,8 @@
+import { v1 as uuid } from 'uuid'
 import { ValueError } from "../errors"
-import { datetimeToEpoch, hashCode, hashCodePositive } from "../utils"
+import { hashCode } from "../utils"
 import { BaseActivity } from "./base/BaseActivity"
 import { DehydratedActivity } from "./DehydratedActivity"
-import * as util from 'util'
-import { v1 as uuid } from 'uuid'
 
 
 /**
@@ -24,17 +23,15 @@ export class Activity extends BaseActivity {
   verbId: string = null
   serializationId: string // uuid
 
-
-
   constructor({
     serializationId = null,
     actorId = null,
     objectId = null,
     targetId = null,
     verbId = null,
-    actor,
-    verb,
-    object,
+    actor = null,
+    verb = null,
+    object = null,
     target = null,
     time = null,
     context = null
@@ -87,45 +84,6 @@ export class Activity extends BaseActivity {
   __hash__() {
     return hashCode(this.serializationId)
   }
-
-  // /**
-  //  * beware of js handling large number it will generate scientific notation eg: 1.45e+25
-  //  * represent the id as string
-  //  * collision will occur when multiple activity generated at the same milli second
-  //  * with the same objectId and verbId
-  //  * 
-  //  * serializationId is used to keep items locally sorted and unique
-  //  * (eg. used redis sorted sets' score or cassandra column names)
-  //  * serializationId is also used to select random activities from the feed
-  //  * (eg. remove activities from feeds must be fast operation)
-  //  * for this reason the serializationId should be unique and not change over time
-  //  * eg:
-  //  * activity.serializationId = 1373266755000000000042008
-  //  * 1373266755000 activity creation time as epoch with millisecond resolution
-  //  * 0000000000042 activity left padded objectId (10 digits)
-  //  * 008 left padded activity verb id (3 digits)
-  //  * :returns: int --the serialization id 
-  //  */
-  // get serializationId() {
-  //   if (!this.time)
-  //     throw new TypeError('Cant serialize activities without a time')
-
-
-  //   // remove all the unhashable key such as :;,
-  //   // convert any string to int any number and truncate the number to fixed size
-  //   // using object id and verb
-  //   // which can be generated repeatedly under any machine
-  //   // predictable part
-  //   const milliseconds = (Number(datetimeToEpoch(this.time) * 1000))
-  //   // random part
-  //   const objectIdPad = hashCodePositive(this.objectId + this.verbId)
-  //     .toString()
-  //     .padStart(10, '0')
-  //   const serializationId = `${milliseconds}${objectIdPad}` // % (milliseconds, this.objectId, this.verb.id)
-
-  //   return serializationId
-  // }
-
 
   /**
    * set id to `field`_id  

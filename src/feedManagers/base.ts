@@ -1,23 +1,23 @@
-import type { Queue } from "bullmq"
 import createDebug from 'debug'
-import { chunk, overEvery } from 'lodash'
+import { chunk } from 'lodash'
+import { Activity } from '../activity/Activity'
 import { NotImplementedError, ValueError } from "../errors"
 import { RedisFeed } from "../feeds/RedisFeed"
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import { getMetricsInstance } from "../metrics/node_statsd"
-import { fanoutHighPriorityQueue, fanoutLowPriorityQueue, fanoutQueue, followManyQueue, unfollowManyQueue } from "../task_registration"
+import { FanoutDataType } from '../task'
+import { fanoutQueue, followManyQueue, unfollowManyQueue } from "../task_registration"
 
+type PriorityType = 'HIGH' | "LOW"
+
+const priorityMapping: {
+  [key in PriorityType]: number
+} = {
+  HIGH: 10,
+  LOW: 5
+}
 
 const debug = createDebug('ns:debug:base')
-
-class FanoutPriority {
-  static HIGH = 'HIGH'
-  static LOW = 'LOW'
-}
-
-type FanoutPriorityType = {
-  [priority: string]: Queue
-}
 
 /**
  * '''
@@ -74,68 +74,73 @@ export class Manager {
     }
   }
 
-  // # : the user feed class (it stores the latest activity by one user)
+  /**
+   * the user feed class (it stores the latest activity by one user) 
+   */
   UserFeedClass = UserBaseFeed
 
-  // # : the number of activities which enter your feed when you follow someone
+  /**
+   * the number of activities which enter your feed when you follow someone
+   */
   follow_activity_limit = 5000
-  // # : the number of users which are handled in one asynchronous task
-  // # : when doing the fanout
+
+  /**
+   * the number of users which are handled in one asynchronous task
+   * when doing the fanout 
+   */
   fanoutChunkSize = 100
 
-  // # maps between priority and fanout tasks
-  // priorityFanoutTask: FanoutPriorityType
-  priorityFanoutTask: FanoutPriorityType = {
-    [FanoutPriority.HIGH]: fanoutHighPriorityQueue,
-    [FanoutPriority.LOW]: fanoutLowPriorityQueue
-  }
   metrics = getMetricsInstance()
 
-  // '''
-  // Returns a dict of users ids which follow the given user grouped by
-  // priority/importance
-  // eg.
-  // {'HIGH': [...], 'LOW': [...]}
-  // :param userId: the user id for which to get the follower ids
-  // '''
+  /**
+   * Returns a dict of users ids which follow the given user grouped by
+   * priority/importance
+   * In production it should be override to get users 
+   * This is currently implemented by client
+   * However we can implement this functionality but no in urgent
+   * @example
+   * {
+   *  'HIGH': [...], 
+   *  'LOW': [...]
+   * } 
+   * @param userId the user id for which to get the follower ids
+   */
   async getUserFollowerIds(userId): Promise<{
     [priority: string]: string[]
   }> {
     throw new NotImplementedError()
   }
 
-  // '''
-  // Store the new activity and then fanout to user followers
-  // This function will
-  // - store the activity in the activity storage
-  // - store it in the user feed (list of activities for one user)
-  // - fanout for all FeedClasses
-  // :param userId: the id of the user
-  // :param activity: the activity which to add
-  // '''
+  /**
+   * Store the new activity and then fanout to user followers
+   * This function will
+   * - store the activity in the activity storage
+   * - store it in the user feed (list of activities for one user)
+   * - fanout for all FeedClasses
+   * :param userId: the id of the user
+   * :param activity: the activity which to add
+   */
   async addUserActivity(userId, activity) {
     // # add into the global activity cache (if we are using it)
     await this.UserFeedClass.insertActivity(activity)
     // # now add to the user's personal feed
     const userFeed = this.getUserFeed(userId)
     await userFeed.add(activity)
-    const operation_kwargs = {
+    const operationArgs = {
       activities: [activity],
       trim: true
     }
 
     const userFollowerIds = await this.getUserFollowerIds(userId)
-    console.log('userFollowerIds', userFollowerIds);
 
-    for await (const [priority_group, follower_ids] of Object.entries(userFollowerIds)) {
-      console.log('awaiting addUserActivity', priority_group, follower_ids);
-      console.log('adding to fanout queue');
+    for await (const [priorityGroup, followerIds] of Object.entries(userFollowerIds)) {
       await fanoutQueue.add('addUserActivity', {
         feedManagerName: this.constructor.name,
-        follower_ids,
+        followerIds,
         operationName: 'addOperation',
-        operation_kwargs,
-        fanout_priority: priority_group
+        operationArgs
+      }, {
+        priority: priorityMapping[priorityGroup]
       })
     }
     this.metrics.on_activity_published()
@@ -153,19 +158,20 @@ export class Manager {
     await userFeed.remove(activity)
 
     // # no need to trim when removing items
-    const operation_kwargs = {
+    const operationArgs = {
       activities: [activity],
       trim: false
     }
 
     const userFollowerIds = await this.getUserFollowerIds(userId)
-    for await (const [priority_group, follower_ids] of Object.entries(userFollowerIds)) {
+    for await (const [priorityGroup, followerIds] of Object.entries(userFollowerIds)) {
       await fanoutQueue.add('removeUserActivity', {
         feedManagerName: this.constructor.name,
-        follower_ids,
+        followerIds,
         operationName: 'removeOperation',
-        operation_kwargs,
-        fanout_priority: priority_group
+        operationArgs
+      }, {
+        priority: priorityMapping[priorityGroup]
       })
     }
     this.metrics.on_activity_removed()
@@ -179,7 +185,6 @@ export class Manager {
   getFeeds(userId): {
     [key: string]: UserBaseFeed
   } {
-    console.log('get feeds', userId);
     const feeds_dict = {}
     for (const [k, Feed] of Object.entries(this.FeedClasses)) {
       feeds_dict[k] = new Feed(userId)
@@ -287,26 +292,16 @@ export class Manager {
     })
   }
 
-  // '''
-  // Returns the fanout task taking priority in account.
-  // :param priority: the priority of the task
-  // :param FeedClass: the FeedClass the task will write to
-  // '''
-  getFanoutTask(priority = null): Queue {
-    return this.priorityFanoutTask[priority] || fanoutQueue
-  }
 
-  // '''
-  // This functionality is called from within stream_framework.tasks.fanout_operation
-  // :param userIds: the list of user ids which feeds we should apply the
-  //     operation against
-  // :param FeedClass: the feed to run the operation on
-  // :param operation: the operation to run on the feed
-  // :param operation_kwargs: kwargs to pass to the operation
-  // '''
-  async fanout(userIds, FeedClass, operation, operation_kwargs) {
-
-    console.log('fanning out', operation_kwargs);
+  /**
+   * This functionality is called from bullmq's task
+   * which is a seperate process or event seperate host
+   * @param userIds the list of user ids which feeds we should apply the operation against
+   * @param FeedClass the feed to run the operation on
+   * @param operation the operation to run on the feed
+   * @param operationArgs kwargs to pass to the operation
+   */
+  async fanout(userIds, FeedClass, operation, operationArgs) {
     const timer = this.metrics.fanoutTimer(FeedClass)
     timer.start()
     try {
@@ -316,20 +311,20 @@ export class Manager {
       const msg_format = 'starting batch interface for feed ${}, fanning out to ${} users'
       const batchInterface = batch_context_manager
       // logger.info(msg_format, FeedClass, len(userIds))
-      operation_kwargs['batchInterface'] = batchInterface
+      operationArgs['batchInterface'] = batchInterface
       for (const userId of userIds) {
         debug(`now handling fanout to user ${userId}`)
         const feed = new FeedClass(userId)
-        // operation(feed, ...operation_kwargs) 
+        // operation(feed, ...operationArgs) 
         // 🔥 do we wait for fanout??
-        await operation(feed, operation_kwargs)
+        await operation(feed, operationArgs)
       }
     } finally {
       timer.stop()
     }
 
     // logger.info('finished fanout for feed ${}', FeedClass)}
-    const fanout_count = operation_kwargs['activities'].length * (userIds).length
+    const fanout_count = operationArgs['activities'].length * (userIds).length
     this.metrics.on_fanout(FeedClass, operation, fanout_count)
   }
 
@@ -356,7 +351,7 @@ export class Manager {
       throw new ValueError('Send activities for only one user please')
 
     // const activityChunks = list(chunks(activities, chunk_size))
-    const activityChunks = chunk(activities, chunk_size)
+    const activityChunks = chunk<Activity>(activities, chunk_size)
 
     // logger.info('processing ${} items in ${} chunks of ${}',
     //             len(activities), len(activityChunks), chunk_size)
@@ -373,19 +368,20 @@ export class Manager {
       // # now start a big fanout task
       if (fanout) {
         // logger.info('starting task fanout for chunk ${}', index)
-        const follower_ids_by_prio = this.getUserFollowerIds(userId = userId)
+        const followerIds_by_prio = this.getUserFollowerIds(userId = userId)
         // # create the fanout tasks
-        const operation_kwargs = {
+        const operationArgs = {
           activities: activityChunk,
           trim: false
         }
-        for (const [priority_group, fids] of Object.entries(follower_ids_by_prio)) {
+        for (const [priorityGroup, followerIds] of Object.entries(followerIds_by_prio)) {
           fanoutQueue.add('batchImport', {
             feedManagerName: this.constructor.name,
-            follower_ids: fids,
+            followerIds,
             operationName: 'addOperation',
-            operation_kwargs,
-            fanout_priority: priority_group
+            operationArgs
+          }, {
+            priority: priorityMapping[priorityGroup]
           })
         }
       }

@@ -1,4 +1,4 @@
-import { Job, Worker } from "bullmq"
+import { Worker } from "bullmq"
 import createDebug from 'debug'
 import { chunk } from 'lodash'
 import { Activity } from "./activity/Activity"
@@ -8,6 +8,7 @@ import { BaseFeed } from "./feeds/base/base"
 import { getSeparator } from "./feeds/config"
 import { UserBaseFeed } from "./feeds/UserBaseFeed"
 import { getConnection, queueNames } from "./task_registration"
+import { Guard } from "./utils/Guard"
 import { splitId } from "./utils/splitId"
 
 const debug = createDebug('ns:debug:base')
@@ -25,6 +26,32 @@ const operationRegistration = {
   removeOperation
 }
 
+type OperationArgs<T = Activity> = {
+  activities: T[]
+  trim?: boolean,
+  batchInterface?
+}
+
+export interface FollowDataType {
+  feedManagerName: string
+  userId: string
+  targetIds: string[]
+}
+
+export interface FollowManyDataType extends FollowDataType {
+  follow_activity_limit: number
+}
+
+
+export type FanoutDataType = {
+  feedManagerName: string,
+  followerIds: string[],
+  operationName: "addOperation" | "removeOperation"
+  operationArgs: OperationArgs<ReturnType<Activity["toJSON"]>> | OperationArgs
+}
+
+export const connection = getConnection()
+
 // Operation
 // '''
 // Add the activities to the feed
@@ -32,11 +59,9 @@ const operationRegistration = {
 // '''
 export async function addOperation(
   feed,
-  {
-    activities,
-    trim = true,
-    batchInterface = null
-  }) {
+  operationArgs: OperationArgs
+) {
+  const { activities, trim = true, batchInterface = null } = operationArgs
   const time = new Date().getTime()
   const msg_format = (a, b, c, d) => `running ${a}.addMany operation for ${b} activities batch interface ${c} and trim ${d}`
   debug(msg_format(feed, activities.length, batchInterface, trim))
@@ -51,11 +76,9 @@ export async function addOperation(
 // Remove the activities from the feed
 // functions used in tasks need to be at the main level of the module
 // '''
-export async function removeOperation(feed, {
-  activities,
-  trim = true,
-  batchInterface = null
-}) {
+export async function removeOperation(feed, operationArgs: OperationArgs
+) {
+  const { activities, trim = true, batchInterface = null } = operationArgs
   const time = new Date().getTime()
   const msg_format = (a, b, c) => `running ${a}.removeMany operation for ${b} activities batch interface ${c}`
   debug(msg_format(feed, activities.length, batchInterface))
@@ -66,126 +89,57 @@ export async function removeOperation(feed, {
 }
 
 
+export const fanoutWorker = new Worker<FanoutDataType>(
+  queueNames.fanoutQueue,
+  async (job) => {
+    const {
+      feedManagerName,
+      followerIds,
+      operationName,
+      operationArgs
+    } = job.data
 
-const handleFanout = async ({
-  feedManagerName,
-  follower_ids,
-  operationName,
-  operation_kwargs,
-  fanout_priority
-}) => {
+    debug("Handling fanout")
 
-  console.log('handleFanout', feedManagerName);
-  // newly added
-  // make sure activities in operation_kwargs are in Activity
-  operation_kwargs.activities = operation_kwargs.activities.map((a) => {
-    console.log(a);
-    return new Activity(a)
-  })
+    const result = Guard.againstNullOrUndefinedBulk([
+      { argumentName: 'operationName', argument: operationName },
+      { argumentName: 'feedManagerName', argument: feedManagerName },
+    ])
+    if (!result.succeeded)
+      throw new Error(result.message)
+ 
+    const ManagerClass = managerRegistration[feedManagerName];
+    if (!ManagerClass)
+      throw new Error("Unable to find manager class in Manager Registration.")
 
-  console.log('operation_kwargs', operation_kwargs);
+    // Convert back to Activity
+    // make sure activities in operationArgs are in Activity
+    operationArgs.activities = operationArgs.activities.map((a) => {
+      return new Activity(a)
+    })
 
-  if (!feedManagerName)
-    throw new Error(`Please provide feedManagerName. ${feedManagerName}`)
+    const manager = new ManagerClass();
+    for await (const FeedClass of Object.values(manager.FeedClasses)) {
+      const chunk_size = manager.fanoutChunkSize
+      const userIds_chunks = chunk(followerIds, chunk_size)
+      const msg_format = (userIds_chunks_length, followerIdsLength, chunk_size) =>
+        `spawning ${userIds_chunks_length} subtasks for ${followerIdsLength} user ids in chunks of ${chunk_size} users`
 
-  const ManagerClass = managerRegistration[feedManagerName];
-  console.log('ManagerClass', ManagerClass);
-  if (!ManagerClass)
-    throw new Error("Unable to find manager class in Manager Registration.")
+      debug(msg_format(userIds_chunks.length, followerIds.length, chunk_size))
 
-  const manager = new ManagerClass();
-  console.log('ManagerClass', manager);
-  for await (const FeedClass of Object.values(manager.FeedClasses)) {
-    const fanoutTask = manager.getFanoutTask(fanout_priority, FeedClass)
-    if (!fanoutTask)
-      return []
-    const chunk_size = manager.fanoutChunkSize
-    // const userIds_chunks = list(chunks(follower_ids, chunk_size))
-    const userIds_chunks = chunk(follower_ids, chunk_size)
-    const msg_format = 'spawning ${} subtasks for ${} user ids in chunks of ${} users'
-    // logger.info(
-    //     msg_format, len(userIds_chunks), len(follower_ids), chunk_size)
-    // var tasks = []
-    // # now actually create the tasks
-    console.log('userIds_chunks', userIds_chunks);
-    for await (const ids_chunk of userIds_chunks) {
-      const operation = operationRegistration[operationName];
-      // Simple task wrapper for _fanout task
-      // Just making sure code is where you expect it :)
-      manager.fanout(ids_chunk, FeedClass, operation, operation_kwargs)
-      const format = (a, b, c, d) => { return `${a} userIds, ${b}, ${c} ${d}` }
-      return format(ids_chunk.length, FeedClass, operation, operation_kwargs)
-
-      // const task = fanoutTask.delay(
-      //   feedManager = this,
-      //   FeedClass = FeedClass,
-      //   userIds = ids_chunk,
-      //   operation = operation,
-      //   operation_kwargs = operation_kwargs
-      // )
-      // tasks.push(task)
+      // var tasks = []
+      // # now actually create the tasks 
+      for await (const ids_chunk of userIds_chunks) {
+        const operation = operationRegistration[operationName];
+        // Simple task wrapper for _fanout task
+        // Just making sure code is where you expect it :)
+        manager.fanout(ids_chunk, FeedClass, operation, operationArgs)
+        const format = (a, b, c, d) => `${a} userIds, ${b}, ${c} ${d}`
+        return format(ids_chunk.length, FeedClass, operation, operationArgs)
+      }
+      // return tasks
     }
-    // return tasks
-  }
-}
-
-export const connection = getConnection()
-export const fanoutWorker = new Worker(queueNames.fanoutQueue, async (job: Job) => {
-  const {
-    feedManagerName,
-    follower_ids,
-    operationName,
-    operation_kwargs = null,
-    fanout_priority = null
-  } = job.data
-  await handleFanout({
-    feedManagerName,
-    follower_ids,
-    // feedClassName,
-    operationName,
-    operation_kwargs,
-    fanout_priority
-  })
-}, { connection })
-
-export const fanoutHighWorker = new Worker(queueNames.fanoutHighPriorityQueue, async (job: Job) => {
-  const {
-    feedManagerName,
-    follower_ids,
-    // feedClassName,
-    operationName,
-    operation_kwargs = null,
-    fanout_priority = null
-  } = job.data
-  await handleFanout({
-    feedManagerName,
-    follower_ids,
-    // feedClassName,
-    operationName,
-    operation_kwargs,
-    fanout_priority
-  })
-}, { connection })
-
-export const fanoutLowWorker = new Worker(queueNames.fanoutLowPriorityQueue, async (job: Job) => {
-  const {
-    feedManagerName,
-    follower_ids,
-    // feedClassName,
-    operationName,
-    operation_kwargs = null,
-    fanout_priority = null
-  } = job.data
-  await handleFanout({
-    feedManagerName,
-    follower_ids,
-    // feedClassName,
-    operationName,
-    operation_kwargs,
-    fanout_priority
-  })
-}, { connection })
-
+  }, { connection })
 
 
 
@@ -199,63 +153,60 @@ export const fanoutLowWorker = new Worker(queueNames.fanoutLowPriorityQueue, asy
  * @param follow_activity_limit 
  */
 // @shared_task
-export const followManyWorker = new Worker(queueNames.followManyQueue, async (job: Job) => {
+export const followManyWorker = new Worker<FollowManyDataType>(
+  queueNames.followManyQueue,
+  async (job) => {
+    const { feedManagerName, userId, targetIds, follow_activity_limit } = job.data
 
-  console.log('following many');
-  const { feedManagerName, userId, targetIds, follow_activity_limit } = job.data
-  console.log(userId);
-  if (!feedManagerName)
-    throw new Error(`Please provide feedManagerName. ${feedManagerName}`)
+    const result = Guard.againstNullOrUndefinedBulk([
+      { argumentName: 'userId', argument: userId },
+      { argumentName: 'feedManagerName', argument: feedManagerName },
+    ])
+    if (!result.succeeded)
+      throw new Error(result.message)
 
-  const ManagerClass = managerRegistration[feedManagerName];
-  if (!ManagerClass)
-    throw new Error("Unable to find manager class in Manager Registration.")
+    const ManagerClass = managerRegistration[feedManagerName];
+    if (!ManagerClass)
+      throw new Error("Unable to find manager class in Manager Registration.")
 
-  const feedManager = new ManagerClass();
+    const feedManager = new ManagerClass();
 
-  const feeds = Object.values(feedManager.getFeeds(userId))
+    const feeds = Object.values(feedManager.getFeeds(userId)) 
+    const targetFeeds: UserBaseFeed[] = targetIds.map((targetId) => feedManager.getUserFeed(targetId))
 
-  // const targetFeeds = map(feedManager.getUserFeed, targetIds)
-  const targetFeeds: UserBaseFeed[] = targetIds.map((targetId) => feedManager.getUserFeed(targetId))
+    const activities = []
+ 
+    for await (const targetFeed of targetFeeds) {
+      const separator = getSeparator()
+      const feedItems = await targetFeed.getItem(0, follow_activity_limit) 
+      // only wants the activity created by target user actorId or targetId
+      const filteredFeedItems = feedItems.filter((f) => {
+        // if (!separator)
+        //   return f.actorId === targetFeed.userId || f.targetId === targetFeed.userId
+        // const splitted = f.actorId.split(separator)
+        // const actorId = splitted?.length
+        //   ? splitted.at(-1)
+        //   : f.actorId
 
-  const activities = []
+        const actorId = splitId(f.actorId, separator)
+        const targetId = splitId(f.targetId, separator)
+        const targetUserId = targetFeed.userId
+        return actorId === targetUserId || targetId === targetUserId
+      })
 
-  console.log('here following many', targetFeeds);
-  for await (const targetFeed of targetFeeds) {
-    const separator = getSeparator()
-    console.log('before get item', 0, follow_activity_limit);
-    const feedItems = await targetFeed.getItem(0, follow_activity_limit)
-    console.log('after get item', feedItems);
-    // only wants the activity created by target user actorId or targetId
-    const filteredFeedItems = feedItems.filter((f) => {
-      // if (!separator)
-      //   return f.actorId === targetFeed.userId || f.targetId === targetFeed.userId
-      // const splitted = f.actorId.split(separator)
-      // const actorId = splitted?.length
-      //   ? splitted.at(-1)
-      //   : f.actorId
-
-      const actorId = splitId(f.actorId, separator)
-      const targetId = splitId(f.targetId, separator)
-      const targetUserId = targetFeed.userId
-      return actorId === targetUserId || targetId === targetUserId
-    })
-
-    activities.push(...filteredFeedItems)
-  }
-
-  console.log('activities', activities);
-  if (activities) {
-    for await (const feed of feeds) {
-      console.log('feed', feed);
-      console.log('adding many in followMany');
-      // 🔥 re-add batch interface
-      // const batch_interface = feed.getTimelineBatchInterface()
-      // feed.addMany(activities, { batch_interface })
-      await (feed as any).addMany(activities)
+      activities.push(...filteredFeedItems)
     }
-  }
-}, { connection })
+
+    console.log('activities', activities);
+    if (activities) {
+      for await (const feed of feeds) {
+        // 🔥 re-add batch interface
+        // const batch_interface = feed.getTimelineBatchInterface()
+        // feed.addMany(activities, { batch_interface })
+        await (feed as any).addMany(activities)
+      }
+    }
+  }, { connection })
 
 
 // @shared_task
@@ -271,53 +222,60 @@ export const followManyWorker = new Worker(queueNames.followManyQueue, async (jo
  * @param userId 
  * @param sourceIds 
  */
-export const unfollowManyWorker = new Worker(queueNames.unfollowManyQueue, async (job: Job) => {
+export const unfollowManyWorker = new Worker<FollowManyDataType>(
+  queueNames.unfollowManyQueue,
+  async (job) => {
 
-  const { feedManagerName, userId, targetIds: sourceIds } = job.data
-  if (!feedManagerName)
-    throw new Error(`Please provide feedManagerName. ${feedManagerName}`)
+    const { feedManagerName, userId, targetIds: sourceIds } = job.data
 
-  const ManagerClass = managerRegistration[feedManagerName];
-  if (!ManagerClass)
-    throw new Error("Unable to find manager class in Manager Registration.")
+    const result = Guard.againstNullOrUndefinedBulk([
+      { argumentName: 'userId', argument: userId },
+      { argumentName: 'feedManagerName', argument: feedManagerName },
+    ])
+    if (!result.succeeded)
+      throw new Error(result.message)
 
-  const feedManager = new ManagerClass();
+    const ManagerClass = managerRegistration[feedManagerName];
+    if (!ManagerClass)
+      throw new Error("Unable to find manager class in Manager Registration.")
 
-  const feeds: BaseFeed[] = Object.values(feedManager.getFeeds(userId))
-  const separator = getSeparator()
-  for (const feed of feeds) {
-    const activities: Activity[] = []
-    console.log('calling trim');
-    await feed.trim()
-    console.log('calling trim after');
-    const items = await feed.getItem(0, feed.maxLength)
-    console.log(items);
-    console.log('');
-    for (const item of items) {
-      const pureActorId = splitId(item.actorId, separator)
-      const pureTargetId = splitId(item.targetId, separator)
-      console.log(pureActorId);
-      console.log(pureTargetId);
-      console.log(item instanceof Activity);
-      if (item instanceof Activity) {
-        // if (sourceIds.includes(item.actorId))
-        if (sourceIds.includes(pureActorId) || sourceIds.includes(pureTargetId))
-          activities.push(item)
-      } else if (item instanceof AggregatedActivity) {
-        // activities.extend([activity for activity in item.activities if activity.actorId in sourceIds])
-        // const filteredActivities = item.activities.filter((a) => sourceIds.includes(a.actorId))
-        const filteredActivities = item.activities.filter((a) => (
-          sourceIds.includes(pureActorId)
-          || sourceIds.includes(pureTargetId)
-        ))
-        activities.push(...filteredActivities)
+    const feedManager = new ManagerClass();
+
+    const feeds: BaseFeed[] = Object.values(feedManager.getFeeds(userId))
+    const separator = getSeparator()
+    for (const feed of feeds) {
+      const activities: Activity[] = []
+      console.log('calling trim');
+      await feed.trim()
+      console.log('calling trim after');
+      const items = await feed.getItem(0, feed.maxLength)
+      console.log(items);
+      console.log('');
+      for (const item of items) {
+        const pureActorId = splitId(item.actorId, separator)
+        const pureTargetId = splitId(item.targetId, separator)
+        console.log(pureActorId);
+        console.log(pureTargetId);
+        console.log(item instanceof Activity);
+        if (item instanceof Activity) {
+          // if (sourceIds.includes(item.actorId))
+          if (sourceIds.includes(pureActorId) || sourceIds.includes(pureTargetId))
+            activities.push(item)
+        } else if (item instanceof AggregatedActivity) {
+          // activities.extend([activity for activity in item.activities if activity.actorId in sourceIds])
+          // const filteredActivities = item.activities.filter((a) => sourceIds.includes(a.actorId))
+          const filteredActivities = item.activities.filter((a) => (
+            sourceIds.includes(pureActorId)
+            || sourceIds.includes(pureTargetId)
+          ))
+          activities.push(...filteredActivities)
+        }
+      }
+      if (activities.length) {
+        const activityIds = activities.map((a) => a.serializationId)
+        console.log(activityIds);
+        await feed.removeMany(activityIds, {})
       }
     }
-    if (activities.length) {
-      const activityIds = activities.map((a) => a.serializationId)
-      console.log(activityIds);
-      await feed.removeMany(activityIds, {})
-    }
-  }
-}, { connection })
+  }, { connection })
 
