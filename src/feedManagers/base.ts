@@ -1,12 +1,16 @@
 import createDebug from 'debug'
+import IORedis from 'ioredis'
 import { chunk } from 'lodash'
 import { Activity } from '../activity/Activity'
 import { NotImplementedError, ValueError } from "../errors"
 import { RedisFeed } from "../feeds/RedisFeed"
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import { getMetricsInstance } from "../metrics/node_statsd"
-import { FanoutDataType } from '../task'
-import { fanoutQueue, followManyQueue, unfollowManyQueue } from "../task_registration"
+import { setupTask } from '../task/setupTask'
+// import type { setupTask } from '../task/setupTask'
+
+
+
 
 type PriorityType = 'HIGH' | "LOW"
 
@@ -91,6 +95,20 @@ export class Manager {
   fanoutChunkSize = 100
 
   metrics = getMetricsInstance()
+  /**
+   * beware mini manager has no tasks
+   */
+  tasks: Awaited<ReturnType<typeof setupTask>>['taskQueues']
+
+  constructor(props: {
+    tasks?: Awaited<ReturnType<typeof setupTask>>['taskQueues'],
+  }) {
+    if (!props.tasks)
+      throw new Error('Task cannot be null')
+    this.tasks = props.tasks
+  }
+
+
 
   /**
    * Returns a dict of users ids which follow the given user grouped by
@@ -134,7 +152,7 @@ export class Manager {
     const userFollowerIds = await this.getUserFollowerIds(userId)
 
     for await (const [priorityGroup, followerIds] of Object.entries(userFollowerIds)) {
-      await fanoutQueue.add('addUserActivity', {
+      await this.tasks.fanoutQueue.add('addUserActivity', {
         feedManagerName: this.constructor.name,
         followerIds,
         operationName: 'addOperation',
@@ -165,7 +183,7 @@ export class Manager {
 
     const userFollowerIds = await this.getUserFollowerIds(userId)
     for await (const [priorityGroup, followerIds] of Object.entries(userFollowerIds)) {
-      await fanoutQueue.add('removeUserActivity', {
+      await this.tasks.fanoutQueue.add('removeUserActivity', {
         feedManagerName: this.constructor.name,
         followerIds,
         operationName: 'removeOperation',
@@ -269,7 +287,7 @@ export class Manager {
   // :param async_: controls if the operation should be done via celery
   // '''
   async followManyUsers(userId, targetIds, async_ = true) {
-    await followManyQueue.add('followManyUsers', {
+    await this.tasks.followManyQueue.add('followManyUsers', {
       feedManagerName: this.constructor.name,
       userId,
       targetIds,
@@ -285,7 +303,7 @@ export class Manager {
   // :param async_: controls if the operation should be done via celery
   // '''
   async unfollowManyUsers(userId, targetIds, async_ = true) {
-    await unfollowManyQueue.add('unfollowManyUsers', {
+    await this.tasks.unfollowManyQueue.add('unfollowManyUsers', {
       feedManagerName: this.constructor.name,
       userId,
       targetIds,
@@ -304,6 +322,8 @@ export class Manager {
   async fanout(userIds, FeedClass, operation, operationArgs) {
     const timer = this.metrics.fanoutTimer(FeedClass)
     timer.start()
+
+    console.log('we are here');
     try {
       const separator = '==='.repeat(10)
       // logger.info('${} starting fanout ${}', separator, separator)
@@ -375,7 +395,7 @@ export class Manager {
           trim: false
         }
         for (const [priorityGroup, followerIds] of Object.entries(followerIds_by_prio)) {
-          fanoutQueue.add('batchImport', {
+          this.tasks.fanoutQueue.add('batchImport', {
             feedManagerName: this.constructor.name,
             followerIds,
             operationName: 'addOperation',

@@ -3,12 +3,13 @@ import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { RedisAggregatedFeed } from '../../../src/feeds/aggregated_feed/RedisAggregatedFeed';
 import { setupRedisConfig } from "../../../src/storage/redis/connection";
 import { generateActivity } from '../../utils/generateActivity';
+import { wait } from '../../utils/wait';
 
 describe("GenericContainer", () => {
   let container: StartedTestContainer;
 
   beforeAll(async () => {
-    
+
     // pull the image first
     container = await new GenericContainer("redis:6.2.5")
       .withExposedPorts(6379)
@@ -22,6 +23,7 @@ describe("GenericContainer", () => {
 
   afterAll(async () => {
     await container.stop();
+    await wait(2500)
   });
 
   it("RedisFeed able to read and write", async () => {
@@ -50,7 +52,7 @@ describe("GenericContainer", () => {
 
     await feed.addManyAggregated(aggregatedActivities)
 
-    const result = await feed.getItem(0, 5) 
+    const result = await feed.getItem(0, 5)
     var totalActivities = 0
     result.forEach(element => {
       totalActivities += element.activities.length

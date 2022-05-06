@@ -1,10 +1,9 @@
 
 // import Queue from 'bull'
 import { GenericContainer } from 'testcontainers';
-import { getRedisAddress, setupRedisConfig } from '../../src';
+import { setupRedisConfig } from '../../src';
 import { Queue, Worker } from 'bullmq';
-
-
+import { wait } from '../utils/wait';
 
 describe("bull queue", () => {
 
@@ -17,14 +16,11 @@ describe("bull queue", () => {
     container = await new GenericContainer("redis:6.2.5")
       .withExposedPorts(6379)
       .start();
-    console.log(container.getHost(), container.getMappedPort(6379));
+
     setupRedisConfig({
       host: container.getHost(),
       port: container.getMappedPort(6379),
     })
-
-    const redisAddress = getRedisAddress()
-    console.log('redis', redisAddress);
 
     testQueue = new Queue('test', {
       connection: {
@@ -32,9 +28,6 @@ describe("bull queue", () => {
         host: '127.0.0.1'
       }
     });
-    // testQueue.process(async (job, done) => {
-    //   console.log('test');
-    // })
 
     worker = new Worker('test', async job => {
       console.log('test');
@@ -48,11 +41,7 @@ describe("bull queue", () => {
   });
 
   afterAll(async () => {
-
-    // wait for statsd to flush out 
-    await new Promise((r) => {
-      setTimeout(r, 3000)
-    })
+    await wait(2500)
     await worker.close()
     await testQueue.close()
     await container.stop();
@@ -61,7 +50,6 @@ describe("bull queue", () => {
 
   it("test task", async () => {
     const promise = testQueue.add('testJob', {})
-    console.log(promise);
     await promise
   }, 10000)
 })

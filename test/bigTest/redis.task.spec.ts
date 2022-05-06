@@ -2,67 +2,52 @@
 import { Job, Queue, Worker } from "bullmq";
 import IORedis from "ioredis";
 import { GenericContainer } from "testcontainers";
-import { getRedisAddress, setupRedisConfig } from "../../src/storage/redis/connection";
+import { setupRedisConfig } from "../../src/storage/redis/connection";
 import { wait } from "../utils/wait";
- 
 
-const redisAddress = getRedisAddress()
-// let connection = new IORedis(redisAddress);
-let connection = {
-  host: 'localhost',
-  port: 6379
-}
-let fanoutQueue = new Queue("fanoutQueue", { connection })
-
-const worker = new Worker("fanoutQueue", async (job: Job) => {
-  console.log('working worker');
-}, { connection })
 
 describe("GenericContainer", () => {
   let container;
+  let worker
+  let fanoutQueue
+  let connection: IORedis
 
+  let shutdown
 
   beforeAll(async () => {
-
     // pull the image first
     container = await new GenericContainer("redis:6.2.5")
-      // .withExposedPorts(6379)
-      .withExposedPorts({
-        container: 6379,
-        host: 6379
-      })
+      .withExposedPorts(6379)
       .start();
-
+    const redisPort = container.getMappedPort(6379)
+    const redisHost = container.getHost()
+    connection = new IORedis({
+      host: redisHost,
+      port: redisPort,
+      maxRetriesPerRequest: null
+    })
+    fanoutQueue = new Queue("fanoutQueue", { connection })
+    worker = new Worker("fanoutQueue", async (job: Job) => {
+      console.log('working worker');
+    }, { connection })
     console.log('host', container.getHost(), container.getMappedPort(6379),);
     setupRedisConfig({
       host: container.getHost(),
       port: container.getMappedPort(6379),
     })
 
+    shutdown = async () => {
+      await fanoutQueue.close()
+      await worker.close()
+      await connection.disconnect()
+      await container.stop();
+    }
 
   });
 
   afterAll(async () => {
-
-    // wait for statsd to flush out 
-    await new Promise((r) => {
-      setTimeout(r, 3000)
-    })
-    console.log('closing connection');
-
-    // await fanoutQueue.close()
-    // await fanoutHighPriorityQueue.close()
-    // await fanoutLowPriorityQueue.close()
-    // await followManyQueue.close()
-    // await unfollowManyQueue.close()
-
-    // await fanoutLowWorker.close()
-    // await fanoutHighWorker.close()
-    // await fanoutWorker.close()
-    // await connection.disconnect()
-    await fanoutQueue.close()
-    await worker.close()
-    await container.stop();
+    await wait(2500)
+    await shutdown()
   });
 
   it('test', async () => {

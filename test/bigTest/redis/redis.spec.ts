@@ -4,6 +4,7 @@ import { Activity } from "../../../src/activity/Activity";
 import { RedisFeed } from '../../../src/feeds/RedisFeed';
 import { setupRedisConfig } from "../../../src/storage/redis/connection";
 import { generateActivity } from '../../utils/generateActivity';
+import { wait } from '../../utils/wait';
 
 describe("GenericContainer", () => {
   let container;
@@ -22,6 +23,7 @@ describe("GenericContainer", () => {
 
   afterAll(async () => {
     await container.stop();
+    await wait(2500)
   });
 
   it("RedisFeed able to read and write", async () => {

@@ -4,8 +4,7 @@ import { setupRedisConfig } from '../../../src';
 import { CassandraTestManager } from '../../../src/feedManagers/cassandra/CassandraTestManager';
 import { runCassandraMigration } from '../../../src/storage/cassandra/cassandra.migration';
 import { setupCassandraConnection } from '../../../src/storage/cassandra/connection';
-import { fanoutWorker } from '../../../src/task';
-import { fanoutQueue, followManyQueue, unfollowManyQueue } from '../../../src/task_registration';
+import { setupTask } from '../../../src/task/setupTask';
 import { generateActivity } from '../../utils/generateActivity';
 import { wait } from '../../utils/wait';
 
@@ -14,14 +13,12 @@ const defaultTaskTimeout = 8000
 describe("GenericContainer", () => {
   let container: StartedTestContainer
   let container2: StartedTestContainer
+  let setupProps: Awaited<ReturnType<typeof setupTask>>
 
   beforeAll(async () => {
     // pull the image first
     const promise2 = new GenericContainer("redis:6.2.5")
-      .withExposedPorts({
-        container: 6379,
-        host: 6379
-      })
+      .withExposedPorts(6379)
       .start();
     const promise1 = new GenericContainer("cassandra:3.11.0")
       .withExposedPorts(9042) // 7000 for node, 9042 for client
@@ -31,10 +28,11 @@ describe("GenericContainer", () => {
     container = c1
     container2 = c2
 
-
+    const redisPort = container2.getMappedPort(6379)
+    const redisHost = container2.getHost()
     setupRedisConfig({
-      host: container2.getHost(),
-      port: container2.getMappedPort(6379),
+      host: redisHost,
+      port: redisPort,
     })
 
     setupCassandraConnection({
@@ -43,23 +41,23 @@ describe("GenericContainer", () => {
       port: container.getMappedPort(9042),
     })
 
+    setupProps = await setupTask({
+      port: redisPort,
+      host: redisHost
+    })
 
 
     await runCassandraMigration()
 
     // task is executed in seperated process
     await wait(2500)
-  }, 50000);
+  }, 80000);
 
   afterAll(async () => {
 
     // wait for statsd to flush out 
     await wait(2500)
-    await fanoutQueue.close()
-    await followManyQueue.close()
-    await unfollowManyQueue.close()
-
-    await fanoutWorker.close()
+    await setupProps.shutdown()
 
     await container.stop()
     await container2.stop()
@@ -68,7 +66,7 @@ describe("GenericContainer", () => {
 
   it("Able to add user activity", async () => {
     const userId = faker.datatype.uuid()
-    const feedManager = new CassandraTestManager()
+    const feedManager = new CassandraTestManager({ tasks: setupProps.taskQueues })
     await feedManager.addUserActivity(userId, generateActivity())
     // current user feed
     const userFeed = feedManager.getUserFeed(userId)
@@ -80,7 +78,7 @@ describe("GenericContainer", () => {
 
   it("Able to fan out activities to follower", async () => {
     const userId = faker.datatype.uuid()
-    const feedManager = new CassandraTestManager()
+    const feedManager = new CassandraTestManager({ tasks: setupProps.taskQueues })
     const followers = [
       faker.datatype.uuid(),
       faker.datatype.uuid()
@@ -123,27 +121,27 @@ describe("GenericContainer", () => {
 
   it("Able to remove and remove fan out activities to follower", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new CassandraTestManager()
+    const feedManager = new CassandraTestManager({ tasks: setupProps.taskQueues })
 
     const followers = [
       faker.datatype.uuid(),
       faker.datatype.uuid()
     ]
-    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+    jest.spyOn(feedManager, 'getUserFollowerIds').mockImplementation(async () => ({
       'HIGH': followers
     }));
 
     const activity1 = generateActivity()
-    await feed.addUserActivity(userId, activity1)
+    await feedManager.addUserActivity(userId, activity1)
 
     // current user feed
-    const userFeed = feed.getUserFeed(userId)
-    const followerFeed = feed.getUserFeed(followers[0])
+    const userFeed = feedManager.getUserFeed(userId)
+    const followerFeed = feedManager.getUserFeed(followers[0])
     const activities = await userFeed.getItem(0, 5)
     const followerFeedItem = await followerFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
     expect(followerFeedItem.length).toBe(1)
-    await feed.removeUserActivity(userId, activity1)
+    await feedManager.removeUserActivity(userId, activity1)
     const activities2 = await userFeed.getItem(0, 5)
 
     // could generate error due to async that is not awaited fanout
@@ -159,9 +157,9 @@ describe("GenericContainer", () => {
 
   it("follow user and copy content", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new CassandraTestManager()
+    const feedManager = new CassandraTestManager({ tasks: setupProps.taskQueues })
     const followers = []
-    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+    jest.spyOn(feedManager, 'getUserFollowerIds').mockImplementation(async () => ({
       'HIGH': followers
     }));
 
@@ -171,17 +169,17 @@ describe("GenericContainer", () => {
       target: `user:${newUserId}`,
     })
 
-    await feed.addUserActivity(userId, activity1)
+    await feedManager.addUserActivity(userId, activity1)
     // current user feed
-    const userFeed = feed.getUserFeed(userId)
+    const userFeed = feedManager.getUserFeed(userId)
     const activities = await userFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
-    await feed.followUser(newUserId, userId)
+    await feedManager.followUser(newUserId, userId)
 
     // task is executed in seperated process
     await wait(2500)
 
-    const newUserFeed = feed.getUserFeed(newUserId)
+    const newUserFeed = feedManager.getUserFeed(newUserId)
     const activities1 = await newUserFeed.getItem(0, 5)
     expect(activities1.length).toBe(1)
 
@@ -190,10 +188,10 @@ describe("GenericContainer", () => {
 
   it("unfollow user and remove copied content", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new CassandraTestManager()
+    const feedManager = new CassandraTestManager({ tasks: setupProps.taskQueues })
 
     const followers = []
-    jest.spyOn(feed, 'getUserFollowerIds').mockImplementation(async () => ({
+    jest.spyOn(feedManager, 'getUserFollowerIds').mockImplementation(async () => ({
       'HIGH': followers
     }));
     const newUserId = faker.datatype.uuid()
@@ -201,17 +199,17 @@ describe("GenericContainer", () => {
       actor: `user:${userId}`,
       target: `user:${newUserId}`,
     })
-    await feed.addUserActivity(userId, activity1)
+    await feedManager.addUserActivity(userId, activity1)
 
     // current user feed
-    const userFeed = feed.getUserFeed(userId)
+    const userFeed = feedManager.getUserFeed(userId)
 
     const activities = await userFeed.getItem(0, 5)
     expect(activities.length).toBe(1)
 
 
-    await feed.followUser(newUserId, userId)
-    const newUserFeed = feed.getUserFeed(newUserId)
+    await feedManager.followUser(newUserId, userId)
+    const newUserFeed = feedManager.getUserFeed(newUserId)
 
     // task is executed in seperated process
     await wait(2500)
@@ -220,7 +218,7 @@ describe("GenericContainer", () => {
     expect(newUserActivities.length).toBe(1)
 
 
-    await feed.unfollowUser(newUserId, userId)
+    await feedManager.unfollowUser(newUserId, userId)
 
     // task is executed in seperated process
     await wait(2500)
