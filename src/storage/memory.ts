@@ -11,11 +11,11 @@ import { BaseTimelineStorage } from "./base/base_timeline_storage"
 const timelineStore = {} // defaultdict(list)
 const activityStore = {} // defaultdict(dict)
 
+// '''
+// same as python bisect.bisect_left but for
+// lists with reversed order
+// '''
 function reverse_bisect_left(a, x, lo = 0, hi = null) {
-  // '''
-  // same as python bisect.bisect_left but for
-  // lists with reversed order
-  // '''
   if (lo < 0) {
     throw new ValueError('lo must be non-negative')
   }
@@ -36,12 +36,17 @@ function reverse_bisect_left(a, x, lo = 0, hi = null) {
 
 export class InMemoryActivityStorage extends BaseActivityStorage {
 
-  async getFromStorage(activity_ids, args) {
-    return { _id: activityStore.get(_id) for _id in activity_ids }
+  async getFromStorage(activity_ids: string[], args) {
+    // return { _id: activityStore.get(_id) for _id in activity_ids }
+    const result = {}
+    activity_ids.forEach(id => {
+      result[id] = activityStore[id]
+    })
+    return result
   }
 
   async addToStorage(activities, args) {
-    const insert_count = 0
+    let insert_count = 0
     for (activity_id, activity_data in six.iteritems(activities)) {
       if (activity_id not in activityStore)
       insert_count += 1
@@ -52,8 +57,8 @@ export class InMemoryActivityStorage extends BaseActivityStorage {
 
   async removeFromStorage(activity_ids, args) {
     var removed = 0
-    for (activity_id in activity_ids) {
-      var exists = activityStore.pop(activity_id, None)
+    for (const activityId of activity_ids) {
+      var exists = activityStore.pop(activityId, None)
       if (exists)
         removed += 1
     }
@@ -71,11 +76,17 @@ export class InMemoryTimelineStorage extends BaseTimelineStorage {
     return activity_id in timelineStore[key]
   }
 
-  async get_index_of(key, activity_id) {
+  async getIndexOf(key, activity_id) {
     return timelineStore[key].index(activity_id)
   }
 
-  async getSliceFromStorage(key, start, stop, filter_kwargs = undefined, ordering_args = undefined) {
+  async getSliceFromStorage({
+    key,
+    start,
+    stop,
+    filter_kwargs = undefined,
+    ordering_args = undefined
+  }) {
     var results = list(timelineStore[key][start: stop])
     var score_value_pairs = list(zip(results, results))
     return score_value_pairs
@@ -117,7 +128,7 @@ export class InMemoryTimelineStorage extends BaseTimelineStorage {
     timelineStore.pop(key, None)
   }
 
-  async  trim(key, length) {
+  async trim(key, length) {
     timelineStore[key] = timelineStore[key][:length]
   }
 
