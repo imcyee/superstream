@@ -15,7 +15,7 @@
 import { cloneDeep, uniq } from "lodash"
 import zip from "lodash/zip"
 import { Activity } from "../../activity/Activity"
-import { AggregatedActivity } from "../../activity/AggregatedActivity" 
+import { AggregatedActivity } from "../../activity/AggregatedActivity"
 import { RecentVerbAggregator } from "../../aggregators/recentVerb.aggregator"
 import { ValueError } from "../../errors"
 import { AggregatedActivitySerializer } from "../../serializers/AggregatedActivitySerializer"
@@ -109,7 +109,11 @@ export class AggregatedFeed extends BaseFeed {
 
 
     // # merge the current activities with the new ones
-    const { latest, changed, deleted } = aggregator.merge(currentActivities, activities)
+    const {
+      latest,
+      changed,
+      deleted
+    } = aggregator.merge(currentActivities, activities)
     // logger.debug('merge took %s', t.next())
 
 
@@ -388,10 +392,10 @@ export class AggregatedFeed extends BaseFeed {
   // Returns the class used for aggregation
   // '''
   getAggregator() {
-    const aggregator = new this.AggregatorClass(
-      AggregatedFeed.AggregatedActivityClass,
-      AggregatedFeed.ActivityClass // this.ActivityClass
-    )
+    const aggregator = new this.AggregatorClass({
+      AggregatedActivityClass: AggregatedFeed.AggregatedActivityClass,
+      ActivityClass: AggregatedFeed.ActivityClass // this.ActivityClass
+    })
     return aggregator
   }
 
@@ -449,14 +453,11 @@ export class AggregatedFeed extends BaseFeed {
   // '''
   // Translates a list of latest changed and deleted into
   // Add and remove instructions
-
   // :param latest: list of latest items
   // :param changed: list of tuples (from, to)
   // :param deleted: list of things to delete
   // :returns: a tuple with a list of items to remove and to add
-
   // **Example**::
-
   //     latest = [AggregatedActivity]
   //     deleted = [AggregatedActivity]
   //     changed = [(AggregatedActivity, AggregatedActivity)]
@@ -467,7 +468,8 @@ export class AggregatedFeed extends BaseFeed {
     var flat_changed = []
     changed.forEach(element => {
       flat_changed = [...flat_changed, ...element]
-    });  // sum(map(list, changed), [])
+    });
+    // sum(map(list, changed), [])
     // for (const aggregated_activity of itertools.chain(latest, flat_changed, deleted)) {
     for (const aggregated_activity of [...latest, ...flat_changed, ...deleted]) {
       if (!(aggregated_activity instanceof AggregatedActivity)) {

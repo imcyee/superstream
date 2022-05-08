@@ -1,4 +1,4 @@
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { GenericContainer } from "testcontainers";
 import { Activity } from "../../../src/activity/Activity";
 import { CassandraFeed } from '../../../src/feeds/cassandra';

@@ -1,4 +1,4 @@
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { GenericContainer, StartedTestContainer } from "testcontainers";
 import { setupRedisConfig } from '../../../src';
 import { CassandraTestManager } from '../../../src/feedManagers/cassandra/CassandraTestManager';
