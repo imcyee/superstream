@@ -144,6 +144,7 @@ export class Manager {
     // # add into the global activity cache (if we are using it)
     await this.UserFeedClass.insertActivity(activity)
     // # now add to the user's personal feed
+    console.log(userId,userId);
     const userFeed = this.getUserFeed(userId)
     await userFeed.add(activity)
     const operationArgs = {
@@ -219,6 +220,8 @@ export class Manager {
   // :param userId: the id of the user
   // '''
   getUserFeed(userId) {
+    console.log('userId', userId);
+    console.log('this.UserFeedClass', this.UserFeedClass);
     return new this.UserFeedClass(userId)
   }
 

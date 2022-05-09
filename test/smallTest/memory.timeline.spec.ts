@@ -1,5 +1,5 @@
 import { DummySerializer } from '../../src/serializers/dummy'
-import { InMemoryActivityStorage, InMemoryTimelineStorage } from '../../src/storage/memory'
+import { InMemoryTimelineStorage } from '../../src/storage/memory/InMemoryTimelineStorage'
 import { v4 } from 'uuid'
 import { Activity } from '../../src/activity/Activity'
 

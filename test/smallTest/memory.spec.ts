@@ -1,5 +1,5 @@
 import { DummySerializer } from '../../src/serializers/dummy'
-import { InMemoryActivityStorage } from '../../src/storage/memory'
+import { InMemoryActivityStorage } from '../../src/storage/memory/InMemoryActivityStorage'
 import { v4 } from 'uuid'
 
 const generateMemoryActivity = () => ({
