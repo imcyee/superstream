@@ -1,9 +1,7 @@
-import { Mixin } from "ts-mixer";
 import { CassandraAggregatedActivitySerializer } from "../../serializers/cassandra/CassandraAggregatedSerializer";
 import { CassandraActivityStorage } from "../../storage/cassandra/CassandraActivityStorage";
 import { CassandraTimelineStorage } from "../../storage/cassandra/CassandraTimelineStorage";
 import { models } from "../../storage/cassandra/models";
-import { CassandraFeed } from "../cassandra";
 import { AggregatedFeed } from "./AggregatedFeed";
 
 

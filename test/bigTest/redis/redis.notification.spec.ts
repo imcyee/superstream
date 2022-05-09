@@ -1,4 +1,4 @@
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { GenericContainer } from "testcontainers";
 import { RedisNotificationFeed } from '../../../src/feeds/notification_feed/RedisNotificationFeed';
 import { setupRedisConfig } from "../../../src/storage/redis/connection";

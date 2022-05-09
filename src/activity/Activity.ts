@@ -42,7 +42,9 @@ export class Activity extends BaseActivity {
     if (!verb && !verbId) // verb writetime is require to purge old data
       throw new Error('This does not seems like a valid activity, verb is required')
 
-    if (!(actor || actorId) && !(object || objectId) && !(target || targetId))
+    if (!(actor || actorId) && !(object || objectId)
+      // && !(target || targetId)
+    )
       throw new Error('This does not seems like a valid activity')
 
     this.serializationId = serializationId
@@ -51,12 +53,13 @@ export class Activity extends BaseActivity {
 
     this.time = time || Date.now() // datetime.datetime.utcnow()
 
+    // id takes precedence to object
     // this.verb = new VerbClass()
-    this._setObjectOrId('verb', verb ?? verbId)
+    this._setObjectOrId('verb', verbId ?? verb)
     // # either set .actor or .actorId depending on the data
-    this._setObjectOrId('actor', actor ?? actorId)
-    this._setObjectOrId('object', object ?? objectId)
-    this._setObjectOrId('target', target ?? targetId)
+    this._setObjectOrId('actor', actorId ?? actor)
+    this._setObjectOrId('object', objectId ?? object)
+    this._setObjectOrId('target', targetId ?? target)
 
 
     // # store the extra context which gets serialized

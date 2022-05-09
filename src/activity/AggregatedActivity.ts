@@ -64,9 +64,9 @@ export class AggregatedActivity extends BaseActivity {
       throw new ValueError('already dehydrated')
 
     this._activityIds = []
-    for (const activity of this.activities) 
+    for (const activity of this.activities)
       this._activityIds.push(activity.serializationId)
-    
+
     this.activities = []
     this.dehydrated = true
     return this
@@ -86,7 +86,7 @@ export class AggregatedActivity extends BaseActivity {
 
   // Works on both hydrated and not hydrated activities
   get length() {
-    return this._activityIds
+    return this._activityIds.length
       ? this.activityIds?.length
       : this.activities?.length
   }
@@ -94,7 +94,7 @@ export class AggregatedActivity extends BaseActivity {
 
   // Returns a list of activity ids
   get activityIds(): string[] {
-    return this._activityIds
+    return this._activityIds.length
       ? this._activityIds
       : this.activities.map(a => a.serializationId)
   }
@@ -138,16 +138,19 @@ export class AggregatedActivity extends BaseActivity {
   // Checks if activity is present in this aggregated
   contains(activity: Activity) {
     if (!(activity instanceof Activity) && typeof activity !== 'number' && typeof activity !== 'string') {
+      console.log('issue with activity');
       throw new ValueError(`contains needs an activity or long not ${activity}`)
     }
     const activityId = activity.serializationId
     const found = this.activities.find(a => a.serializationId === activityId)
+    console.log('found', found);
     return found
     // return activityId in set([a.serializationId for a in this.activities])
   }
 
 
-  append(activity) {
+  append<T extends Activity>(activity: T) {
+
     if (this.contains(activity)) {
       throw new DuplicateActivityException()
     }

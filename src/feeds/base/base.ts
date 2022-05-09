@@ -221,6 +221,7 @@ export abstract class BaseFeed {
       ...opts
     } = optsArg || {}
 
+    console.log('adding to ', this.timelineStorage);
     const addCount = await this.timelineStorage.addMany(
       this.key,
       activities,
@@ -416,6 +417,7 @@ export abstract class BaseFeed {
     const activityList = await this.activityStorage.getMany(activityIds)
 
     var activityData = {}
+    console.log('activityList', activityList);
     for (const a of activityList) {
       activityData[a.serializationId] = a
     }

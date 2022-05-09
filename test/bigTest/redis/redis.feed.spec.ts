@@ -1,56 +1,64 @@
-import faker from 'faker';
+import { faker } from '@faker-js/faker';
 import { GenericContainer } from "testcontainers";
 import { Activity } from "../../../src/activity/Activity";
-import { CassandraFeed } from '../../../src/feeds/cassandra';
-import { runCassandraMigration } from '../../../src/storage/cassandra/cassandra.migration';
-import { setupCassandraConnection } from '../../../src/storage/cassandra/connection';
+import { RedisFeed } from '../../../src/feeds/RedisFeed';
+import { setupRedisConfig } from "../../../src/storage/redis/connection";
 import { generateActivity } from '../../utils/generateActivity';
+import { wait } from '../../utils/wait';
 
 describe("GenericContainer", () => {
   let container;
 
   beforeAll(async () => {
-    container = await new GenericContainer("cassandra:3.11.0")
-      .withExposedPorts(9042) // 7000 for node, 9042 for client
+    // pull the image first
+    container = await new GenericContainer("redis:6.2.5")
+      .withExposedPorts(6379)
       .start();
 
-    setupCassandraConnection({
+    setupRedisConfig({
       host: container.getHost(),
-      port: container.getMappedPort(9042),
+      port: container.getMappedPort(6379),
     })
-
-    await runCassandraMigration()
-  }, 50000);
+  });
 
   afterAll(async () => {
     await container.stop();
+    await wait(2500)
   });
 
-  it("CassandraFeed able to read and write", async () => {
+  it("RedisFeed able to read and write", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new CassandraFeed(userId)
-    const activity1 = generateActivity()
-    await feed.add(activity1)
-    const result = await feed.getItem(0, 5)
-    expect(result.length).toBe(1)
-  }, 20000);
+    const feed = new RedisFeed(userId)
 
-  it("CassandraFeed able to read and write consecutively", async () => {
+    const activity1 = generateActivity()
+    await RedisFeed.insertActivity(activity1)
+
+    await feed.add(activity1) 
+    const result = await feed.getItem(0, 5) 
+    expect(result.length).toBe(1)
+  });
+
+  it("RedisFeed able to read and write 2", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new CassandraFeed(userId)
+    const feed = new RedisFeed(userId)
+
     const activity1 = generateActivity()
     const activity2 = generateActivity()
 
+    await RedisFeed.insertActivity(activity1)
+    await RedisFeed.insertActivity(activity2)
+
     await feed.add(activity1)
     await feed.add(activity2)
-    const result2 = await feed.getItem(0, 5)
 
-    expect(result2.length).toBe(2)
+    const result = await feed.getItem(0, 5)
+
+    expect(result.length).toBe(2)
   });
 
-  it("CassandraFeed value input and output are equal", async () => {
+  it("RedisFeed value input and output are equal", async () => {
     const userId = faker.datatype.uuid()
-    const feed = new CassandraFeed(userId)
+    const feed = new RedisFeed(userId)
     const activityPayload = {
       actor: `user:${faker.datatype.uuid()}`,
       verb: `cinema:book`,
@@ -59,6 +67,7 @@ describe("GenericContainer", () => {
     const activity1 = new Activity(activityPayload)
     const initialJSON = activity1.toJSON()
 
+    await RedisFeed.insertActivity(activity1)
     await feed.add(activity1)
     const result = await feed.getItem(0, 5)
 
@@ -74,6 +83,5 @@ describe("GenericContainer", () => {
       }
       expect(activityJSON[key]).toBe(initialJSON[key])
     })
-  })
-
+  });
 });

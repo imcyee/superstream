@@ -7,12 +7,12 @@ import { BaseFeed } from "./base/base"
 export class RedisFeed extends BaseFeed {
 
   ['timelineStorage']: RedisTimelineStorage //  BaseTimelineStorage // | RedisTimelineStorage
-  ['activityStorage']: RedisActivityStorage
-  ["getItem"]: (start: number, stop?: number, step?: number) => Promise<Activity[]>;
-  ['addMany']: (activities: Activity[], optsArg?) => Promise<number>
-  ['add']: (activity: Activity, kwargs?: { batchInterface?, trim?: boolean }) => Promise<any>
-  ['insertActivity']: (activity: Activity, opts?) => Promise<any>
-  ['insertActivities']: (activities: Activity[], opts?) => Promise<any>
+  ['activityStorage']: RedisActivityStorage 
+  ["getItem"]: <T extends Activity> (start: number, stop?: number, step?: number) => Promise<T[]>;
+  ['addMany']: <T extends Activity>(activities: T[], optsArg?) => Promise<number>
+  ['add']: <T extends Activity> (activity: T, kwargs?: { batchInterface?, trim?: boolean }) => Promise<any>
+  ['insertActivity']: <T extends Activity> (activity: T, opts?) => Promise<any>
+  ['insertActivities']: <T extends Activity> (activities: T[], opts?) => Promise<any>
 
   static TimelineStorageClass = RedisTimelineStorage
   static ActivityStorageClass = RedisActivityStorage
