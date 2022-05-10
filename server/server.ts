@@ -9,7 +9,7 @@ import { setupTask } from '../src/task/setupTask';
 import routes from './routes';
 
 const { createBullBoard } = require('@bull-board/api')
-const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter') 
+const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter')
 const { ExpressAdapter } = require('@bull-board/express');
 
 const debug = createDebug('superstream:server')
@@ -33,9 +33,13 @@ export const startServer = async (storageName) => {
     .withExposedPorts(6379)
     .start();
 
+  const redisPort = redisContainer.getMappedPort(6379)
+  const redisHost = redisContainer.getHost()
+  console.log(redisHost, redisPort);
+
   setupRedisConfig({
-    host: redisContainer.getHost(),
-    port: redisContainer.getMappedPort(6379),
+    host: redisHost,
+    port: redisPort,
   })
   taskProps = await setupTask({
     host: redisContainer.getHost(),
