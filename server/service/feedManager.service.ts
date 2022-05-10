@@ -31,6 +31,15 @@ export class FeedManagerService<T extends Manager> {
     time,
     context
   }) {
+    console.log(
+      actorId,'actorId',
+      verbId,
+      objectId,
+      targetId,
+      time,
+      context
+
+    );
     const activity = new Activity({
       actor: actorId,
       verb: verbId,

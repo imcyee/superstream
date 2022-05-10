@@ -8,6 +8,10 @@ import { getRedisConnection, setupRedisConfig } from "../src/storage/redis/conne
 import { setupTask } from '../src/task/setupTask';
 import routes from './routes';
 
+const { createBullBoard } = require('@bull-board/api')
+const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter') 
+const { ExpressAdapter } = require('@bull-board/express');
+
 const debug = createDebug('superstream:server')
 const app = express()
 
@@ -56,6 +60,7 @@ export const startServer = async (storageName) => {
       break
   }
 
+
   app.use(morgan('combined'))
   app.use(express.json());// parse json request body
   app.use(express.urlencoded({ extended: true }));// parse urlencoded request body
@@ -65,6 +70,21 @@ export const startServer = async (storageName) => {
   app.listen(port, () => {
     console.info(`Listening to port ${port}`);
   });
+
+  /**
+   * Bull mq ui
+   */
+  const serverAdapter = new ExpressAdapter();
+  const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
+    queues: [
+      new BullMQAdapter(taskProps.taskQueues.fanoutQueue),
+      new BullMQAdapter(taskProps.taskQueues.followManyQueue),
+      new BullMQAdapter(taskProps.taskQueues.unfollowManyQueue)
+    ],
+    serverAdapter: serverAdapter,
+  });
+  serverAdapter.setBasePath('/admin/queues');
+  app.use('/admin/queues', serverAdapter.getRouter());
 
   process.on('exit', async function () {
     console.log('Goodbye!');

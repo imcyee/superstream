@@ -38,11 +38,26 @@ export class Activity extends BaseActivity {
   }) {
     super()
 
+    console.log(
+      serializationId,
+      actorId,
+      objectId,
+      targetId,
+      verbId,
+      actor,
+      verb,
+      object,
+      target,
+      time,
+      context
+
+    );
+
     // sanitize invalid activity
     if (!verb && !verbId) // verb writetime is require to purge old data
       throw new Error('This does not seems like a valid activity, verb is required')
 
-    if (!(actor || actorId) && !(object || objectId)
+    if ((!actor && !actorId) || (!object && !objectId)
       // && !(target || targetId)
     )
       throw new Error('This does not seems like a valid activity')

@@ -1,7 +1,7 @@
-import express from 'express'; 
-import { FeedManagerService } from '../service/feedManager.service'; 
+import express from 'express';
+import { FeedManagerService } from '../service/feedManager.service';
 
-const router = express.Router(); 
+const router = express.Router();
 
 router.route('/feeds')
   // implement group
@@ -30,6 +30,7 @@ router.route('/feeds')
     if (!userId)
       throw new Error('Missing userId')
     const { actorId, verbId, objectId, targetId, time, context } = req.body
+    console.log(actorId, verbId, objectId, targetId, time, context);
     const feedManagerService = new FeedManagerService()
     const result = await feedManagerService.addFeedActivity(userId, {
       actorId,
