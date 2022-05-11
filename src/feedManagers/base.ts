@@ -1,5 +1,4 @@
 import createDebug from 'debug'
-import IORedis from 'ioredis'
 import { chunk } from 'lodash'
 import { Activity } from '../activity/Activity'
 import { NotImplementedError, ValueError } from "../errors"
@@ -8,10 +7,6 @@ import { UserBaseFeed } from "../feeds/UserBaseFeed"
 import { getMetricsInstance } from "../metrics/node_statsd"
 import { setupTask } from '../task/setupTask'
 import { RegisterManager } from './registerManager'
-// import type { setupTask } from '../task/setupTask'
-
-
-
 
 type PriorityType = 'HIGH' | "LOW"
 
@@ -22,7 +17,7 @@ const priorityMapping: {
   LOW: 5
 }
 
-const debug = createDebug('ns:debug:base')
+const debug = createDebug('superstream:feedManager:base')
 
 /**
  * '''
@@ -141,10 +136,10 @@ export class Manager {
    * :param activity: the activity which to add
    */
   async addUserActivity(userId, activity) {
+    debug("Adding user activity", userId, activity)
     // # add into the global activity cache (if we are using it)
     await this.UserFeedClass.insertActivity(activity)
-    // # now add to the user's personal feed
-    console.log(userId,userId);
+    // # now add to the user's personal feed 
     const userFeed = this.getUserFeed(userId)
     await userFeed.add(activity)
     const operationArgs = {
@@ -220,8 +215,6 @@ export class Manager {
   // :param userId: the id of the user
   // '''
   getUserFeed(userId) {
-    console.log('userId', userId);
-    console.log('this.UserFeedClass', this.UserFeedClass);
     return new this.UserFeedClass(userId)
   }
 
@@ -325,10 +318,9 @@ export class Manager {
    * @param operationArgs kwargs to pass to the operation
    */
   async fanout(userIds, FeedClass, operation, operationArgs) {
+    debug('Fanning out activity to', userIds);
     const timer = this.metrics.fanoutTimer(FeedClass)
     timer.start()
-
-    console.log('we are here');
     try {
       const separator = '==='.repeat(10)
       // logger.info('${} starting fanout ${}', separator, separator)

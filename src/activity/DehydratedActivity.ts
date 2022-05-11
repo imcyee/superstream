@@ -1,5 +1,7 @@
 import { BaseActivity } from "./base/BaseActivity"
+import createDebug from 'debug'
 
+const debug = createDebug('superstream:dehydratedActivity')
 /** 
  * The dehydrated verions of an :class:`Activity`.
  * the only data stored is serializationId of the original

@@ -176,3 +176,8 @@ in JS we use json.
 
 Here is how we can serialize it if we have to.
 https://stackoverflow.com/a/11761533/11497165
+
+
+# docker-compose
+Run `docker-compose build`
+Run `docker-compose up`

@@ -1,7 +1,7 @@
-import express from 'express'; 
-import { FeedManagerService } from '../service/feedManager.service'; 
+import express from 'express';
+import { FeedManagerService } from '../service/feedManager.service';
 
-const router = express.Router(); 
+const router = express.Router();
 
 router.route('/feeds')
   // implement group
@@ -42,6 +42,40 @@ router.route('/feeds')
 
     return res.json(result)
   })
+
+
+router.route('/activity')
+  .put(async (req, res) => {
+    const { group, userId, serializationId } = req.query
+    if (!userId)
+      throw new Error('Missing userId')
+
+    if (!serializationId)
+      throw new Error('Missing serializationId')
+
+    const {
+      actorId,
+      verbId,
+      objectId,
+      targetId,
+      time,
+      context
+    } = req.body
+
+    // const { actorId, verbId, objectId, targetId, time, context } = req.body
+    const feedManagerService = new FeedManagerService()
+    const result = await feedManagerService.updateFeedActivity({
+      actorId,
+      verbId,
+      objectId,
+      targetId,
+      time,
+      context
+    })
+
+    return res.json(result)
+  })
+
 // .delete(async (req, res) => {
 //   const { group, id } = req.query
 //   const { activityId } = req.body

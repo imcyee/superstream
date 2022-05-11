@@ -8,15 +8,14 @@ import { CassandraManager } from "./CassandraManager";
  */
 @RegisterManager()
 export class CassandraTestManager extends CassandraManager {
-
-  async getUserFollowerIds() {
-    return {
-      HIGH: [
-        faker.datatype.uuid(),
-        faker.datatype.uuid(),
-        faker.datatype.uuid(),
-        faker.datatype.uuid(),
-      ]
-    }
-  }
+  // async getUserFollowerIds() {
+  //   return {
+  //     HIGH: [
+  //       faker.datatype.uuid(),
+  //       faker.datatype.uuid(),
+  //       faker.datatype.uuid(),
+  //       faker.datatype.uuid(),
+  //     ]
+  //   }
+  // }
 }

@@ -1,8 +1,11 @@
+import createDebug from 'debug'
 import { ActivityNotFound, DuplicateActivityException, ValueError } from "../errors"
 import { datetimeToEpoch, hashCode, make_list_unique } from "../utils"
 import { Activity } from "./Activity"
 import { BaseActivity } from "./base/BaseActivity"
 
+
+const debug = createDebug('superstream:aggregatedActivity')
 /**
  * to store aggregated activities
  */
@@ -138,12 +141,11 @@ export class AggregatedActivity extends BaseActivity {
   // Checks if activity is present in this aggregated
   contains(activity: Activity) {
     if (!(activity instanceof Activity) && typeof activity !== 'number' && typeof activity !== 'string') {
-      console.log('issue with activity');
       throw new ValueError(`contains needs an activity or long not ${activity}`)
     }
     const activityId = activity.serializationId
     const found = this.activities.find(a => a.serializationId === activityId)
-    console.log('found', found);
+    debug('Aggregated contain this activity: ', found);
     return found
     // return activityId in set([a.serializationId for a in this.activities])
   }

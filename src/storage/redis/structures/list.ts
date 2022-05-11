@@ -3,7 +3,7 @@ import { RedisCache } from "./base"
 import { promisify } from 'util'
 import createDebug from 'debug'
 
-const debug = createDebug('ns:debug:list')
+const debug = createDebug('superstream:list')
 
 // '''
 // Generic list functionality used for both the sorted set && list implementations

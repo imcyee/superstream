@@ -1,7 +1,8 @@
 import { faker } from '@faker-js/faker';
-import { generateActivity } from '../utils/generateActivity';
-import { InMemoryFeed } from '../../src/feeds/InMemoryFeed'
-import { Activity } from '../../src';
+import { generateActivity } from '../../utils/generateActivity';
+import { InMemoryFeed } from '../../../src/feeds/InMemoryFeed'
+import { Activity } from '../../../src';
+
 
 describe("GenericContainer", () => {
 

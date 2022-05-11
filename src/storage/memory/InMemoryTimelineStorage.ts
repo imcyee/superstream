@@ -1,6 +1,9 @@
 import { zip } from "lodash"
 import { ValueError } from "../../errors"
 import { BaseTimelineStorage } from "../base/base_timeline_storage"
+import createDebug from 'debug'
+
+const debug = createDebug('superstream:inMemoryTimelineStorage')
 
 const timelineStore = {} // defaultdict(list)
 
@@ -43,20 +46,20 @@ function reverse_bisect_left(a, x, lo = 0, hi = null) {
 export class InMemoryTimelineStorage extends BaseTimelineStorage {
 
 
-  private getTimeline(key) {
+  private getTimeline(key): any[] {
     return timelineStore[key] || []
   }
 
-  async contains(key, activity_id) {
+  async contains(key, activityId) {
     var timeline = this.getTimeline(key)
-    const found = activity_id in timeline
-    console.log(found);
-    return activity_id in timeline
+    const found = timeline.includes(activityId)
+    debug('Contains key', found)
+    return found
   }
 
-  async getIndexOf(key, activity_id) {
+  async getIndexOf(key, activityId) {
     var timeline = this.getTimeline(key)
-    return timeline.index(activity_id)
+    return timeline.indexOf(activityId)
   }
 
   async getSliceFromStorage({
@@ -66,12 +69,9 @@ export class InMemoryTimelineStorage extends BaseTimelineStorage {
     filter_kwargs = undefined,
     ordering_args = undefined
   }) {
-    console.log('timelineStore', timelineStore);
     var timeline = this.getTimeline(key)
     var results = timeline.splice(start, stop)
-    console.log('results', results);
     var score_value_pairs = zip(results, results)
-    console.log(score_value_pairs);
     return score_value_pairs
   }
 
@@ -80,27 +80,23 @@ export class InMemoryTimelineStorage extends BaseTimelineStorage {
     activities: { [activityId: string]: any },
     args
   ) {
-    console.log('adding to storage');
+    debug('Adding to storage', key, activities);
     var timeline = timelineStore[key]
     if (!timeline) {
       // create new key
       timelineStore[key] = []
       timeline = timelineStore[key]
     }
-    console.log('activities', activities);
     var initial_count = timeline.length
     const keyValuePairs = Object.entries(activities)
-    console.log("keyValuePairs", keyValuePairs);
-    for (const [activity_id, activity_data] of keyValuePairs) {
-      console.log(activity_id, activity_data);
-      const exist = await this.contains(key, activity_id)
+    for (const [activityId, activity_data] of keyValuePairs) {
+      const exist = await this.contains(key, activityId)
       if (exist) {
-        console.log('continuing ', this.contains(key, activity_id));
+        debug('key existed ', key);
         continue
       }
-      console.log('activity_data', activity_data);
       timeline.splice(
-        reverse_bisect_left(timeline, activity_id),
+        reverse_bisect_left(timeline, activityId),
         0,
         activity_data
       )
@@ -112,9 +108,9 @@ export class InMemoryTimelineStorage extends BaseTimelineStorage {
     const timeline = this.getTimeline(key)
     const initial_count = timeline.length
     const keys = Object.keys(activities)
-    for (const activity_id of keys) {
-      if (this.contains(key, activity_id))
-        timeline.remove(activity_id)
+    for (const activityId of keys) {
+      if (this.contains(key, activityId))
+        timeline.filter(a => a != activityId)
     }
     return initial_count - timeline.length
   }
@@ -135,11 +131,9 @@ export class InMemoryTimelineStorage extends BaseTimelineStorage {
     const exist = timelineStore[key]
     if (exist)
       delete timelineStore[key]
-    // timelineStore.pop(key, None)
   }
 
   async trim(key, length) {
-    // const timeline = timelineStore[key] || []
     timelineStore[key] = timelineStore[key].splice(length)
   }
 

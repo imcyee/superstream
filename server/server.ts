@@ -8,6 +8,10 @@ import { getRedisConnection, setupRedisConfig } from "../src/storage/redis/conne
 import { setupTask } from '../src/task/setupTask';
 import routes from './routes';
 
+const { createBullBoard } = require('@bull-board/api')
+const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter')
+const { ExpressAdapter } = require('@bull-board/express');
+
 const debug = createDebug('superstream:server')
 const app = express()
 
@@ -19,8 +23,12 @@ export function getTaskProps() {
   return taskProps
 }
 
-export const startServer = async (storageName) => {
-  // var storageName = getStorageName()
+/**
+ * Mock environment
+ * @param storageName 
+ * @returns 
+ */
+export const setupMockEnvironment = async (storageName) => {
 
   var redisContainer: StartedTestContainer
   var cassandraContainer: StartedTestContainer
@@ -29,13 +37,56 @@ export const startServer = async (storageName) => {
     .withExposedPorts(6379)
     .start();
 
+  const redisPort = redisContainer.getMappedPort(6379)
+  const redisHost = redisContainer.getHost()
+
+  // const storageName = getStorageName()
+
+  let cassandraPort
+  let cassandraHost
+  if (storageName === 'cassandra') {
+    cassandraContainer = await new GenericContainer("cassandra:3.11.0")
+      .withExposedPorts(9042) // 7000 for node, 9042 for client
+      .start();
+
+    cassandraPort = cassandraContainer.getMappedPort(9042)
+    cassandraHost = cassandraContainer.getHost()
+
+    setupCassandraConnection({
+      host: cassandraContainer.getHost(),
+      port: cassandraContainer.getMappedPort(9042),
+    })
+  }
+
+  process.addListener('exit', async function () {
+    console.log('Goodbye!');
+    await redisContainer.stop()
+    await cassandraContainer.stop()
+  });
+
+  return await startServer({
+    storageName,
+    cassandraPort,
+    cassandraHost,
+    redisPort,
+    redisHost
+  })
+}
+
+export const startServer = async ({
+  storageName,
+  cassandraPort = null,
+  cassandraHost = null,
+  redisPort,
+  redisHost,
+}) => {
   setupRedisConfig({
-    host: redisContainer.getHost(),
-    port: redisContainer.getMappedPort(6379),
+    host: redisHost,
+    port: redisPort,
   })
   taskProps = await setupTask({
-    host: redisContainer.getHost(),
-    port: redisContainer.getMappedPort(6379),
+    host: redisHost,
+    port: redisPort,
   })
 
   switch (storageName) {
@@ -43,18 +94,16 @@ export const startServer = async (storageName) => {
       getRedisConnection()
       break
     case 'cassandra':
-      cassandraContainer = await new GenericContainer("cassandra:3.11.0")
-        .withExposedPorts(9042) // 7000 for node, 9042 for client
-        .start();
-
       setupCassandraConnection({
-        host: cassandraContainer.getHost(),
-        port: cassandraContainer.getMappedPort(9042),
+        host: cassandraHost,
+        port: cassandraPort,
       })
 
+      // check first before running migration
       await runCassandraMigration()
       break
   }
+
 
   app.use(morgan('combined'))
   app.use(express.json());// parse json request body
@@ -66,12 +115,27 @@ export const startServer = async (storageName) => {
     console.info(`Listening to port ${port}`);
   });
 
-  process.on('exit', async function () {
+  /**
+   * Bull mq ui
+   */
+  const serverAdapter = new ExpressAdapter();
+  const { addQueue, removeQueue, setQueues, replaceQueues } = createBullBoard({
+    queues: [
+      new BullMQAdapter(taskProps.taskQueues.fanoutQueue),
+      new BullMQAdapter(taskProps.taskQueues.followManyQueue),
+      new BullMQAdapter(taskProps.taskQueues.unfollowManyQueue)
+    ],
+    serverAdapter: serverAdapter,
+  });
+  serverAdapter.setBasePath('/admin/queues');
+  app.use('/admin/queues', serverAdapter.getRouter());
+
+  process.addListener('exit', async function () {
     console.log('Goodbye!');
     await taskProps.shutdown()
-    await redisContainer.stop()
-    await cassandraContainer.stop()
   });
+
+  console.log('Server is ready.');
   return app
 }
 

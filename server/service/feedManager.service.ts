@@ -42,4 +42,24 @@ export class FeedManagerService<T extends Manager> {
     const result = await this.manager.addUserActivity(userId, activity)
     return result
   }
+
+  async updateFeedActivity({
+    actorId,
+    verbId,
+    objectId,
+    targetId,
+    time,
+    context
+  }) {
+    const activity = new Activity({
+      actor: actorId,
+      verb: verbId,
+      object: objectId,
+      target: targetId,
+      time: time || new Date(),
+      context: context
+    })
+    const result = await this.manager.updateUserActivity(activity)
+    return result
+  }
 }

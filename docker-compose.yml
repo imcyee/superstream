@@ -1,36 +1,34 @@
 version: '3'
 
-
 networks:
   app-tier:
     driver: bridge
 
-
 services:
-
   web:
     build: .
-    command: npm run start:dev
+    command: npm run start:server
     ports:
-      - "8080:8080"
+      - "8282:8282"
     depends_on:
-      redis:
+      redis01:
         condition: service_healthy
-      cassandra:
-        condition: service_healthy
+      # cassandra:
+      #   condition: service_healthy
     environment:
-      - REDISTOGO_URL=redis://redis:6379
+      - REDIS_PORT=6379
+      - REDIS_HOST=redis01
     # depends_on:
     #   - redis
-    volumes: 
+    volumes:
       - ./src:/usr/src/app/src
     networks:
       - app-tier
 
-  redis:
+  redis01:
     image: redis
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 1s
       timeout: 3s
       retries: 30
@@ -38,22 +36,21 @@ services:
       - 6379
     networks:
       - app-tier
-
-  cassandra: 
-    image: 'cassandra:latest' 
-    ports:
-      - "9042:9042" 
-    networks:
-      - app-tier 
-    environment:
-      - CASSANDRA_START_RPC=true
-      - CASSANDRA_CLUSTER_NAME=MyCluster
-      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-      - CASSANDRA_DC=datacenter
-    volumes: 
-      - /cassandra_docker_volume:/var/lib/cassandra
-    healthcheck:
-      test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
+  # cassandra: 
+  #   image: 'cassandra:latest' 
+  #   ports:
+  #     - "9042:9042" 
+  #   networks:
+  #     - app-tier 
+  #   environment:
+  #     - CASSANDRA_START_RPC=true
+  #     - CASSANDRA_CLUSTER_NAME=MyCluster
+  #     - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+  #     - CASSANDRA_DC=datacenter
+  #   volumes: 
+  #     - /cassandra_docker_volume:/var/lib/cassandra
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 5

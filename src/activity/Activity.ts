@@ -3,7 +3,9 @@ import { ValueError } from "../errors"
 import { hashCode } from "../utils"
 import { BaseActivity } from "./base/BaseActivity"
 import { DehydratedActivity } from "./DehydratedActivity"
+import createDebug from 'debug'
 
+const debug = createDebug('superstream:activity')
 
 /**
  * Wrapper class for storing activities
@@ -38,11 +40,16 @@ export class Activity extends BaseActivity {
   }) {
     super()
 
+    debug(
+      serializationId, actorId, objectId, targetId, verbId,
+      actor, verb, object, target, time, context
+    );
+
     // sanitize invalid activity
     if (!verb && !verbId) // verb writetime is require to purge old data
       throw new Error('This does not seems like a valid activity, verb is required')
 
-    if (!(actor || actorId) && !(object || objectId)
+    if ((!actor && !actorId) || (!object && !objectId)
       // && !(target || targetId)
     )
       throw new Error('This does not seems like a valid activity')

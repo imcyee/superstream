@@ -4,7 +4,7 @@ import IORedis from 'ioredis'
 import chunk from "lodash/chunk"
 import { getSeparator } from ".."
 import { Activity } from "../activity/Activity"
-import { AggregatedActivity } from "../activity/AggregatedActivity" 
+import { AggregatedActivity } from "../activity/AggregatedActivity"
 import { registeredManagers } from '../feedManagers/registerManager'
 import { BaseFeed } from "../feeds/base/base"
 import { UserBaseFeed } from "../feeds/UserBaseFeed"
@@ -17,7 +17,7 @@ export const queueNames = {
   followManyQueue: "followManyQueue"
 }
 
-const debug = createDebug('ns:debug:base')
+const debug = createDebug('superstream:tasks')
 
 // Operation
 // '''
@@ -130,7 +130,6 @@ export const setupTask = async ({
     queueNames.fanoutQueue,
     async (job) => {
       debug("Handling fanout")
-      console.log('Handling fanning out');
       const {
         feedManagerName,
         followerIds,
@@ -145,7 +144,7 @@ export const setupTask = async ({
       if (!result.succeeded)
         throw new Error(result.message)
 
-      const ManagerClass = registeredManagers[feedManagerName]; 
+      const ManagerClass = registeredManagers[feedManagerName];
       if (!ManagerClass)
         throw new Error("Unable to find manager class in Manager Registration.")
 
@@ -160,9 +159,7 @@ export const setupTask = async ({
       const feedManager = new ManagerClass({ tasks: taskQueues })
       // const manager = new ManagerClass({ tasks: taskQueues })
 
-      console.log(feedManager);
       for await (const FeedClass of Object.values(feedManager.FeedClasses)) {
-        console.log('here2');
         const chunk_size = feedManager.fanoutChunkSize
         const userIds_chunks = chunk(followerIds, chunk_size)
         const msg_format = (userIds_chunks_length, followerIdsLength, chunk_size) =>
@@ -173,7 +170,6 @@ export const setupTask = async ({
         // var tasks = []
         // # now actually create the tasks 
         for await (const ids_chunk of userIds_chunks) {
-          console.log('here3');
           const operation = operationRegistration[operationName];
           // Simple task wrapper for _fanout task
           // Just making sure code is where you expect it :)
@@ -209,7 +205,7 @@ export const setupTask = async ({
       ])
       if (!result.succeeded)
         throw new Error(result.message)
- 
+
       const ManagerClass = registeredManagers[feedManagerName];
       if (!ManagerClass)
         throw new Error("Unable to find manager class in Manager Registration.")
@@ -281,7 +277,7 @@ export const setupTask = async ({
       if (!result.succeeded)
         throw new Error(result.message)
 
-      const ManagerClass = registeredManagers[feedManagerName]; 
+      const ManagerClass = registeredManagers[feedManagerName];
       if (!ManagerClass)
         throw new Error("Unable to find manager class in Manager Registration.")
 
@@ -334,18 +330,13 @@ export const setupTask = async ({
   // const waitForQueueReadyPromises: Promise<any>[] = []
   queues.forEach((queue) => {
     queue.on('waiting', () => {
-      console.log('Ready, waiting for queue job', queue.name);
+      debug('Ready, waiting for queue job', queue.name);
     })
   })
 
-  // // fanoutQueue.on("ready", () => {
-  // //   console.log('waiting for job');
-  // // })
-  // await Promise.all(waitForQueueReadyPromises)
-
   await new Promise((res, rej) => {
     connection.on('ready', () => {
-      console.log('ready');
+      debug('ready');
       return res(null)
     })
   })

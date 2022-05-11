@@ -1,10 +1,12 @@
+import createDebug from 'debug'
 import { Activity } from "../../activity/Activity"
 import { AssertionError } from "../../errors"
-import { ActivitySerializer } from "../../serializers/ActivitySerializer"
 import { BaseSerializer } from "../../serializers/BaseSerializer"
 import { SimpleTimelineSerializer } from "../../serializers/SimpleTimelineSerializer"
 import { BaseActivityStorage } from "../../storage/base/base_activity_storage"
 import { BaseTimelineStorage } from "../../storage/base/base_timeline_storage"
+
+const debug = createDebug('superstream:feed')
 
 /**
  * The feed class allows you to add and remove activities from a feed.
@@ -221,7 +223,7 @@ export abstract class BaseFeed {
       ...opts
     } = optsArg || {}
 
-    console.log('adding to ', this.timelineStorage);
+    debug('adding many ', activities);
     const addCount = await this.timelineStorage.addMany(
       this.key,
       activities,
@@ -410,6 +412,7 @@ export abstract class BaseFeed {
    * hydrates the activities using the activityStorage
    */
   async hydrateActivities(activities) {
+    debug('hydrating Activities', activities);
     // const activityIds = activities.map((a) => a._activityIds)
     const activityIds = []
     activities.forEach(a => activityIds.push(...a._activityIds))
@@ -417,7 +420,6 @@ export abstract class BaseFeed {
     const activityList = await this.activityStorage.getMany(activityIds)
 
     var activityData = {}
-    console.log('activityList', activityList);
     for (const a of activityList) {
       activityData[a.serializationId] = a
     }

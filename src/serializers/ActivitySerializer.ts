@@ -40,13 +40,16 @@ export class ActivitySerializer extends BaseSerializer {
   loads(serializedActivity) {  
     const parts = serializedActivity.split(',')
 
+    console.log('parts', parts);
     // convert these to ids
     const [serializationId, actorId, verbId, objectId, targetId] = parts
     const activity_datetime = epochToDatetime(parseFloat(parts[4]))  // epochToDatetime(parseFloat(parts[4]))// activityTime
-    const pickleString = parts[5]
+    const pickleString = parts[5] // context
+
+
 
     var context = {}
-    if (pickleString) {
+    if (pickleString && pickleString != 'NaN' && pickleString != 'undefined' && pickleString != 'null') {
       context = JSON.parse(pickleString)
     } 
     const activity = new this.ActivityClass({

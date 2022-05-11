@@ -8,7 +8,7 @@ import { TScoreValuePair } from '../redis.type'
 import { BaseRedisHashCache } from "./hash"
 import { BaseRedisListCache } from "./list"
 
-const debug = createDebug('ns:debug:sorted_set')
+const debug = createDebug('superstream:sorted_set')
 
 /**
  * We use this mostly to store activityId with score
@@ -60,12 +60,9 @@ export class RedisSortedSetCache extends Mixin(BaseRedisListCache, BaseRedisHash
 
   async addMany(scoreValuePairs: TScoreValuePair[]) {
     // validate
-    const key = this.getKey()
-    console.log('scoreValuePairs',scoreValuePairs);
+    const key = this.getKey() 
     const scores = (zip(...scoreValuePairs))[0]
-    scores.forEach(element => {
-      console.log('element', element);
-
+    scores.forEach(element => {  
       if (isNaN(Number(element)))
         throw new Error(`Please send floats as the first part of the pairs got ${scoreValuePairs}`)
       return true
