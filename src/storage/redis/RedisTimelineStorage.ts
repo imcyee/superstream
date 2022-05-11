@@ -9,7 +9,7 @@ import * as uuid from 'uuid'
 import { v1time } from "../../utils/v1time"
 import { TScoreValuePair } from "./redis.type"
 
-const debug = createDebug('test:RedisTimelineStorage')
+const debug = createDebug('superstream:test:RedisTimelineStorage')
 
 export class TimelineCache extends RedisSortedSetCache {
   sort_asc = false

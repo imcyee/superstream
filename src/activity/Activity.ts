@@ -3,7 +3,9 @@ import { ValueError } from "../errors"
 import { hashCode } from "../utils"
 import { BaseActivity } from "./base/BaseActivity"
 import { DehydratedActivity } from "./DehydratedActivity"
+import createDebug from 'debug'
 
+const debug = createDebug('superstream:activity')
 
 /**
  * Wrapper class for storing activities
@@ -38,19 +40,9 @@ export class Activity extends BaseActivity {
   }) {
     super()
 
-    console.log(
-      serializationId,
-      actorId,
-      objectId,
-      targetId,
-      verbId,
-      actor,
-      verb,
-      object,
-      target,
-      time,
-      context
-
+    debug(
+      serializationId, actorId, objectId, targetId, verbId,
+      actor, verb, object, target, time, context
     );
 
     // sanitize invalid activity

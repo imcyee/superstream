@@ -1,5 +1,5 @@
 import { BaseStorage } from "./base_storage"
-  
+
 /**
  * The Activity storage globally stores a key value mapping.
  * This is used to store the mapping between an activityId && the actual
@@ -16,6 +16,11 @@ import { BaseStorage } from "./base_storage"
  */
 export abstract class BaseActivityStorage extends BaseStorage {
 
+  /**
+   * addToStorage also update existing activity if found
+   * @param serializedActivities 
+   * @param opts 
+   */
   // addToStorage(serializedActivities, *args, ** opts) {
   // Adds the serialized activities to the storage layer 
   // :param serializedActivities: a dictionary with {id: serializedActivity}
@@ -54,8 +59,7 @@ export abstract class BaseActivityStorage extends BaseStorage {
   // :param activities: the list of activities
   addMany(activities, opts) {
     this.metrics.onFeedWrite(this.constructor.name, activities?.length)
-    const serializedActivities = this.serializeActivities(activities)
-    console.log('serializedActivities in addMany', serializedActivities);
+    const serializedActivities = this.serializeActivities(activities) 
     return this.addToStorage(serializedActivities, opts)
   }
 
@@ -78,4 +82,3 @@ export abstract class BaseActivityStorage extends BaseStorage {
     return this.removeFromStorage(activityIds, opts)
   }
 }
- 

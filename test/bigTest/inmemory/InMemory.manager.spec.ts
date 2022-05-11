@@ -1,6 +1,7 @@
-import faker from '@faker-js/faker'
-import { InMemoryManager } from '../../../src/feedManagers/inmemory/CassandraManager'
-import { generateActivity } from '../../utils/generateActivity'
+// import supportsColor from 'supports-color';
+import { InMemoryManager } from '../../../src/feedManagers/inmemory/InMemoryManager';
+import { ableToUpdateUserActivity, addUserActivity } from '../managerGeneralTest';
+
 
 const taskStub = {
   fanoutQueue: { add: () => { } },
@@ -8,23 +9,22 @@ const taskStub = {
   unfollowManyQueue: { add: () => { } },
 }
 
+
+
 describe("In memory", () => {
-  it("", async () => {
-    
-    const userId = faker.datatype.uuid()
-    // const feedManager = new InMemoryManager({ tasks: setupProps.taskQueues })
+  it("Able to add user activity", async () => {
     const feedManager = new InMemoryManager({
       tasks: taskStub as any
     })
+    await addUserActivity(feedManager)
+  });
 
-    const activity1 = generateActivity()
-    await feedManager.addUserActivity(userId, activity1)
+  it("Able to update user activity", async () => {
+    const feedManager = new InMemoryManager({
+      tasks: taskStub as any
+    })
+    await ableToUpdateUserActivity(feedManager)
+ 
+  });
 
-    // current user feed
-    const userFeed = feedManager.getUserFeed(userId)
-    const activities = await userFeed.getItem(0, 5)
-    expect(activities.length).toBe(1)
-  })
-
-  
 })
