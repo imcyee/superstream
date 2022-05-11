@@ -14,6 +14,7 @@
     "prepare": "npm run build",
     "start:dev": "ts-node-dev ./src/index.ts",
     "start:server": "ts-node ./server/index.ts",
+    "start:server:dev": "ts-node ./server/mock-server.ts",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:watch:debug": "DEBUG=superstream:* jest --watch",

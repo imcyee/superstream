@@ -45,27 +45,6 @@ router.route('/feeds')
 
 
 router.route('/activity')
-  // implement group
-  // eg: notification, timeline, user
-  // each group will store it differently
-  // .get(async (req, res) => {
-  //   const { group, userId, offset, limit } = req.query
-
-  //   if (!userId)
-  //     throw new Error('Missing userId')
-
-  //   if (Number(limit) > 100)
-  //     throw new Error("max limit 100")
-
-  //   const feedManagerService = new FeedManagerService()
-  //   const feedActivities = await feedManagerService.getFeedActivity({
-  //     userId,
-  //     limit,
-  //     offset
-  //   })
-  //   return res.json(feedActivities)
-  // })
-
   .put(async (req, res) => {
     const { group, userId, serializationId } = req.query
     if (!userId)
@@ -74,9 +53,18 @@ router.route('/activity')
     if (!serializationId)
       throw new Error('Missing serializationId')
 
+    const {
+      actorId,
+      verbId,
+      objectId,
+      targetId,
+      time,
+      context
+    } = req.body
+
     // const { actorId, verbId, objectId, targetId, time, context } = req.body
     const feedManagerService = new FeedManagerService()
-    const result = await feedManagerService.addFeedActivity(userId, {
+    const result = await feedManagerService.updateFeedActivity({
       actorId,
       verbId,
       objectId,
