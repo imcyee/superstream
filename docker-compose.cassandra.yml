@@ -18,6 +18,8 @@ services:
     environment:
       - REDIS_PORT=6379
       - REDIS_HOST=redis01
+      - CASSANDRA_HOST=cassandra
+      - CASSANDRA_PORT=9042
     # depends_on:
     #   - redis
     volumes:
@@ -37,21 +39,21 @@ services:
     networks:
       - app-tier
       
-  # cassandra: 
-  #   image: 'cassandra:latest' 
-  #   ports:
-  #     - "9042:9042" 
-  #   networks:
-  #     - app-tier 
-  #   environment:
-  #     - CASSANDRA_START_RPC=true
-  #     - CASSANDRA_CLUSTER_NAME=MyCluster
-  #     - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
-  #     - CASSANDRA_DC=datacenter
-  #   volumes: 
-  #     - /cassandra_docker_volume:/var/lib/cassandra
-  #   healthcheck:
-  #     test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
-  #     interval: 30s
-  #     timeout: 10s
-  #     retries: 5
+  cassandra: 
+    image: 'cassandra:latest' 
+    ports:
+      - "9042:9042" 
+    networks:
+      - app-tier 
+    environment:
+      - CASSANDRA_START_RPC=true
+      - CASSANDRA_CLUSTER_NAME=MyCluster
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+      - CASSANDRA_DC=datacenter
+    volumes: 
+      - /cassandra_docker_volume:/var/lib/cassandra
+    healthcheck:
+      test: ["CMD-SHELL", "[ $$(nodetool statusgossip) = running ]"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
